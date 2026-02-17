@@ -23,6 +23,9 @@ let activeSuit = null;
 let gameStarted = false;
 let roundHistory = [];
 
+// --- Keep Alive για το Render ---
+app.get('/ping', (req, res) => res.send('pong'));
+
 // --- ΒΟΗΘΗΤΙΚΕΣ ---
 function createDeck() {
     const suits = ['♠', '♣', '♥', '♦'];
@@ -39,7 +42,7 @@ function createDeck() {
 function calculateHandScore(hand) {
     let score = 0;
     hand.forEach(c => {
-        if (c.value === 'A') score += 11;
+        if (c.value === 'A') score += 50; // ΑΛΛΑΓΗ: Ο Άσσος μετράει για 50
         else if (['K', 'Q', 'J'].includes(c.value)) score += 10;
         else score += parseInt(c.value);
     });
@@ -49,6 +52,8 @@ function calculateHandScore(hand) {
 app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
 
 io.on('connection', (socket) => {
+    console.log('New connection:', socket.id);
+    
     players[socket.id] = {
         id: socket.id, hand: [], name: "Παίκτης " + (Object.keys(players).length + 1), totalScore: 0, hasDrawn: false
     };
@@ -78,16 +83,20 @@ io.on('connection', (socket) => {
 
         // Έλεγχος Ποινής
         if (penaltyStack > 0) {
-            // Στο 7αρι και στον Βαλέ επιτρέπεται η απάντηση (Stacking)
             if (penaltyType === '7' && card.value === '7') isValid = true;
             if (penaltyType === 'J' && card.value === 'J') isValid = true;
-            
-            // Στο 2αρι ΔΕΝ επιτρέπεται η απάντηση (Stacking). Πρέπει να τραβήξεις.
-            if (penaltyType === '2') isValid = false; 
-
+            if (penaltyType === '2') isValid = false; // Στο 2 δεν απαντάς
         } else {
-            // Κανονική Ροή
-            if (card.value === 'A') isValid = true;
+            // --- ΚΑΝΟΝΕΣ VALIDATION ---
+            
+            // Κανόνας Άσσου πάνω σε Άσσο
+            if (card.value === 'A' && topCard.value === 'A') {
+                // Επιτρέπεται ΜΟΝΟ αν είναι ίδιο χρώμα (π.χ. Κούπα σε Κούπα)
+                if (card.suit === topCard.suit) isValid = true;
+                else isValid = false; 
+            }
+            // Κανονικοί κανόνες
+            else if (card.value === 'A') isValid = true; // Άσσος σε οτιδήποτε άλλο
             else if (card.value === topCard.value) isValid = true;
             else if (card.suit === effectiveSuit) isValid = true;
             else if (card.value === 'J' && card.color === 'red') isValid = true;
@@ -97,54 +106,45 @@ io.on('connection', (socket) => {
             p.hand.splice(data.index, 1);
             discardPile.push(card);
 
-            // --- ΕΛΕΓΧΟΣ ΤΕΛΟΥΣ ΓΥΡΟΥ ---
             if (p.hand.length === 0) {
-                // ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ: Κλείσιμο με Βαλέ
+                // Κλείσιμο με Βαλέ
                 if (card.value === 'J') {
-                    // Βρες τον επόμενο παίκτη
                     let nextIdx = (turnIndex + direction + playerOrder.length) % playerOrder.length;
                     let victimId = playerOrder[nextIdx];
-                    
-                    // Φόρτωσέ τον με 10 κάρτες!
                     for(let i=0; i<10; i++) {
                         if(deck.length===0) refillDeck();
                         if(deck.length>0) players[victimId].hand.push(deck.pop());
                     }
                     io.to(victimId).emit('notification', "Ο αντίπαλος έκλεισε με Βαλέ! Έφαγες 10 κάρτες!");
                 }
-                
                 handleRoundEnd(socket.id);
                 return;
             }
 
-            if (card.value === 'A') activeSuit = declaredSuit ? declaredSuit : card.suit;
-            else activeSuit = null;
+            // --- ΛΟΓΙΚΗ ΑΣΣΟΥ ---
+            if (card.value === 'A') {
+                if (topCard.value === 'A') {
+                    // Άσσος πάνω σε Άσσο: Δεν αλλάζει χρώμα, λειτουργεί σαν απλό φύλλο
+                    activeSuit = null; 
+                } else {
+                    // Άσσος σε άλλο φύλλο: Αλλάζει χρώμα
+                    activeSuit = declaredSuit ? declaredSuit : card.suit;
+                }
+            } else {
+                activeSuit = null;
+            }
 
             let advance = true; 
             let steps = 1;
 
-            // ΚΑΝΟΝΕΣ
-            if (card.value === '8') { 
-                advance = false; 
-                io.to(socket.id).emit('notification', "Ξαναπαίζεις!"); 
-            }
-            else if (card.value === '7') { 
-                penaltyStack += 2; 
-                penaltyType = '7'; 
-            }
-            else if (card.value === '2') { 
-                // Το 2αρι δεν κάνει stack. Είναι απλά ποινή 1 κάρτας για τον επόμενο.
-                penaltyStack = 1; 
-                penaltyType = '2'; 
-            }
+            if (card.value === '8') { advance = false; io.to(socket.id).emit('notification', "Ξαναπαίζεις!"); }
+            else if (card.value === '7') { penaltyStack += 2; penaltyType = '7'; }
+            else if (card.value === '2') { penaltyStack = 1; penaltyType = '2'; } // Το 2 δεν αθροίζει
             else if (card.value === 'J' && card.color === 'black') { 
-                penaltyStack += 10; 
+                penaltyStack += 10; // Προσθέτει στο stack (10, 20, 30...)
                 penaltyType = 'J'; 
             }
-            else if (card.value === 'J' && card.color === 'red') { 
-                penaltyStack = 0; 
-                penaltyType = null; 
-            }
+            else if (card.value === 'J' && card.color === 'red') { penaltyStack = 0; penaltyType = null; }
             else if (card.value === '3') { 
                 if (playerOrder.length === 2) { advance = false; io.to(socket.id).emit('notification', "Ξαναπαίζεις!"); }
                 else direction *= -1; 
@@ -187,7 +187,6 @@ io.on('connection', (socket) => {
     socket.on('passTurn', () => {
         if (!gameStarted || playerOrder[turnIndex] !== socket.id) return;
         if (penaltyStack > 0) return;
-        
         advanceTurn(1);
         broadcastUpdate();
     });
@@ -244,20 +243,14 @@ function startNewRound(resetTotalScores = false) {
 
 function handleRoundEnd(winnerId) {
     let roundResults = {};
-    let roundPoints = {}; // Για τα μηνύματα
-
     playerOrder.forEach(id => {
         if (id === winnerId) {
             roundResults[id] = "WC";
-            roundPoints[id] = 0;
-            // Μήνυμα στον νικητή
             io.to(id).emit('roundResultMsg', "Πάνε τουαλέτα 🚽");
         } else {
             let points = calculateHandScore(players[id].hand);
             players[id].totalScore += points;
             roundResults[id] = players[id].totalScore;
-            roundPoints[id] = points;
-            // Μήνυμα στον χαμένο
             io.to(id).emit('roundResultMsg', `Έγραψες ${points} πόντους`);
         }
     });
@@ -277,9 +270,7 @@ function handleRoundEnd(winnerId) {
         let sortedPlayers = playerOrder.map(id => players[id]).sort((a,b) => a.totalScore - b.totalScore);
         io.emit('gameOver', sortedPlayers);
     } else {
-        setTimeout(() => {
-            startNewRound(false);
-        }, 4000); // Λίγο περισσότερος χρόνος να δουν το μήνυμα
+        setTimeout(() => startNewRound(false), 4000);
     }
 }
 
@@ -310,7 +301,7 @@ function getGameState() {
         players: safePlayers,
         topCard: discardPile.length > 0 ? discardPile[discardPile.length - 1] : null,
         penalty: penaltyStack,
-        penaltyType: penaltyType // Στέλνουμε και τον τύπο για να βγάλουμε σωστό μήνυμα
+        penaltyType: penaltyType
     };
 }
 
