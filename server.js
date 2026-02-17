@@ -4,8 +4,13 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
 
+// Ρυθμίσεις CORS για σύνδεση από Render/Κινητά
+const io = new Server(server, {
+    cors: { origin: "*", methods: ["GET", "POST"] }
+});
+
+// --- ΜΕΤΑΒΛΗΤΕΣ ---
 let deck = [];
 let discardPile = [];
 let players = {};
@@ -19,8 +24,10 @@ let gameStarted = false;
 let roundHistory = [];
 let roundStarterIndex = 0;
 
+// Keep Alive για το Render
 app.get('/ping', (req, res) => res.send('pong'));
 
+// --- ΣΥΝΑΡΤΗΣΕΙΣ ΛΟΓΙΚΗΣ ---
 function createDeck() {
     const suits = ['♠', '♣', '♥', '♦'];
     const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -46,7 +53,14 @@ function calculateHandScore(hand) {
 app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
 
 io.on('connection', (socket) => {
-    players[socket.id] = { id: socket.id, hand: [], name: "Παίκτης " + (Object.keys(players).length + 1), totalScore: 0, hasDrawn: false };
+    players[socket.id] = {
+        id: socket.id, 
+        hand: [], 
+        name: "Παίκτης " + (Object.keys(players).length + 1), 
+        totalScore: 0,
+        hasDrawn: false
+    };
+    
     io.emit('playerCountUpdate', Object.keys(players).length);
 
     socket.on('startGameRequest', () => {
@@ -57,21 +71,26 @@ io.on('connection', (socket) => {
 
     socket.on('playCard', (data) => {
         if (!gameStarted || playerOrder[turnIndex] !== socket.id) return;
+        
         let p = players[socket.id];
         let card = p.hand[data.index];
         let topCard = discardPile[discardPile.length - 1];
-        let effectiveSuit = activeSuit || topCard.suit;
+        let declaredSuit = data.declaredSuit;
 
         let isValid = false;
+        let effectiveSuit = activeSuit || topCard.suit;
+
         if (penaltyStack > 0) {
             if (penaltyType === '7' && card.value === '7') isValid = true;
             if (penaltyType === 'J' && card.value === 'J') isValid = true;
         } else {
+            // Κανόνας Άσσου πάνω σε Άσσο: Μόνο ίδιο σχήμα/χρώμα
             if (card.value === 'A' && topCard.value === 'A') {
                 if (card.suit === topCard.suit) isValid = true;
             }
             else if (card.value === topCard.value) isValid = true;
             else if (card.suit === effectiveSuit) isValid = true;
+            // Κόκκινος Βαλές ακυρώνει μόνο πάνω σε Βαλέ
             else if (card.value === 'J' && card.color === 'red' && topCard.value === 'J') isValid = true;
         }
 
@@ -80,6 +99,15 @@ io.on('connection', (socket) => {
             discardPile.push(card);
 
             if (p.hand.length === 0) {
+                // Κλείσιμο με Βαλέ
+                if (card.value === 'J') {
+                    let nextIdx = (turnIndex + direction + playerOrder.length) % playerOrder.length;
+                    let victimId = playerOrder[nextIdx];
+                    for(let i=0; i<10; i++) {
+                        if(deck.length===0) refillDeck();
+                        if(deck.length>0) players[victimId].hand.push(deck.pop());
+                    }
+                }
                 handleRoundEnd(socket.id, card.value === 'A');
                 return;
             }
@@ -87,9 +115,9 @@ io.on('connection', (socket) => {
             // Logic Άσσου
             if (card.value === 'A') {
                 if (topCard.value === 'A' && card.suit === topCard.suit) {
-                    // Παραμένει το ίδιο activeSuit αν υπήρχε
+                    // Παίζει ως απλό φύλλο, δεν αλλάζει το declared suit
                 } else {
-                    activeSuit = data.declaredSuit || card.suit;
+                    activeSuit = declaredSuit ? declaredSuit : card.suit;
                 }
             } else {
                 activeSuit = null;
@@ -112,8 +140,12 @@ io.on('connection', (socket) => {
             if(deck.length===0) refillDeck();
             if(deck.length > 0) p.hand.push(deck.pop());
         }
-        if (penaltyStack > 0) p.hasDrawn = false; else p.hasDrawn = true;
-        penaltyStack = 0; penaltyType = null;
+        
+        if (penaltyStack > 0) p.hasDrawn = false;
+        else p.hasDrawn = true;
+
+        penaltyStack = 0;
+        penaltyType = null;
         broadcastUpdate();
     });
 
@@ -122,10 +154,17 @@ io.on('connection', (socket) => {
         advanceTurn(1);
         broadcastUpdate();
     });
+
+    socket.on('disconnect', () => {
+        delete players[socket.id];
+        io.emit('playerCountUpdate', Object.keys(players).length);
+    });
 });
 
 function processCardLogic(card) {
-    let advance = true; let steps = 1;
+    let advance = true; 
+    let steps = 1;
+
     if (card.value === '8') { advance = false; }
     else if (card.value === '7') { penaltyStack += 2; penaltyType = '7'; }
     else if (card.value === 'J' && card.color === 'black') { penaltyStack += 10; penaltyType = 'J'; }
@@ -135,20 +174,37 @@ function processCardLogic(card) {
         if (deck.length === 0) refillDeck();
         if (deck.length > 0) players[playerOrder[prevIdx]].hand.push(deck.pop());
     }
-    else if (card.value === '3') { if (playerOrder.length === 2) advance = false; else direction *= -1; }
-    else if (card.value === '9') { if (playerOrder.length === 2) advance = false; else steps = 2; }
-    
+    else if (card.value === '3') { 
+        if (playerOrder.length === 2) advance = false; 
+        else direction *= -1; 
+    }
+    else if (card.value === '9') {
+         if (playerOrder.length === 2) advance = false; 
+         else steps = 2; 
+    }
+
     if (advance) advanceTurn(steps);
 }
 
 function startNewRound(resetTotalScores = false) {
-    gameStarted = true; deck = createDeck(); playerOrder = Object.keys(players);
+    gameStarted = true;
+    deck = createDeck();
+    playerOrder = Object.keys(players);
     turnIndex = roundStarterIndex % playerOrder.length;
     roundStarterIndex++;
     direction = 1; penaltyStack = 0; activeSuit = null;
 
-    if (resetTotalScores) { roundHistory = []; playerOrder.forEach(id => players[id].totalScore = 0); roundStarterIndex = 1; turnIndex = 0; }
-    playerOrder.forEach(id => { players[id].hand = []; players[id].hasDrawn = false; });
+    if (resetTotalScores) {
+        roundHistory = [];
+        playerOrder.forEach(id => players[id].totalScore = 0);
+        roundStarterIndex = 1;
+        turnIndex = 0;
+    }
+    
+    playerOrder.forEach(id => {
+        players[id].hand = [];
+        players[id].hasDrawn = false;
+    });
 
     let dealCount = 0;
     let dealInterval = setInterval(() => {
@@ -156,7 +212,6 @@ function startNewRound(resetTotalScores = false) {
         dealCount++;
         if (dealCount === 11) {
             clearInterval(dealInterval);
-            // Έλεγχος αρχικού φύλλου
             let first;
             do {
                 if(first) deck.unshift(first);
@@ -166,8 +221,7 @@ function startNewRound(resetTotalScores = false) {
             
             discardPile = [first];
             io.emit('gameReady');
-            // Εφαρμογή κανόνων αρχικού φύλλου
-            processCardLogic(first);
+            processCardLogic(first); // Εφαρμογή ποινών αρχικού φύλλου
             broadcastUpdate();
         }
     }, 50);
@@ -178,18 +232,25 @@ function handleRoundEnd(winnerId, closedWithAce) {
     playerOrder.forEach(id => {
         if (id === winnerId) {
             historyEntry[players[id].name] = "WC";
+            io.to(id).emit('roundResultMsg', "Πάνε τουαλέτα 🚽");
         } else {
             let points = calculateHandScore(players[id].hand);
-            if (closedWithAce) points += 50; // Bonus ποινή άσσου
+            if (closedWithAce) points += 50; 
             players[id].totalScore += points;
             historyEntry[players[id].name] = players[id].totalScore;
+            io.to(id).emit('roundResultMsg', `Έγραψες ${points} πόντους`);
         }
     });
     roundHistory.push(historyEntry);
     io.emit('updateScoreboard', roundHistory);
+    
     let loser = playerOrder.find(id => players[id].totalScore >= 500);
-    if (loser) { gameStarted = false; io.emit('gameOver', playerOrder.map(id => players[id]).sort((a,b)=>a.totalScore-b.totalScore)); }
-    else { setTimeout(() => startNewRound(false), 4000); }
+    if (loser) {
+        gameStarted = false;
+        io.emit('gameOver', playerOrder.map(id => players[id]).sort((a,b)=>a.totalScore-b.totalScore));
+    } else {
+        setTimeout(() => startNewRound(false), 4000);
+    }
 }
 
 function advanceTurn(steps) {
@@ -222,4 +283,5 @@ function refillDeck() {
     discardPile = [top];
 }
 
-server.listen(process.env.PORT || 3000);
+const port = process.env.PORT || 3000;
+server.listen(port, () => console.log('Server running on ' + port));
