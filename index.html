@@ -21,68 +21,44 @@
         /* --- START SCREEN --- */
         #start-screen { 
             position: fixed; inset: 0; 
-            background: rgba(0,0,0,0.95); 
-            z-index: 2000; 
+            background: rgba(0,0,0,0.95); z-index: 2000; 
             display: flex; flex-direction: column; 
             align-items: center; justify-content: center; 
             transition: opacity 0.5s;
         }
-        
-        .title-logo {
-            font-size: 50px; color: var(--gold); 
-            text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
-            margin-bottom: 10px; text-align: center;
-        }
-        
-        .waiting-text {
-            color: #aaa; margin-top: 20px; font-size: 16px;
-            animation: pulse 1.5s infinite; text-align: center;
-        }
-
-        .start-btn { 
-            padding: 15px 40px; font-size: 20px; 
-            background: var(--gold); color: #111;
-            border: none; border-radius: 50px; 
-            cursor: pointer; font-weight: bold; 
-            box-shadow: 0 0 15px var(--gold);
-            opacity: 0.5; pointer-events: none; 
-            transition: all 0.3s; margin-top: 20px;
-        }
+        .title-logo { font-size: 50px; color: var(--gold); text-shadow: 0 0 20px rgba(212, 175, 55, 0.5); margin-bottom: 10px; text-align: center; }
+        .waiting-text { color: #aaa; margin-top: 20px; font-size: 16px; animation: pulse 1.5s infinite; text-align: center; }
+        .start-btn { padding: 15px 40px; font-size: 20px; background: var(--gold); color: #111; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; box-shadow: 0 0 15px var(--gold); opacity: 0.5; pointer-events: none; transition: all 0.3s; margin-top: 20px; }
         .start-btn.active { opacity: 1; pointer-events: all; transform: scale(1.1); }
-
         @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
 
-        /* --- GAME UI --- */
-        #turn-indicator {
-            position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
-            padding: 8px 20px; background: rgba(0,0,0,0.8); 
-            border: 2px solid #555; border-radius: 20px;
-            font-size: 16px; font-weight: bold; z-index: 1000;
-            white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        /* --- GAME OVER SCREEN --- */
+        #game-over-screen {
+            display: none; position: fixed; inset: 0; 
+            background: rgba(0,0,0,0.9); z-index: 3000;
+            flex-direction: column; align-items: center; justify-content: center;
+            animation: fadeIn 0.5s;
         }
+        .winner-text { font-size: 40px; color: var(--gold); margin-bottom: 20px; text-shadow: 0 0 10px gold; }
+        .score-list { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; min-width: 250px; }
+        .score-item { display: flex; justify-content: space-between; font-size: 20px; margin-bottom: 10px; border-bottom: 1px solid #555; padding-bottom: 5px; }
 
-        /* Declared Suit Icon */
-        #suit-indicator {
-            position: absolute; top: 32%; left: 50%; transform: translate(-50%, -50%);
-            width: 50px; height: 50px; background: white; border-radius: 50%;
-            display: none; align-items: center; justify-content: center;
-            font-size: 35px; box-shadow: 0 0 15px white; z-index: 5;
-        }
+        /* --- UI ELEMENTS --- */
+        #turn-indicator { position: fixed; top: 15px; left: 50%; transform: translateX(-50%); padding: 8px 20px; background: rgba(0,0,0,0.8); border: 2px solid #555; border-radius: 20px; font-size: 16px; font-weight: bold; z-index: 1000; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        #suit-indicator { position: absolute; top: 32%; left: 50%; transform: translate(-50%, -50%); width: 50px; height: 50px; background: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 35px; box-shadow: 0 0 15px white; z-index: 5; }
 
-        /* Table Layout */
         #table { width: 100%; height: 100%; position: relative; }
         .center-stack { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; gap: 20px; }
-
+        
         /* Opponents */
-        .opponent { position: absolute; display: flex; flex-direction: column; align-items: center; }
+        .opponent { position: absolute; display: flex; flex-direction: column; align-items: center; transition: all 0.5s; }
         .opp-name { background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-bottom: 2px; color: #ddd; }
         .opp-top { top: 60px; left: 50%; transform: translateX(-50%); }
         .opp-left { left: 20px; top: 40%; transform: translateY(-50%); }
         .opp-right { right: 20px; top: 40%; transform: translateY(-50%); }
-        
-        .mini-card { width: 22px; height: 32px; background: linear-gradient(135deg, #a00, #500); border: 1px solid #fff; border-radius: 3px; margin-left: -16px; box-shadow: 1px 1px 3px black; }
+        .mini-card { width: 22px; height: 32px; background: linear-gradient(135deg, #a00, #500); border: 1px solid #fff; border-radius: 3px; margin-left: -16px; box-shadow: 1px 1px 3px black; transition: transform 0.3s; }
 
-        /* Cards */
+        /* CARDS & ANIMATIONS */
         .card {
             width: 80px; height: 120px; background: white; color: black;
             border-radius: 8px; border: 1px solid #999;
@@ -93,57 +69,31 @@
             cursor: pointer; transition: transform 0.2s;
         }
         .card.red { color: #d00; }
-        .card.back { 
-            background: linear-gradient(135deg, #8e2424 0%, #4d0000 100%); 
-            border: 2px solid #eee; display: flex; align-items: center; justify-content: center; 
-            color: #eee; text-align: center;
-        }
+        .card.back { background: linear-gradient(135deg, #8e2424 0%, #4d0000 100%); border: 2px solid #eee; display: flex; align-items: center; justify-content: center; color: #eee; text-align: center; }
         
-        /* My Hand */
-        #my-hand { 
-            position: absolute; bottom: 20px; width: 100%; 
-            display: flex; justify-content: center; height: 140px; 
-        }
-        .hand-card { 
-            margin-left: -45px; 
-            transition: margin 0.2s, transform 0.2s; 
-            transform-origin: bottom center;
-            box-shadow: -2px 0 5px rgba(0,0,0,0.3);
-        }
+        /* Animation: Slide Up (When dealing) */
+        @keyframes slideUp { from { transform: translateY(100px) scale(0.5); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+        .new-card { animation: slideUp 0.4s ease-out; }
+
+        #my-hand { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: center; height: 140px; }
+        .hand-card { margin-left: -45px; transition: margin 0.2s, transform 0.2s; transform-origin: bottom center; box-shadow: -2px 0 5px rgba(0,0,0,0.3); }
         .hand-card:first-child { margin-left: 0; }
         .hand-card:hover { transform: translateY(-30px) scale(1.1); margin-right: 20px; z-index: 100; }
 
-        /* Controls */
         #controls { position: absolute; bottom: 180px; right: 20px; }
-        .pass-btn { 
-            padding: 10px 25px; background: rgba(0,0,0,0.5); color: white; 
-            border: 1px solid var(--gold); border-radius: 20px; cursor: pointer; 
-        }
+        .pass-btn { padding: 10px 25px; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--gold); border-radius: 20px; cursor: pointer; }
         .pass-btn:hover { background: var(--gold); color: black; }
 
-        /* Modal */
-        #ace-modal {
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 3000;
-            flex-direction: column; align-items: center; justify-content: center;
-        }
+        #ace-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 3000; flex-direction: column; align-items: center; justify-content: center; }
         .suit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px; }
-        .suit-btn {
-            width: 70px; height: 70px; font-size: 40px; background: white; 
-            border: 3px solid var(--gold); border-radius: 10px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            transition: transform 0.2s;
-        }
+        .suit-btn { width: 70px; height: 70px; font-size: 40px; background: white; border: 3px solid var(--gold); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
         .suit-btn:hover { transform: scale(1.1); background: var(--gold); }
-
+        
         .shake { animation: shake 0.4s; border-color: red !important; }
         @keyframes shake { 0%, 100% {transform:translateX(0);} 25% {transform:translateX(-5px);} 75% {transform:translateX(5px);} }
+        @keyframes fadeIn { from {opacity:0} to {opacity:1} }
         
-        /* Responsive */
-        @media (max-width: 600px) {
-            .card { width: 65px; height: 95px; font-size: 16px; }
-            .suit-btn { width: 60px; height: 60px; }
-            .title-logo { font-size: 35px; }
-        }
+        @media (max-width: 600px) { .card { width: 65px; height: 95px; font-size: 16px; } .suit-btn { width: 60px; height: 60px; } .title-logo { font-size: 35px; } }
     </style>
 </head>
 <body>
@@ -152,6 +102,13 @@
         <div class="title-logo">Μαύρος Βαλές ♠</div>
         <div id="waiting-msg" class="waiting-text">Συνδεδεμένοι παίκτες: 1<br>Περίμενε να συνδεθεί τουλάχιστον ένας φίλος...</div>
         <button id="start-btn" class="start-btn" onclick="socket.emit('startGameRequest')">ΞΕΚΙΝΗΣΕ ΤΟ ΜΟΙΡΑΣΜΑ</button>
+    </div>
+
+    <div id="game-over-screen">
+        <div class="winner-text">🏆 ΤΕΛΟΣ ΠΑΙΧΝΙΔΙΟΥ</div>
+        <div class="score-list" id="score-results">
+            </div>
+        <button class="start-btn active" onclick="location.reload()">ΠΑΙΞΕ ΞΑΝΑ</button>
     </div>
 
     <div id="turn-indicator">Αναμονή...</div>
@@ -174,7 +131,7 @@
         <div id="opp-right" class="opponent opp-right"></div>
 
         <div class="center-stack">
-            <div class="card back" id="draw-pile" onclick="socket.emit('drawCard')">
+            <div class="card back" id="draw-pile" onclick="drawCardAnim()">
                 <div style="font-size:12px">ΤΡΑΒΑ</div>
             </div>
             <div id="top-card-spot"></div>
@@ -195,12 +152,10 @@
 
         socket.on('connect', () => myId = socket.id);
 
-        // Update Start Screen info
         socket.on('playerCountUpdate', (count) => {
             const btn = document.getElementById('start-btn');
             const msg = document.getElementById('waiting-msg');
             msg.innerHTML = `Συνδεδεμένοι παίκτες: ${count}`;
-            
             if (count >= 2) {
                 btn.classList.add('active');
                 msg.innerHTML += `<br><span style="color:#4f4">Είστε έτοιμοι!</span>`;
@@ -215,8 +170,25 @@
             setTimeout(() => document.getElementById('start-screen').style.display = 'none', 500);
         });
 
+        socket.on('gameOver', (results) => {
+            const screen = document.getElementById('game-over-screen');
+            const list = document.getElementById('score-results');
+            screen.style.display = 'flex';
+            
+            // Ταξινόμηση (νικητής πρώτος)
+            results.sort((a, b) => a.score - b.score);
+            
+            list.innerHTML = results.map(r => `
+                <div class="score-item" style="${r.isWinner ? 'color:#4f4; font-weight:bold;' : ''}">
+                    <span>${r.name} ${r.isWinner ? '👑' : ''}</span>
+                    <span>${r.score} πόντοι</span>
+                </div>
+            `).join('');
+        });
+        
+        socket.on('gameEndedForced', () => location.reload());
+
         socket.on('updateUI', (data) => {
-            // Turn Indicator & Draw Pile logic
             const ind = document.getElementById('turn-indicator');
             const drawPile = document.getElementById('draw-pile');
             
@@ -226,23 +198,19 @@
                     ind.style.color = "#ff6666";
                     ind.style.borderColor = "red";
                     drawPile.style.boxShadow = "0 0 20px red";
-                    drawPile.innerHTML = `<div style="font-size:18px">${data.penalty}</div>`;
                 } else {
                     ind.innerText = "🟢 ΕΙΝΑΙ Η ΣΕΙΡΑ ΣΟΥ";
                     ind.style.color = "#4ff";
                     ind.style.borderColor = "#4ff";
                     drawPile.style.boxShadow = "none";
-                    drawPile.innerHTML = `<div>ΤΡΑΒΑ</div>`;
                 }
             } else {
                 ind.innerText = "⏳ Περίμενε...";
                 ind.style.color = "#aaa";
                 ind.style.borderColor = "#555";
                 drawPile.style.boxShadow = "none";
-                drawPile.innerHTML = `<div>ΤΡΑΒΑ</div>`;
             }
 
-            // Ace Suit Indicator
             const suitInd = document.getElementById('suit-indicator');
             if (data.activeSuit) {
                 suitInd.style.display = 'flex';
@@ -282,11 +250,20 @@
             socket.emit('playCard', { index: selectedAceIndex, declaredSuit: suit });
         }
 
+        function drawCardAnim() {
+            // Animation εφέ όταν πατάς
+            const pile = document.getElementById('draw-pile');
+            pile.style.transform = "scale(0.9)";
+            setTimeout(() => pile.style.transform = "translate(-50%, -50%)", 100);
+            socket.emit('drawCard');
+        }
+
         function renderHand(hand) {
             const div = document.getElementById('my-hand');
             div.innerHTML = hand.map((c, i) => {
                 const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : '';
-                return `<div class="card hand-card ${color}" onclick="play(${i}, '${c.value}')">
+                // Προσθήκη κλάσης new-card για animation
+                return `<div class="card hand-card ${color} new-card" onclick="play(${i}, '${c.value}')">
                     <div style="line-height:0.8">${c.value}<br>${c.suit}</div>
                     <div style="font-size:35px; align-self:center">${c.suit}</div>
                     <div style="transform:rotate(180deg); line-height:0.8">${c.value}<br>${c.suit}</div>
@@ -296,7 +273,7 @@
 
         function createCardHTML(c) {
             const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : '';
-            return `<div class="card ${color}">
+            return `<div class="card ${color} new-card">
                 <div style="line-height:0.8">${c.value}<br>${c.suit}</div>
                 <div style="font-size:35px; align-self:center">${c.suit}</div>
                 <div style="transform:rotate(180deg); line-height:0.8">${c.value}<br>${c.suit}</div>
