@@ -3,176 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Μαύρος Βαλές - Online</title>
+    <title>Μαύρος Βαλές</title>
     <style>
-        :root { 
-            --green: #1a472a; 
-            --gold: #d4af37; 
-            --red-glow: rgba(255, 0, 0, 0.8); 
-            --bg-gradient: radial-gradient(circle, #2e5c3e 0%, #1a472a 100%);
-        }
-        
-        body { 
-            background: var(--bg-gradient); 
-            color: white; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            margin: 0; 
-            overflow: hidden; 
-            height: 100vh; 
-            user-select: none; 
-            -webkit-user-select: none;
-        }
+        :root { --green: #1a472a; --gold: #d4af37; --bg: radial-gradient(circle, #2e5c3e 0%, #1a472a 100%); }
+        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; overflow: hidden; height: 100vh; user-select: none; }
 
-        /* --- ΟΘΟΝΗ ΕΝΑΡΞΗΣ --- */
-        #start-screen { 
-            position: fixed; inset: 0; 
-            background: rgba(0,0,0,0.95); 
-            z-index: 2000; 
-            display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; 
-        }
-        
-        button.start-btn { 
-            padding: 20px 50px; 
-            font-size: 22px; 
-            background: var(--gold); 
-            color: #222;
-            border: none; 
-            border-radius: 50px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            box-shadow: 0 0 20px rgba(212, 175, 55, 0.5); 
-            transition: transform 0.2s;
-        }
-        button.start-btn:active { transform: scale(0.95); }
+        /* Start Screen */
+        #start-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .start-btn { padding: 20px 50px; font-size: 22px; background: var(--gold); border: none; border-radius: 50px; cursor: pointer; font-weight: bold; }
 
-        /* --- ΕΝΔΕΙΞΗ ΣΕΙΡΑΣ --- */
+        /* Ace Selection Modal */
+        #ace-modal { 
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; 
+            flex-direction: column; align-items: center; justify-content: center; 
+        }
+        .suit-options { display: flex; gap: 20px; margin-top: 20px; }
+        .suit-btn { 
+            width: 60px; height: 60px; font-size: 30px; background: white; border: 2px solid var(--gold); 
+            border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; 
+        }
+        .suit-btn:hover { transform: scale(1.1); }
+
+        /* Indicators */
         #turn-indicator {
             position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
-            padding: 10px 25px; 
-            background: rgba(0,0,0,0.8);
-            border: 2px solid #555; 
-            border-radius: 20px;
-            font-size: 16px; 
-            font-weight: bold; 
-            text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            z-index: 1000;
-            transition: all 0.3s ease;
-            white-space: nowrap;
+            padding: 10px 25px; background: rgba(0,0,0,0.8); border: 2px solid #555; border-radius: 20px;
+            font-size: 16px; font-weight: bold; z-index: 1000;
+        }
+        #declared-suit {
+            position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 40px; color: var(--gold); text-shadow: 0 0 10px black; display: none;
         }
 
-        /* --- ΤΡΑΠΕΖΙ --- */
+        /* Table */
         #table { width: 100%; height: 100%; position: relative; }
-
-        /* --- ΑΝΤΙΠΑΛΟΙ --- */
-        .opponent { position: absolute; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
-        .opp-name { background: rgba(0,0,0,0.6); padding: 2px 8px; border-radius: 5px; font-size: 12px; margin-bottom: 2px; color: #ddd; }
         
+        .center-stack { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; gap: 30px; }
+        
+        /* Opponents */
+        .opponent { position: absolute; text-align: center; }
         .opp-top { top: 60px; left: 50%; transform: translateX(-50%); }
         .opp-left { left: 20px; top: 40%; transform: translateY(-50%); }
         .opp-right { right: 20px; top: 40%; transform: translateY(-50%); }
-        
-        .mini-hand { display: flex; justify-content: center; }
-        .mini-card { 
-            width: 25px; height: 38px; 
-            background: linear-gradient(135deg, #a00, #500); 
-            border: 1px solid white; border-radius: 3px; 
-            margin-left: -18px; /* Επικάλυψη */
-            box-shadow: 1px 1px 3px black;
-        }
-        .mini-card:first-child { margin-left: 0; }
+        .mini-card { width: 25px; height: 38px; background: #a00; border: 1px solid white; margin-left: -18px; display: inline-block; }
 
-        /* --- ΚΕΝΤΡΟ (ΣΤΟΙΒΕΣ) --- */
-        .center-stack {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            display: flex; gap: 30px; align-items: center;
-        }
-        
-        /* --- ΣΧΕΔΙΑΣΜΟΣ ΦΥΛΛΟΥ --- */
+        /* Cards */
         .card {
-            width: 80px; height: 120px;
-            background: white; color: black;
-            border-radius: 8px; border: 1px solid #999;
-            display: flex; flex-direction: column; justify-content: space-between;
-            padding: 5px; box-sizing: border-box;
-            position: relative; font-weight: bold; font-size: 18px;
-            box-shadow: 2px 4px 10px rgba(0,0,0,0.4);
-            cursor: pointer; transition: transform 0.2s;
+            width: 80px; height: 120px; background: white; color: black; border-radius: 8px; border: 1px solid #999;
+            display: flex; flex-direction: column; justify-content: space-between; padding: 5px; box-sizing: border-box;
+            position: relative; font-weight: bold; font-size: 18px; box-shadow: 2px 4px 10px rgba(0,0,0,0.4);
+            cursor: pointer;
         }
         .card.red { color: #d00; }
-        .card.back { 
-            background: linear-gradient(135deg, #8e2424 0%, #4d0000 100%); 
-            border: 2px solid white; 
-            display: flex; align-items: center; justify-content: center;
-        }
-        .card:hover { transform: translateY(-15px) scale(1.05); z-index: 50; }
-        .card:active { transform: scale(0.95); }
+        .card.back { background: linear-gradient(135deg, #8e2424, #4d0000); border: 2px solid white; color: white; text-align: center; justify-content: center;}
+        
+        /* Hand */
+        #my-hand { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: center; height: 140px; }
+        .hand-card { margin-left: -45px; transition: 0.2s; }
+        .hand-card:hover { transform: translateY(-30px); z-index: 100; }
 
-        /* Σύμβολα στο κέντρο */
-        .suit-center { font-size: 40px; align-self: center; line-height: 1; }
-        .corner-top { line-height: 0.8; }
-        .corner-bottom { transform: rotate(180deg); line-height: 0.8; }
+        .shake { animation: shake 0.4s; border: 2px solid red !important; }
+        @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
 
-        /* --- Animations Λάθους --- */
-        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border: 2px solid red !important; box-shadow: 0 0 15px red; }
-        @keyframes shake { 
-            10%, 90% { transform: translate3d(-1px, 0, 0); } 
-            20%, 80% { transform: translate3d(2px, 0, 0); } 
-            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 
-            40%, 60% { transform: translate3d(4px, 0, 0); } 
-        }
-
-        /* --- ΤΟ ΧΕΡΙ ΜΟΥ --- */
-        #my-hand {
-            position: absolute; bottom: 20px; width: 100%;
-            display: flex; justify-content: center; height: 140px;
-            padding-bottom: 10px;
-        }
-        .hand-card { 
-            margin-left: -45px; /* Μεγάλη επικάλυψη για να χωράνε 11 */
-            transition: margin 0.2s, transform 0.2s; 
-            transform-origin: bottom center;
-        }
-        .hand-card:first-child { margin-left: 0; }
-        .hand-card:hover { margin-right: 20px; z-index: 100; transform: translateY(-30px) scale(1.1); }
-
-        /* --- ΚΟΥΜΠΙΑ --- */
-        #controls { 
-            position: absolute; bottom: 180px; right: 20px; 
-            display: flex; gap: 10px; flex-direction: column;
-        }
-        .action-btn { 
-            padding: 12px 25px; 
-            background: rgba(0,0,0,0.6); 
-            color: white; 
-            border: 1px solid var(--gold); 
-            border-radius: 25px; 
-            cursor: pointer; 
-            font-weight: bold;
-            backdrop-filter: blur(5px);
-        }
-        .action-btn:hover { background: var(--gold); color: black; }
-
-        /* Responsive για κινητά */
-        @media (max-width: 600px) {
-            .card { width: 60px; height: 90px; font-size: 14px; }
-            .suit-center { font-size: 25px; }
-            .hand-card { margin-left: -35px; }
-            .center-stack { gap: 15px; }
-            #turn-indicator { font-size: 14px; padding: 8px 15px; width: 80%; }
-        }
+        /* Controls */
+        #controls { position: absolute; bottom: 180px; right: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .action-btn { padding: 12px 25px; background: rgba(0,0,0,0.6); color: white; border: 1px solid var(--gold); border-radius: 25px; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div id="start-screen">
-        <h1 style="color: var(--gold); margin-bottom: 20px; text-shadow: 2px 2px 0 #000;">Μαύρος Βαλές ♠️</h1>
-        <button class="start-btn" onclick="socket.emit('startGameRequest')">ΞΕΚΙΝΗΣΕ ΤΟ ΜΟΙΡΑΣΜΑ</button>
-        <p style="color: #aaa; margin-top: 20px; font-size: 14px;">Περιμένετε να συνδεθούν όλοι...</p>
+        <h1 style="color: var(--gold);">Μαύρος Βαλές</h1>
+        <button class="start-btn" onclick="socket.emit('startGameRequest')">ΞΕΚΙΝΗΣΕ</button>
     </div>
 
     <div id="turn-indicator">Αναμονή...</div>
+    
+    <div id="declared-suit"></div>
+
+    <div id="ace-modal">
+        <h2 style="color: white;">Επίλεξε Χρώμα</h2>
+        <div class="suit-options">
+            <div class="suit-btn" style="color: red;" onclick="confirmAce('♥')">♥</div>
+            <div class="suit-btn" style="color: red;" onclick="confirmAce('♦')">♦</div>
+            <div class="suit-btn" style="color: black;" onclick="confirmAce('♣')">♣</div>
+            <div class="suit-btn" style="color: black;" onclick="confirmAce('♠')">♠</div>
+        </div>
+        <button class="action-btn" style="margin-top: 20px;" onclick="confirmAce(null)">Χωρίς Αλλαγή</button>
+    </div>
 
     <div id="table">
         <div id="opp-top" class="opponent opp-top"></div>
@@ -180,14 +98,14 @@
         <div id="opp-right" class="opponent opp-right"></div>
 
         <div class="center-stack">
-            <div class="card back" onclick="drawCardEffect()">
-                <div style="font-size: 12px; color: #ddd; text-align: center;">ΤΡΑΒΑ</div>
+            <div class="card back" id="draw-pile" onclick="socket.emit('drawCard')">
+                <div>ΤΡΑΒΑ</div>
             </div>
             <div id="top-card-spot"></div>
         </div>
 
         <div id="controls">
-            <button class="action-btn" onclick="socket.emit('passTurn')">ΠΑΣΟ ⏭️</button>
+            <button class="action-btn" onclick="socket.emit('passTurn')">ΠΑΣΟ</button>
         </div>
 
         <div id="my-hand"></div>
@@ -197,149 +115,121 @@
     <script>
         const socket = io();
         let myId = null;
+        let selectedAceIndex = null; // Κρατάμε ποιον Άσσο πάτησε
 
-        // Αποθήκευση του ID μου όταν συνδεθώ
-        socket.on('connect', () => { 
-            myId = socket.id; 
-            console.log("Connected with ID:", myId);
-        });
+        socket.on('connect', () => myId = socket.id);
+        socket.on('gameReady', () => document.getElementById('start-screen').style.display = 'none');
 
-        // Όταν το παιχνίδι ξεκινάει
-        socket.on('gameReady', () => {
-            document.getElementById('start-screen').style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('start-screen').style.display = 'none';
-            }, 500);
-        });
-
-        // ΚΥΡΙΑ ΕΝΗΜΕΡΩΣΗ (Τρέχει κάθε φορά που παίζει κάποιος)
         socket.on('updateUI', (data) => {
-            // 1. Ενημέρωση Ένδειξης Σειράς
-            updateTurnIndicator(data.isMyTurn, data.penalty);
-
-            // 2. Ενημέρωση Φύλλου Κάτω
-            if (data.topCard) {
-                document.getElementById('top-card-spot').innerHTML = createCardHTML(data.topCard);
-            }
-
-            // 3. Ενημέρωση των Φύλλων μου
-            if (data.myHand) {
-                renderMyHand(data.myHand);
-            }
-
-            // 4. Ενημέρωση Αντιπάλων
-            renderOpponents(data.players);
-        });
-
-        // ΕΙΔΙΚΑ ΜΗΝΥΜΑΤΑ (π.χ. Ξαναπαίζεις)
-        socket.on('notification', (msg) => {
+            // Ένδειξη Σειράς & Ποινής
             const indicator = document.getElementById('turn-indicator');
-            indicator.innerText = msg;
-            indicator.style.color = "#FFD700"; // Χρυσό
-            indicator.style.borderColor = "#FFD700";
+            const drawPile = document.getElementById('draw-pile');
             
-            // Ήχος ειδοποίησης (προαιρετικά)
-            // new Audio('https://actions.google.com/sounds/v1/cartoon/pop.ogg').play();
-        });
-
-        // ΛΑΘΟΣ ΚΙΝΗΣΗ (Κοκκίνισμα)
-        socket.on('invalidMove', () => {
-            const cards = document.querySelectorAll('.hand-card');
-            cards.forEach(c => c.classList.add('shake'));
-            
-            // Αφαίρεση της κλάσης μετά το animation
-            setTimeout(() => {
-                cards.forEach(c => c.classList.remove('shake'));
-            }, 500);
-
-            // Μήνυμα
-            const indicator = document.getElementById('turn-indicator');
-            let oldText = indicator.innerText;
-            indicator.innerText = "⛔ ΛΑΘΟΣ ΦΥΛΛΟ!";
-            indicator.style.background = "#800";
-            setTimeout(() => {
-                indicator.innerText = oldText; // Επαναφορά
-                indicator.style.background = "rgba(0,0,0,0.8)";
-            }, 1000);
-        });
-
-        // --- ΒΟΗΘΗΤΙΚΕΣ ΣΥΝΑΡΤΗΣΕΙΣ ---
-
-        function updateTurnIndicator(isMyTurn, penalty) {
-            const indicator = document.getElementById('turn-indicator');
-            if (isMyTurn) {
-                indicator.innerText = "🟢 ΕΙΝΑΙ Η ΣΕΙΡΑ ΣΟΥ!";
-                indicator.style.color = "#4ff";
-                indicator.style.borderColor = "#4ff";
-                if (penalty > 0) {
-                    indicator.innerText += ` (ΠΟΙΝΗ: +${penalty})`;
-                    indicator.style.color = "#f55";
+            if (data.isMyTurn) {
+                if (data.penalty > 0) {
+                    indicator.innerText = `⚠️ ΤΡΑΒΑ ${data.penalty} ΚΑΡΤΕΣ!`;
+                    indicator.style.color = "#ff5555";
+                    drawPile.style.boxShadow = "0 0 20px red";
+                    drawPile.innerHTML = `<div style="font-size:20px">${data.penalty}</div><div>ΚΑΡΤΕΣ</div>`;
+                } else {
+                    indicator.innerText = "🟢 ΕΙΝΑΙ Η ΣΕΙΡΑ ΣΟΥ";
+                    indicator.style.color = "#4ff";
+                    drawPile.style.boxShadow = "none";
+                    drawPile.innerHTML = `<div>ΤΡΑΒΑ</div>`;
                 }
             } else {
                 indicator.innerText = "⏳ Περίμενε...";
                 indicator.style.color = "#aaa";
-                indicator.style.borderColor = "#555";
+                drawPile.style.boxShadow = "none";
+                drawPile.innerHTML = `<div>ΤΡΑΒΑ</div>`;
+            }
+
+            // Χρώμα Άσσου
+            const suitDiv = document.getElementById('declared-suit');
+            if (data.activeSuit) {
+                suitDiv.innerText = data.activeSuit;
+                suitDiv.style.color = (data.activeSuit === '♥' || data.activeSuit === '♦') ? 'red' : 'black'; // Εδώ φτιάξαμε το χρώμα να φαίνεται σωστά
+                suitDiv.style.backgroundColor = "white"; // Φόντο για να φαίνεται το μαύρο
+                suitDiv.style.borderRadius = "50%";
+                suitDiv.style.width = "50px";
+                suitDiv.style.height = "50px";
+                suitDiv.style.display = "flex";
+                suitDiv.style.alignItems = "center";
+                suitDiv.style.justifyContent = "center";
+            } else {
+                suitDiv.style.display = "none";
+            }
+
+            // Φύλλα
+            if (data.topCard) document.getElementById('top-card-spot').innerHTML = createCardHTML(data.topCard);
+            if (data.myHand) renderMyHand(data.myHand);
+            renderOpponents(data.players);
+        });
+
+        socket.on('notification', (msg) => {
+            const ind = document.getElementById('turn-indicator');
+            ind.innerText = msg;
+            ind.style.color = "gold";
+            setTimeout(() => { /* Θα επανέλθει με το επόμενο update */ }, 2000);
+        });
+
+        socket.on('invalidMove', () => {
+            document.querySelectorAll('.hand-card').forEach(c => c.classList.add('shake'));
+            setTimeout(() => document.querySelectorAll('.hand-card').forEach(c => c.classList.remove('shake')), 500);
+        });
+
+        // --- ΛΕΙΤΟΥΡΓΙΕΣ ---
+
+        function play(index, cardValue) {
+            // Αν είναι Άσσος, ανοίγουμε το παράθυρο επιλογής
+            if (cardValue === 'A') {
+                selectedAceIndex = index;
+                document.getElementById('ace-modal').style.display = 'flex';
+            } else {
+                // Κανονικό παίξιμο
+                socket.emit('playCard', { index: index, declaredSuit: null });
             }
         }
 
-        function play(index) {
-            socket.emit('playCard', index);
-        }
-
-        function drawCardEffect() {
-            // Οπτικό εφέ πατήματος
-            socket.emit('drawCard');
+        function confirmAce(suit) {
+            // Κλείσιμο παραθύρου και αποστολή
+            document.getElementById('ace-modal').style.display = 'none';
+            socket.emit('playCard', { index: selectedAceIndex, declaredSuit: suit });
+            selectedAceIndex = null;
         }
 
         function renderMyHand(hand) {
-            const handDiv = document.getElementById('my-hand');
-            handDiv.innerHTML = hand.map((card, index) => {
-                const colorClass = (card.suit === '♥' || card.suit === '♦') ? 'red' : '';
-                // Ειδικός σχεδιασμός για το HTML του κάθε φύλλου
-                return `
-                <div class="card hand-card ${colorClass}" onclick="play(${index})">
-                    <div class="corner-top">${card.value}<br>${card.suit}</div>
-                    <div class="suit-center">${card.suit}</div>
-                    <div class="corner-bottom">${card.value}<br>${card.suit}</div>
+            document.getElementById('my-hand').innerHTML = hand.map((c, i) => {
+                const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : '';
+                // Περνάμε το value στην play() για να ξέρει αν είναι Άσσος
+                return `<div class="card hand-card ${color}" onclick="play(${i}, '${c.value}')">
+                    <div style="line-height:0.8">${c.value}<br>${c.suit}</div>
+                    <div style="font-size:35px; align-self:center">${c.suit}</div>
+                    <div style="transform:rotate(180deg); line-height:0.8">${c.value}<br>${c.suit}</div>
                 </div>`;
             }).join('');
         }
 
-        function createCardHTML(card) {
-            const colorClass = (card.suit === '♥' || card.suit === '♦') ? 'red' : '';
-            return `
-            <div class="card ${colorClass}">
-                <div class="corner-top">${card.value}<br>${card.suit}</div>
-                <div class="suit-center">${card.suit}</div>
-                <div class="corner-bottom">${card.value}<br>${card.suit}</div>
+        function createCardHTML(c) {
+            const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : '';
+            return `<div class="card ${color}">
+                <div style="line-height:0.8">${c.value}<br>${c.suit}</div>
+                <div style="font-size:35px; align-self:center">${c.suit}</div>
+                <div style="transform:rotate(180deg); line-height:0.8">${c.value}<br>${c.suit}</div>
             </div>`;
         }
 
         function renderOpponents(players) {
-            // Φιλτράρουμε για να βρούμε τους άλλους παίκτες (όχι εμένα)
             const others = players.filter(p => p.id !== myId);
-            const positions = ['opp-top', 'opp-left', 'opp-right'];
-            
-            // Καθαρισμός θέσεων
-            positions.forEach(pos => document.getElementById(pos).innerHTML = '');
-
+            const pos = ['opp-top', 'opp-left', 'opp-right'];
+            pos.forEach(p => document.getElementById(p).innerHTML = '');
             others.forEach((p, i) => {
-                if (i < 3) { // Υποστηρίζει μέχρι 3 αντιπάλους (+ εσένα = 4)
-                    const posId = positions[i];
-                    
-                    // Δημιουργία μικρών καρτών (πλάτη)
-                    let cardsHTML = '';
-                    for(let k=0; k<p.handCount; k++) {
-                        cardsHTML += '<div class="mini-card"></div>';
-                    }
-
-                    const html = `
-                        <div class="opp-name">${p.name} (${p.handCount})</div>
-                        <div class="mini-hand">
-                            ${cardsHTML}
-                        </div>
-                    `;
-                    document.getElementById(posId).innerHTML = html;
+                if(i<3) {
+                    let cards = '';
+                    for(let k=0; k<p.handCount; k++) cards += '<div class="mini-card"></div>';
+                    document.getElementById(pos[i]).innerHTML = `
+                        <div style="background:rgba(0,0,0,0.5); padding:2px 8px; border-radius:5px; margin-bottom:5px;">${p.name}</div>
+                        <div>${cards}</div>`;
                 }
             });
         }
