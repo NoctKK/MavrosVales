@@ -14,8 +14,8 @@ let playerOrder = [];
 let turnIndex = 0;
 let direction = 1;
 let penaltyStack = 0;
-let penaltyType = null; // '7' ή 'J'
-let activeSuit = null; // Το χρώμα που δήλωσε ο Άσσος
+let penaltyType = null; 
+let activeSuit = null; 
 let gameStarted = false;
 
 // --- ΡΥΘΜΙΣΕΙΣ ---
@@ -34,14 +34,22 @@ function createDeck() {
 app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
 
 io.on('connection', (socket) => {
+    // Δημιουργία παίκτη
     players[socket.id] = {
         id: socket.id, hand: [], name: "Παίκτης " + (Object.keys(players).length + 1)
     };
     
-    io.emit('updateUI', getGameState());
+    // Ενημέρωση για το πόσοι είναι συνδεδεμένοι (Για την οθόνη έναρξης)
+    io.emit('playerCountUpdate', Object.keys(players).length);
+
+    if (gameStarted) {
+        // Αν μπει κάποιος ενώ παίζουν, του στέλνουμε την κατάσταση
+        socket.emit('updateUI', getGameState());
+    }
 
     socket.on('startGameRequest', () => {
-        if (gameStarted) return;
+        if (gameStarted || Object.keys(players).length < 2) return; // Ασφάλεια
+        
         gameStarted = true;
         deck = createDeck();
         playerOrder = Object.keys(players);
@@ -50,12 +58,13 @@ io.on('connection', (socket) => {
         penaltyStack = 0;
         activeSuit = null;
         
+        // Μοίρασμα
         let dealCount = 0;
         let dealInterval = setInterval(() => {
             playerOrder.forEach(id => {
                 if (deck.length > 0) {
                     players[id].hand.push(deck.pop());
-                    io.to(id).emit('receiveCard');
+                    io.to(id).emit('receiveCard'); // Εφέ ήχου/κίνησης
                 }
             });
             dealCount++;
@@ -69,82 +78,72 @@ io.on('connection', (socket) => {
         }, 200);
     });
 
-    // --- PLAY CARD (Δέχεται και declaredSuit για τον Άσσο) ---
     socket.on('playCard', (data) => {
         if (playerOrder[turnIndex] !== socket.id) return;
         
         let p = players[socket.id];
-        let cardIndex = data.index;
-        let declaredSuit = data.declaredSuit; // Αν είναι Άσσος, εδώ έχει το χρώμα
-        let card = p.hand[cardIndex];
+        let card = p.hand[data.index];
         let topCard = discardPile[discardPile.length - 1];
+        let declaredSuit = data.declaredSuit;
 
         // --- ΕΛΕΓΧΟΣ ΕΓΚΥΡΟΤΗΤΑΣ ---
         let isValid = false;
-        
-        // Έλεγχος βάσει του "Δηλωμένου Χρώματος" (αν υπάρχει από προηγούμενο Άσσο)
-        let effectiveSuit = activeSuit || topCard.suit;
+        let effectiveSuit = activeSuit || topCard.suit; // Το χρώμα που ισχύει
 
-        // 1. ΑΝ ΕΧΟΥΜΕ ΠΟΙΝΗ
+        // Αν έχουμε ποινή (7 ή J)
         if (penaltyStack > 0) {
             if (penaltyType === '7' && card.value === '7') isValid = true;
             if (penaltyType === 'J' && card.value === 'J') isValid = true;
-        } 
-        // 2. ΚΑΝΟΝΙΚΗ ΡΟΗ
-        else {
-            if (card.value === 'A') {
-                // Ο Άσσος παίζεται πάντα, ΑΡΚΕΙ να ταιριάζει με το προηγούμενο χρώμα (ή δηλωμένο χρώμα)
-                // Ο χρήστης είπε: "παίζει άσσο καρδούλα πάνω σε 4 καρδούλα".
-                // Άρα ελέγχουμε αν το suit του Άσσου ταιριάζει με το effectiveSuit
-                // Ή αν θέλει να τον παίξει ως μπαλαντέρ αλλαγής (που συνήθως επιτρέπεται).
-                // Στην Αγωνία συνήθως ο Άσσος πέφτει πάντα. Ας το αφήσουμε ελεύθερο εκτός αν υπάρχει ειδικός περιορισμός.
-                isValid = true;
-            } else if (card.value === topCard.value || card.suit === effectiveSuit || (card.value === 'J' && card.color === 'red')) {
-                isValid = true;
-            }
+        } else {
+            // Κανονική ροή
+            if (card.value === 'A') isValid = true; // Ο Άσσος πέφτει πάντα
+            else if (card.value === topCard.value) isValid = true; // Ίδιο νούμερο
+            else if (card.suit === effectiveSuit) isValid = true; // Ίδιο χρώμα (ή δηλωμένο)
+            else if (card.value === 'J' && card.color === 'red') isValid = true; // Ακυρωτικός
         }
 
         if (isValid) {
-            p.hand.splice(cardIndex, 1);
+            p.hand.splice(data.index, 1);
             discardPile.push(card);
 
             // Διαχείριση Άσσου
             if (card.value === 'A') {
-                if (declaredSuit) {
-                    activeSuit = declaredSuit; // Ο παίκτης διάλεξε νέο χρώμα
-                } else {
-                    activeSuit = card.suit; // Ο παίκτης τον έπαιξε "σκέτο", άρα το χρώμα είναι αυτό του Άσσου
-                }
+                activeSuit = declaredSuit ? declaredSuit : card.suit;
             } else {
-                activeSuit = null; // Κάθε άλλο φύλλο σβήνει την επιλογή του Άσσου
+                activeSuit = null; // Reset αν δεν είναι Άσσος
             }
 
-            let shouldAdvance = true; 
+            let advance = true; 
             let steps = 1;
 
             // ΚΑΝΟΝΕΣ
-            if (card.value === '8') { shouldAdvance = false; io.to(socket.id).emit('notification', "Ξαναπαίζεις!"); }
+            if (card.value === '8') { 
+                advance = false; 
+                io.to(socket.id).emit('notification', "Ξαναπαίζεις!"); 
+            }
             else if (card.value === '7') { penaltyStack += 2; penaltyType = '7'; }
             else if (card.value === 'J' && card.color === 'black') { penaltyStack += 10; penaltyType = 'J'; }
             else if (card.value === 'J' && card.color === 'red') { penaltyStack = 0; penaltyType = null; }
             else if (card.value === '3') { direction *= -1; }
             else if (card.value === '9') {
-                 if (playerOrder.length === 2) { shouldAdvance = false; io.to(socket.id).emit('notification', "Ξαναπαίζεις!"); }
-                 else { steps = 2; }
+                 if (playerOrder.length === 2) { 
+                     advance = false; 
+                     io.to(socket.id).emit('notification', "Ξαναπαίζεις!"); 
+                 } else { 
+                     steps = 2; 
+                 }
             }
 
-            if (shouldAdvance) advanceTurn(steps);
+            if (advance) advanceTurn(steps);
             broadcastUpdate();
         } else {
             socket.emit('invalidMove');
         }
     });
 
-    // --- DRAW CARD (ΤΡΑΒΗΓΜΑ) ---
     socket.on('drawCard', () => {
         if (playerOrder[turnIndex] !== socket.id) return;
         let p = players[socket.id];
-        
         let count = penaltyStack > 0 ? penaltyStack : 1;
         
         for(let i=0; i<count; i++) {
@@ -152,28 +151,30 @@ io.on('connection', (socket) => {
             if(deck.length > 0) p.hand.push(deck.pop());
         }
 
-        // ΑΛΛΑΓΗ: Αν τράβηξε λόγω ποινής, ΔΕΝ χάνει τη σειρά του (μπορεί να παίξει)
-        // Αν τράβηξε μόνος του (count=1), πάλι έχει δικαίωμα να παίξει στην αγωνία.
-        // Οπότε απλά μηδενίζουμε την ποινή και ΔΕΝ καλούμε advanceTurn.
-        
+        // ΣΗΜΑΝΤΙΚΟ: Μηδενισμός ποινής
+        let wasPenalty = penaltyStack > 0;
         penaltyStack = 0;
         penaltyType = null;
         
         io.to(socket.id).emit('notification', `Τράβηξες ${count} φύλλα!`);
+        
+        // Αν τράβηξε λόγω ποινής (7άρι), ΔΕΝ χάνει τη σειρά του (advance = false)
+        // Αν τράβηξε μόνος του (πάσο), επίσης δεν χάνει τη σειρά του μέχρι να πατήσει ΠΑΣΟ.
         broadcastUpdate();
     });
 
-    // --- PASS (ΠΑΣΟ) ---
-    // Αυτό χρειάζεται τώρα, γιατί αφού τραβήξεις, πρέπει να πατήσεις ΠΑΣΟ αν δεν έχεις να παίξεις
     socket.on('passTurn', () => {
         if (playerOrder[turnIndex] !== socket.id) return;
+        if (penaltyStack > 0) return; // Δεν μπορείς να πας πάσο αν χρωστάς φύλλα
+        
         advanceTurn(1);
         broadcastUpdate();
     });
 
     socket.on('disconnect', () => {
         delete players[socket.id];
-        io.emit('updateUI', getGameState());
+        io.emit('playerCountUpdate', Object.keys(players).length);
+        // Αν φύγει παίκτης, ίσως χρειαστεί reset, αλλά για τώρα το αφήνουμε απλό
     });
 });
 
@@ -188,7 +189,7 @@ function broadcastUpdate() {
             ...getGameState(),
             myHand: players[id].hand,
             isMyTurn: (id === playerOrder[turnIndex]),
-            activeSuit: activeSuit // Στέλνουμε το χρώμα που ζητάει ο Άσσος
+            activeSuit: activeSuit
         });
     });
 }
@@ -212,4 +213,5 @@ function refillDeck() {
     discardPile = [top];
 }
 
-server.listen(3000, () => console.log('Server running on 3000'));
+const port = process.env.PORT || 3000;
+server.listen(port, () => console.log('Server running on ' + port));
