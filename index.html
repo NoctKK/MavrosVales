@@ -3,136 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Μαύρος Βαλές - Pro Edition</title>
+    <title>Μαύρος Βαλές - Pro UI</title>
     <style>
         :root { 
             --gold: #d4af37; 
             --felt: radial-gradient(circle at center, #2e5c3e 0%, #13351f 100%);
-            --panel-bg: rgba(0, 0, 0, 0.7);
+            --panel-bg: rgba(0, 0, 0, 0.8);
         }
         
-        body { 
-            background: #0a1a0f; 
-            color: white; 
-            font-family: 'Arial Rounded MT Bold', Arial, sans-serif; 
-            margin: 0; overflow: hidden; height: 100vh; 
-            user-select: none; -webkit-user-select: none;
-        }
+        body { background: #0a1a0f; color: white; font-family: 'Arial Rounded MT Bold', Arial, sans-serif; margin: 0; overflow: hidden; height: 100vh; user-select: none; }
 
-        /* --- ΤΡΑΠΕΖΙ --- */
-        #table { 
-            width: 100%; height: 100%; 
-            background: var(--felt);
-            position: relative;
-            box-shadow: inset 0 0 200px rgba(0,0,0,0.8);
-            border: 12px solid #3d2b1f;
-            box-sizing: border-box;
-        }
+        /* ΤΡΑΠΕΖΙ */
+        #table { width: 100%; height: 100%; background: var(--felt); position: relative; box-shadow: inset 0 0 200px rgba(0,0,0,0.8); border: 12px solid #3d2b1f; box-sizing: border-box; }
 
-        /* --- ΠΙΝΑΚΑΣ ΣΚΟΡ (Top Left) --- */
-        #scoreboard { 
-            position: absolute; top: 20px; left: 20px; 
-            background: var(--panel-bg); border: 2px solid var(--gold); 
-            border-radius: 12px; padding: 8px; z-index: 1500; 
-            font-size: 13px; box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
-            min-width: 150px; display: none;
-        }
+        /* SCOREBOARD */
+        #scoreboard { position: absolute; top: 20px; left: 20px; background: var(--panel-bg); border: 2px solid var(--gold); border-radius: 12px; padding: 10px; z-index: 1500; font-size: 13px; min-width: 150px; display: none; }
         table { border-collapse: collapse; width: 100%; }
         th { color: var(--gold); border-bottom: 1px solid #555; }
         .wc-text { color: #4f4; font-weight: bold; }
 
-        /* --- ΕΝΔΕΙΞΗ ΣΕΙΡΑΣ & ΦΟΡΑΣ --- */
-        #turn-indicator { 
-            position: fixed; top: 20px; right: 20px; 
-            padding: 12px 20px; background: #1a472a; 
-            border: 3px solid #4f4; border-radius: 15px;
-            font-size: 16px; font-weight: bold; z-index: 1000;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-        }
+        /* Turn Indicator & Arrow */
+        #turn-indicator { position: fixed; top: 20px; right: 20px; padding: 12px 20px; background: #1a472a; border: 3px solid #4f4; border-radius: 15px; font-size: 16px; font-weight: bold; z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        #direction-arrow { position: absolute; top: 85px; right: 45px; font-size: 50px; color: var(--gold); z-index: 100; text-shadow: 0 0 10px gold; }
 
-        #direction-arrow {
-            position: absolute; top: 85px; right: 45px;
-            font-size: 50px; color: var(--gold);
-            text-shadow: 0 0 10px rgba(212, 175, 55, 0.8);
-            z-index: 100; transition: transform 0.5s ease;
-        }
-
-        /* --- ΑΝΤΙΠΑΛΟΙ --- */
-        .opponent { position: absolute; display: flex; flex-direction: column; align-items: center; transition: all 0.3s; }
-        .opp-name { background: rgba(0,0,0,0.6); padding: 3px 10px; border-radius: 8px; font-size: 12px; margin-bottom: 5px; color: #fff; border: 1px solid #555; }
-        
+        /* ΑΝΤΙΠΑΛΟΙ */
+        .opponent { position: absolute; display: flex; flex-direction: column; align-items: center; }
+        .opp-name { background: rgba(0,0,0,0.6); padding: 3px 10px; border-radius: 8px; font-size: 12px; margin-bottom: 5px; border: 1px solid #555; }
         .opp-top { top: 40px; left: 50%; transform: translateX(-50%); }
         .opp-left { left: 40px; top: 40%; transform: translateY(-50%); }
         .opp-right { right: 40px; top: 40%; transform: translateY(-50%); }
-        
-        .mini-card { 
-            width: 30px; height: 45px; 
-            background: linear-gradient(135deg, #a00, #500); 
-            border: 1.5px solid white; border-radius: 4px; 
-            margin-left: -20px; box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
-        }
-        .mini-card:first-child { margin-left: 0; }
+        .mini-card { width: 25px; height: 38px; background: linear-gradient(135deg, #a00, #500); border: 1px solid white; border-radius: 4px; margin-left: -18px; box-shadow: 2px 2px 5px black; }
 
-        /* --- ΚΕΝΤΡΟ --- */
-        .center-stack { 
-            position: absolute; top: 45%; left: 50%; 
-            transform: translate(-50%, -50%); 
-            display: flex; gap: 40px; align-items: center;
-        }
+        /* ΚΕΝΤΡΟ */
+        .center-stack { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); display: flex; gap: 40px; align-items: center; }
+        #draw-pile { width: 95px; height: 135px; background: linear-gradient(135deg, #8e2424, #4d0000); border: 3px solid white; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
 
-        #draw-pile { 
-            width: 95px; height: 135px; 
-            background: linear-gradient(135deg, #8e2424 0%, #4d0000 100%);
-            border: 3px solid white; border-radius: 10px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            box-shadow: 8px 8px 15px rgba(0,0,0,0.5); cursor: pointer;
-        }
-
-        /* --- ΦΥΛΛΑ --- */
-        .card { 
-            width: 90px; height: 130px; background: white; color: black; 
-            border-radius: 10px; border: 1px solid #ccc;
-            display: flex; flex-direction: column; justify-content: space-between; 
-            padding: 8px; box-sizing: border-box; position: relative;
-            font-weight: bold; font-size: 20px; 
-            box-shadow: 4px 4px 10px rgba(0,0,0,0.3);
-            transition: transform 0.2s; cursor: pointer;
-        }
+        /* ΦΥΛΛΑ */
+        .card { width: 90px; height: 130px; background: white; color: black; border-radius: 10px; border: 1px solid #ccc; display: flex; flex-direction: column; justify-content: space-between; padding: 8px; box-sizing: border-box; font-weight: bold; font-size: 20px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.1s; }
         .card.red { color: #d00; }
-        
-        #my-hand { 
-            position: absolute; bottom: 30px; width: 100%; 
-            display: flex; justify-content: center; height: 150px; 
-        }
+        #my-hand { position: absolute; bottom: 30px; width: 100%; display: flex; justify-content: center; height: 150px; }
         .hand-card { margin-left: -40px; border: 2px solid #aaa; }
         .hand-card:hover { transform: translateY(-35px) scale(1.1); z-index: 100; }
 
-        /* --- ΚΟΥΜΠΙΑ --- */
-        .game-btn {
-            background: linear-gradient(to bottom, #4a4a4a 0%, #2a2a2a 100%);
-            border: 2px solid #666; border-radius: 10px;
-            color: white; padding: 12px 20px; font-size: 16px;
-            cursor: pointer; font-weight: bold; box-shadow: 0 4px 0 #111;
-        }
-        .game-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #111; }
-
-        /* --- MODALS --- */
+        /* MODALS */
         .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 3000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #ace-modal { display: none; z-index: 4000; }
         .suit-btn { width: 70px; height: 70px; font-size: 40px; background: white; border-radius: 10px; margin: 10px; cursor: pointer; border: 3px solid var(--gold); }
+        .game-btn { background: linear-gradient(to bottom, #4a4a4a, #2a2a2a); border: 2px solid #666; border-radius: 10px; color: white; padding: 12px 20px; font-weight: bold; cursor: pointer; }
+
+        #suit-indicator { position: absolute; top: 32%; left: 50%; transform: translate(-50%, -50%); width: 50px; height: 50px; background: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 35px; box-shadow: 0 0 15px white; z-index: 5; }
+        .shake { animation: shake 0.2s; border-color: red !important; }
+        @keyframes shake { 0%, 100% {transform:translateX(0);} 25% {transform:translateX(-5px);} 75% {transform:translateX(5px);} }
     </style>
 </head>
 <body>
 
     <div id="start-screen" class="overlay">
-        <h1 style="color:var(--gold); font-size:50px;">Μαύρος Βαλές</h1>
+        <h1 style="color:var(--gold); font-size:50px;">Μαύρος Βαλές ♠</h1>
         <p id="waiting-msg">Αναμονή παικτών...</p>
-        <button id="start-btn" class="game-btn" style="padding:20px 40px; font-size:22px; opacity:0.5;" onclick="socket.emit('startGameRequest')">ΕΝΑΡΞΗ</button>
+        <button id="start-btn" class="game-btn" style="padding:20px 40px; font-size:22px; opacity:0.5; pointer-events:none;" onclick="socket.emit('startGameRequest')">ΕΝΑΡΞΗ</button>
     </div>
 
-    <div id="ace-modal" class="overlay">
+    <div id="ace-modal" class="overlay" style="display:none;">
         <h2 style="color:var(--gold);">Διάλεξε Χρώμα</h2>
-        <div style="display:flex;">
+        <div>
             <button class="suit-btn" style="color:red;" onclick="confirmAce('♥')">♥</button>
             <button class="suit-btn" style="color:red;" onclick="confirmAce('♦')">♦</button>
             <button class="suit-btn" style="color:black;" onclick="confirmAce('♣')">♣</button>
@@ -141,18 +74,15 @@
         <button class="game-btn" onclick="confirmAce(null)">Χωρίς Αλλαγή</button>
     </div>
 
-    <div id="scoreboard">
-        <table id="score-table"></table>
-    </div>
-
+    <div id="scoreboard"><table id="score-table"></table></div>
     <div id="turn-indicator">ΣΥΝΔΕΣΗ...</div>
     <div id="direction-arrow">↻</div>
+    <div id="suit-indicator"></div>
 
     <div id="table">
         <div id="opp-top" class="opponent opp-top"></div>
         <div id="opp-left" class="opponent opp-left"></div>
         <div id="opp-right" class="opponent opp-right"></div>
-
         <div class="center-stack">
             <div id="draw-pile" onclick="socket.emit('drawCard')">
                 <div style="font-size:12px; color:#ccc;">ΤΡΑΒΑ</div>
@@ -161,11 +91,10 @@
             <div id="top-card-spot"></div>
             <button class="game-btn" onclick="socket.emit('passTurn')">ΠΑΣΟ</button>
         </div>
-
         <div id="my-hand"></div>
     </div>
 
-    <div id="msg-overlay" style="display:none; position:fixed; inset:0; z-index:5000; align-items:center; justify-content:center; font-size:60px; color:var(--gold); pointer-events:none; font-weight:bold; text-shadow: 2px 2px 10px black;"></div>
+    <div id="msg-overlay" style="display:none; position:fixed; inset:0; z-index:5000; align-items:center; justify-content:center; font-size:50px; color:var(--gold); font-weight:bold; pointer-events:none;"></div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -176,8 +105,10 @@
 
         socket.on('playerCountUpdate', (count) => {
             document.getElementById('waiting-msg').innerText = `Συνδεδεμένοι: ${count}`;
-            const btn = document.getElementById('start-btn');
-            if(count >= 2) { btn.style.opacity = "1"; btn.style.pointerEvents = "auto"; }
+            if(count >= 2) { 
+                const b = document.getElementById('start-btn');
+                b.style.opacity = "1"; b.style.pointerEvents = "auto"; 
+            }
         });
 
         socket.on('gameReady', () => {
@@ -186,20 +117,24 @@
         });
 
         socket.on('updateUI', (data) => {
-            const ind = document.getElementById('turn-indicator');
-            const arrow = document.getElementById('direction-arrow');
             currentTopCard = data.topCard;
-            
             document.getElementById('deck-count').innerText = data.deckCount;
-            arrow.innerText = data.direction === 1 ? '↻' : '↺';
+            document.getElementById('direction-arrow').innerText = data.direction === 1 ? '↻' : '↺';
             
+            const ind = document.getElementById('turn-indicator');
             if (data.isMyTurn) {
-                ind.innerText = data.penalty > 0 ? `⚠️ ΠΑΡΕ ${data.penalty}!` : "ΔΙΚΗ ΣΟΥ ΣΕΙΡΑ";
+                ind.innerText = data.penalty > 0 ? `⚠️ ΦΑΕ ${data.penalty}!` : "ΔΙΚΗ ΣΟΥ ΣΕΙΡΑ";
                 ind.style.borderColor = "#4f4";
             } else {
                 ind.innerText = `ΠΑΙΖΕΙ: ${data.currentPlayerName}`;
                 ind.style.borderColor = "#ff4444";
             }
+
+            const si = document.getElementById('suit-indicator');
+            if (data.activeSuit) {
+                si.style.display = 'flex'; si.innerText = data.activeSuit;
+                si.style.color = (data.activeSuit === '♥' || data.activeSuit === '♦') ? 'red' : 'black';
+            } else si.style.display = 'none';
 
             if (data.topCard) document.getElementById('top-card-spot').innerHTML = createCardHTML(data.topCard);
             if (data.myHand) renderHand(data.myHand);
@@ -207,18 +142,18 @@
         });
 
         function playLogic(index, value, suit) {
-            // Κανόνας Άσσου: Αν το κάτω είναι Άσσος, παίζεται μόνο με ίδιο σχήμα/χρώμα
             if (value === 'A' && currentTopCard && currentTopCard.value === 'A') {
                 if (suit === currentTopCard.suit) {
                     socket.emit('playCard', { index: index, declaredSuit: null });
                 } else {
-                    alert("Πρέπει να έχει ίδιο σχήμα για να πέσει Άσσος σε Άσσο!");
+                    document.querySelectorAll('.hand-card')[index].classList.add('shake');
+                    setTimeout(() => document.querySelectorAll('.hand-card')[index].classList.remove('shake'), 200);
                 }
             } else if (value === 'A') {
                 selectedAceIndex = index;
                 document.getElementById('ace-modal').style.display = 'flex';
             } else {
-                socket.emit('playCard', { index: index });
+                socket.emit('playCard', { index: index, declaredSuit: null });
             }
         }
 
@@ -228,8 +163,7 @@
         }
 
         function renderHand(hand) {
-            const div = document.getElementById('my-hand');
-            div.innerHTML = hand.map((c, i) => {
+            document.getElementById('my-hand').innerHTML = hand.map((c, i) => {
                 const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : '';
                 return `<div class="card hand-card ${color}" onclick="playLogic(${i}, '${c.value}', '${c.suit}')">
                     <div>${c.value}${c.suit}</div>
@@ -243,42 +177,35 @@
             const others = players.filter(p => p.id !== myId);
             const pos = ['opp-top', 'opp-left', 'opp-right'];
             pos.forEach(p => document.getElementById(p).innerHTML = '');
-            
             others.forEach((p, i) => {
                 if(i < 3) {
                     let cards = '';
                     for(let k=0; k<p.handCount; k++) cards += '<div class="mini-card"></div>';
-                    document.getElementById(pos[i]).innerHTML = `
-                        <div class="opp-name">${p.name} (${p.handCount})</div>
-                        <div style="display:flex;">${cards}</div>`;
+                    document.getElementById(pos[i]).innerHTML = `<div class="opp-name">${p.name} (${p.handCount})</div><div style="display:flex;">${cards}</div>`;
                 }
             });
         }
 
         function createCardHTML(c) {
             const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : '';
-            return `<div class="card ${color}">
-                <div>${c.value}${c.suit}</div>
-                <div style="font-size:50px; align-self:center;">${c.suit}</div>
-                <div style="transform:rotate(180deg)">${c.value}${c.suit}</div>
-            </div>`;
+            return `<div class="card ${color}"><div>${c.value}${c.suit}</div><div style="font-size:50px; align-self:center;">${c.suit}</div><div style="transform:rotate(180deg)">${c.value}${c.suit}</div></div>`;
         }
 
-        socket.on('updateScoreboard', (history) => {
-            const table = document.getElementById('score-table');
-            if (history.length === 0) return;
-            let playerNames = Object.keys(history[0]);
-            let html = `<tr>${playerNames.map(name => `<th>${name}</th>`).join('')}</tr>`;
-            history.forEach(round => {
-                html += '<tr>' + playerNames.map(name => `<td>${round[name] === "WC" ? '<span class="wc-text">WC</span>' : round[name]}</td>`).join('') + '</tr>';
+        socket.on('updateScoreboard', (h) => {
+            const t = document.getElementById('score-table');
+            if (h.length === 0) return;
+            let names = Object.keys(h[0]);
+            let html = `<tr>${names.map(n => `<th>${n}</th>`).join('')}</tr>`;
+            h.forEach(r => {
+                html += '<tr>' + names.map(n => `<td>${r[n] === "WC" ? '<span class="wc-text">WC</span>' : r[n]}</td>`).join('') + '</tr>';
             });
-            table.innerHTML = html;
+            t.innerHTML = html;
         });
 
-        socket.on('roundResultMsg', (text) => {
-            const ov = document.getElementById('msg-overlay');
-            ov.innerText = text; ov.style.display = 'flex';
-            setTimeout(() => ov.style.display = 'none', 3000);
+        socket.on('roundResultMsg', (t) => {
+            const o = document.getElementById('msg-overlay');
+            o.innerText = t; o.style.display = 'flex';
+            setTimeout(() => o.style.display = 'none', 3000);
         });
     </script>
 </body>
