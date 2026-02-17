@@ -21,9 +21,9 @@ let penaltyStack = 0;
 let penaltyType = null; 
 let activeSuit = null; 
 let gameStarted = false;
-let roundHistory = []; // Ιστορικό για τον πίνακα σκορ
+let roundHistory = [];
 
-// --- ΒΟΗΘΗΤΙΚΕΣ ΣΥΝΑΡΤΗΣΕΙΣ ---
+// --- ΒΟΗΘΗΤΙΚΕΣ ---
 function createDeck() {
     const suits = ['♠', '♣', '♥', '♦'];
     const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -49,18 +49,12 @@ function calculateHandScore(hand) {
 app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
 
 io.on('connection', (socket) => {
-    // Δημιουργία παίκτη (Total Score = συνολικοί πόντοι)
     players[socket.id] = {
-        id: socket.id, 
-        hand: [], 
-        name: "Παίκτης " + (Object.keys(players).length + 1), 
-        totalScore: 0,
-        hasDrawn: false // Έλεγχος αν τράβηξε σε αυτόν τον γύρο
+        id: socket.id, hand: [], name: "Παίκτης " + (Object.keys(players).length + 1), totalScore: 0, hasDrawn: false
     };
     
     io.emit('playerCountUpdate', Object.keys(players).length);
 
-    // Αν συνδεθεί κάποιος ενώ παίζουν, στείλε την κατάσταση
     if (gameStarted) {
         socket.emit('updateUI', getGameState());
         socket.emit('updateScoreboard', roundHistory);
@@ -68,7 +62,7 @@ io.on('connection', (socket) => {
 
     socket.on('startGameRequest', () => {
         if (gameStarted || Object.keys(players).length < 2) return;
-        startNewRound(true); // true = reset scores (Νέο Παιχνίδι)
+        startNewRound(true);
     });
 
     socket.on('playCard', (data) => {
@@ -82,13 +76,11 @@ io.on('connection', (socket) => {
         let isValid = false;
         let effectiveSuit = activeSuit || topCard.suit;
 
-        // Έλεγχος Ποινής
         if (penaltyStack > 0) {
             if (penaltyType === '7' && card.value === '7') isValid = true;
             if (penaltyType === '2' && card.value === '2') isValid = true;
             if (penaltyType === 'J' && card.value === 'J') isValid = true;
         } else {
-            // Κανονική Ροή
             if (card.value === 'A') isValid = true;
             else if (card.value === topCard.value) isValid = true;
             else if (card.suit === effectiveSuit) isValid = true;
@@ -99,24 +91,18 @@ io.on('connection', (socket) => {
             p.hand.splice(data.index, 1);
             discardPile.push(card);
 
-            // --- ΕΛΕΓΧΟΣ ΤΕΛΟΥΣ ΓΥΡΟΥ ---
             if (p.hand.length === 0) {
                 handleRoundEnd(socket.id);
                 return;
             }
 
-            // Reset χρωμάτων και σημαίας τραβήγματος
             if (card.value === 'A') activeSuit = declaredSuit ? declaredSuit : card.suit;
             else activeSuit = null;
 
             let advance = true; 
             let steps = 1;
 
-            // ΚΑΝΟΝΕΣ
-            if (card.value === '8') { 
-                advance = false; 
-                io.to(socket.id).emit('notification', "Ξαναπαίζεις!"); 
-            }
+            if (card.value === '8') { advance = false; io.to(socket.id).emit('notification', "Ξαναπαίζεις!"); }
             else if (card.value === '7') { penaltyStack += 2; penaltyType = '7'; }
             else if (card.value === '2') { penaltyStack += 1; penaltyType = '2'; }
             else if (card.value === 'J' && card.color === 'black') { penaltyStack += 10; penaltyType = 'J'; }
@@ -141,39 +127,28 @@ io.on('connection', (socket) => {
         if (!gameStarted || playerOrder[turnIndex] !== socket.id) return;
         let p = players[socket.id];
         
-        // Κανόνας: Αν δεν έχεις ποινή και έχεις ήδη τραβήξει, απαγορεύεται να ξανατραβήξεις
         if (penaltyStack === 0 && p.hasDrawn) {
             io.to(socket.id).emit('notification', "Έχεις ήδη τραβήξει! Παίξε ή Πάσο.");
             return;
         }
 
         let count = penaltyStack > 0 ? penaltyStack : 1;
-        
         for(let i=0; i<count; i++) {
             if(deck.length===0) refillDeck();
             if(deck.length > 0) p.hand.push(deck.pop());
         }
 
-        // Σημαία ότι τράβηξε
         p.hasDrawn = true;
-
-        // Reset ποινών
         penaltyStack = 0;
         penaltyType = null;
         
         io.to(socket.id).emit('notification', `Τράβηξες ${count} φύλλα!`);
-        
-        // Αν τράβηξε λόγω ποινής, δεν χάνει τη σειρά (μπορεί να παίξει αν του ήρθε κάτι)
-        // Αν τράβηξε 1, συνεχίζει να είναι η σειρά του μέχρι να παίξει ή να πατήσει ΠΑΣΟ
         broadcastUpdate();
     });
 
     socket.on('passTurn', () => {
         if (!gameStarted || playerOrder[turnIndex] !== socket.id) return;
-        if (penaltyStack > 0) return; // Δεν πας πάσο με ποινή
-        
-        // Μπορείς να πας πάσο μόνο αν έχεις τραβήξει (προαιρετικός κανόνας, αλλά συνηθίζεται)
-        // Εδώ το αφήνουμε ελεύθερο όπως ζήτησες: "τραβάει και μετά αν δεν έχει πάει πάσο"
+        if (penaltyStack > 0) return;
         
         advanceTurn(1);
         broadcastUpdate();
@@ -190,7 +165,6 @@ io.on('connection', (socket) => {
     });
 });
 
-// --- ΔΙΑΧΕΙΡΙΣΗ ΓΥΡΩΝ & ΣΚΟΡ ---
 function startNewRound(resetTotalScores = false) {
     gameStarted = true;
     deck = createDeck();
@@ -205,13 +179,11 @@ function startNewRound(resetTotalScores = false) {
         playerOrder.forEach(id => players[id].totalScore = 0);
     }
     
-    // Reset Hand & Flags
     playerOrder.forEach(id => {
         players[id].hand = [];
         players[id].hasDrawn = false;
     });
 
-    // Deal Cards
     let dealCount = 0;
     let dealInterval = setInterval(() => {
         playerOrder.forEach(id => {
@@ -225,23 +197,83 @@ function startNewRound(resetTotalScores = false) {
             clearInterval(dealInterval);
             let first = deck.pop();
             discardPile = [first];
-            io.emit('gameReady'); // Κρύβει start screen
-            io.emit('updateScoreboard', roundHistory); // Εμφανίζει πίνακα
+            io.emit('gameReady');
+            io.emit('updateScoreboard', roundHistory);
             broadcastUpdate();
         }
-    }, 100); // Πολύ γρήγορο μοίρασμα
+    }, 100);
 }
 
 function handleRoundEnd(winnerId) {
-    // 1. Υπολογισμός Πόντων Γύρου
-    let roundResults = {}; // { playerId: "WC" ή score }
-    
+    let roundResults = {};
     playerOrder.forEach(id => {
         if (id === winnerId) {
-            // Ο νικητής δεν παίρνει πόντους
             roundResults[id] = "WC";
         } else {
-            // Οι χαμένοι τρώνε πόντους
             let points = calculateHandScore(players[id].hand);
             players[id].totalScore += points;
-            roundResults[id] = players[id].totalScore
+            roundResults[id] = players[id].totalScore;
+        }
+    });
+
+    let historyEntry = {};
+    playerOrder.forEach(id => {
+        historyEntry[players[id].name] = roundResults[id];
+    });
+    roundHistory.push(historyEntry);
+
+    io.emit('updateScoreboard', roundHistory);
+
+    let loser = playerOrder.find(id => players[id].totalScore >= 500);
+    
+    if (loser) {
+        gameStarted = false;
+        let sortedPlayers = playerOrder.map(id => players[id]).sort((a,b) => a.totalScore - b.totalScore);
+        io.emit('gameOver', sortedPlayers);
+    } else {
+        io.emit('notification', `Ο ${players[winnerId].name} κέρδισε τον γύρο!`);
+        setTimeout(() => {
+            startNewRound(false);
+        }, 3000);
+    }
+}
+
+function advanceTurn(steps) {
+    turnIndex = (turnIndex + (direction * steps)) % playerOrder.length;
+    if (turnIndex < 0) turnIndex += playerOrder.length;
+    let nextPlayerId = playerOrder[turnIndex];
+    if (players[nextPlayerId]) players[nextPlayerId].hasDrawn = false;
+}
+
+function broadcastUpdate() {
+    playerOrder.forEach(id => {
+        io.to(id).emit('updateUI', {
+            ...getGameState(),
+            myHand: players[id].hand,
+            isMyTurn: (id === playerOrder[turnIndex]),
+            activeSuit: activeSuit
+        });
+    });
+}
+
+function getGameState() {
+    let safePlayers = [];
+    Object.keys(players).forEach(id => {
+        safePlayers.push({ id: id, name: players[id].name, handCount: players[id].hand.length });
+    });
+    return {
+        players: safePlayers,
+        topCard: discardPile.length > 0 ? discardPile[discardPile.length - 1] : null,
+        penalty: penaltyStack
+    };
+}
+
+function refillDeck() {
+    if (discardPile.length <= 1) return;
+    let top = discardPile.pop();
+    deck = discardPile.sort(() => Math.random() - 0.5);
+    discardPile = [top];
+}
+
+const port = process.env.PORT || 3000;
+server.listen(port, () => console.log('Server running on ' + port));
