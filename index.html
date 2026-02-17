@@ -26,11 +26,23 @@
 
         #final-screen { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 3000; flex-direction: column; align-items: center; justify-content: center; }
         
+        /* Turn Indicator */
         #turn-indicator { position: fixed; top: 15px; left: 50%; transform: translateX(-50%); padding: 8px 20px; background: rgba(0,0,0,0.8); border: 2px solid #555; border-radius: 20px; font-size: 16px; font-weight: bold; z-index: 1000; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        
+        /* Suit Indicator */
         #suit-indicator { position: absolute; top: 32%; left: 50%; transform: translate(-50%, -50%); width: 50px; height: 50px; background: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 35px; box-shadow: 0 0 15px white; z-index: 5; }
 
+        /* Direction Arrow */
+        #direction-arrow {
+            position: absolute; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%);
+            width: 250px; height: 250px;
+            pointer-events: none; z-index: 1; opacity: 0.1;
+            font-size: 200px; color: white; display: flex; align-items: center; justify-content: center;
+        }
+
         #table { width: 100%; height: 100%; position: relative; }
-        .center-stack { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; gap: 20px; }
+        .center-stack { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; gap: 20px; z-index: 10; }
         .opponent { position: absolute; display: flex; flex-direction: column; align-items: center; }
         .opp-name { background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-bottom: 2px; color: #ddd; }
         .opp-top { top: 60px; left: 50%; transform: translateX(-50%); }
@@ -90,13 +102,13 @@
     </div>
 
     <div id="table">
-        <div id="opp-top" class="opponent opp-top"></div>
+        <div id="direction-arrow">↻</div> <div id="opp-top" class="opponent opp-top"></div>
         <div id="opp-left" class="opponent opp-left"></div>
         <div id="opp-right" class="opponent opp-right"></div>
         <div class="center-stack">
             <div class="card back" id="draw-pile" onclick="drawCardAnim()">
                 <div style="font-size:12px">ΤΡΑΒΑ</div>
-            </div>
+                <div id="deck-count" style="font-size:14px; margin-top:5px; color:gold;"></div> </div>
             <div id="top-card-spot"></div>
         </div>
         <div id="controls"><button class="pass-btn" onclick="socket.emit('passTurn')">ΠΑΣΟ ⏭️</button></div>
@@ -108,9 +120,8 @@
         const socket = io();
         let myId = null;
         let selectedAceIndex = null;
-        let currentTopCard = null; // Για έλεγχο Άσσου
+        let currentTopCard = null;
 
-        // Keep Alive (Για να μην κλείνει το Render)
         setInterval(() => { fetch('/ping').catch(() => {}); }, 60000);
 
         socket.on('connect', () => myId = socket.id);
@@ -174,7 +185,16 @@
         socket.on('updateUI', (data) => {
             const ind = document.getElementById('turn-indicator');
             const drawPile = document.getElementById('draw-pile');
-            currentTopCard = data.topCard; // Ενημέρωση για το top card
+            const deckCount = document.getElementById('deck-count');
+            const arrow = document.getElementById('direction-arrow');
+            
+            currentTopCard = data.topCard;
+
+            // Ενημέρωση Αριθμού Φύλλων
+            deckCount.innerText = `(${data.deckCount})`;
+
+            // Ενημέρωση Βέλους Φοράς
+            arrow.innerText = data.direction === 1 ? '↻' : '↺';
 
             if (data.isMyTurn) {
                 if (data.penalty > 0) {
@@ -182,10 +202,7 @@
                     ind.style.borderColor = "red";
                     drawPile.style.boxShadow = "0 0 20px red";
                     if (data.penaltyType === 'J') {
-                        // Διόρθωση UI για τον Βαλέ: Δείχνει το σύνολο
                         ind.innerText = `⚠️ ΦΑΕ ${data.penalty} ΚΑΡΤΕΣ!`;
-                    } else if (data.penaltyType === '2') {
-                        ind.innerText = `⚠️ ΣΗΚΩΣΕ ΜΙΑ ΚΑΡΤΑ!`;
                     } else {
                         ind.innerText = `⚠️ ΠΑΡΕ ${data.penalty} ΚΑΡΤΕΣ!`;
                     }
@@ -196,7 +213,8 @@
                     drawPile.style.boxShadow = "none";
                 }
             } else {
-                ind.innerText = "⏳ Περίμενε...";
+                // Ενημέρωση ονόματος που παίζει τώρα
+                ind.innerText = `⏳ Περίμενε... Παίζει ο ${data.currentPlayerName}`;
                 ind.style.color = "#aaa";
                 ind.style.borderColor = "#555";
                 drawPile.style.boxShadow = "none";
@@ -226,20 +244,14 @@
         });
 
         function play(index, value, suit) {
-            // Λογική Άσσου:
-            // Αν είναι Άσσος ΚΑΙ το κάτω φύλλο είναι Άσσος:
-            // Πρέπει να έχουν ίδιο χρώμα και παίζεται χωρίς αλλαγή.
             if (value === 'A' && currentTopCard && currentTopCard.value === 'A') {
                 if (suit === currentTopCard.suit) {
-                    // Παίξτο απευθείας (χωρίς Modal)
                     socket.emit('playCard', { index: index, declaredSuit: null });
                 } else {
-                    // Λάθος κίνηση (θα το κόψει ο server, αλλά ας κάνουμε shake)
                     document.querySelectorAll('.hand-card')[index].classList.add('shake');
                     setTimeout(() => document.querySelectorAll('.hand-card')[index].classList.remove('shake'), 200);
                 }
             }
-            // Αν είναι Άσσος και το κάτω ΔΕΝ είναι Άσσος:
             else if (value === 'A') {
                 selectedAceIndex = index;
                 document.getElementById('ace-modal').style.display = 'flex';
