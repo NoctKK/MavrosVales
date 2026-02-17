@@ -5,18 +5,15 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
-// --- Η ΔΙΟΡΘΩΣΗ: Ρυθμίσεις CORS για να επιτρέπονται οι φίλοι σου ---
+// Ρυθμίσεις CORS (για να συνδέονται οι φίλοι σου)
 const io = new Server(server, {
     cors: {
-        origin: "*",  // Αυτό επιτρέπει σύνδεση από παντού (κινητά, pc φίλων)
-        methods: ["GET", "POST"],
-        allowedHeaders: ["my-custom-header"],
-        credentials: true
+        origin: "*",
+        methods: ["GET", "POST"]
     }
 });
-// ------------------------------------------------------------------
 
-// --- ΜΕΤΑΒΛΗΤΕΣ ΠΑΙΧΝΙΔΙΟΥ ---
+// --- ΜΕΤΑΒΛΗΤΕΣ ---
 let deck = [];
 let discardPile = [];
 let players = {};
@@ -41,15 +38,24 @@ function createDeck() {
     return newDeck.sort(() => Math.random() - 0.5);
 }
 
+// Υπολογισμός Πόντων (Α=11, Φιγούρες=10, Αριθμοί=Αξία)
+function calculateHandScore(hand) {
+    let score = 0;
+    hand.forEach(c => {
+        if (c.value === 'A') score += 11;
+        else if (['K', 'Q', 'J'].includes(c.value)) score += 10;
+        else score += parseInt(c.value);
+    });
+    return score;
+}
+
 app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
 
 io.on('connection', (socket) => {
-    // Δημιουργία παίκτη
     players[socket.id] = {
-        id: socket.id, hand: [], name: "Παίκτης " + (Object.keys(players).length + 1)
+        id: socket.id, hand: [], name: "Παίκτης " + (Object.keys(players).length + 1), score: 0
     };
     
-    // Ενημέρωση για το πόσοι είναι συνδεδεμένοι
     io.emit('playerCountUpdate', Object.keys(players).length);
 
     if (gameStarted) {
@@ -67,6 +73,9 @@ io.on('connection', (socket) => {
         penaltyStack = 0;
         activeSuit = null;
         
+        // Reset scores
+        playerOrder.forEach(id => players[id].score = 0);
+
         let dealCount = 0;
         let dealInterval = setInterval(() => {
             playerOrder.forEach(id => {
@@ -87,7 +96,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('playCard', (data) => {
-        if (playerOrder[turnIndex] !== socket.id) return;
+        if (!gameStarted || playerOrder[turnIndex] !== socket.id) return;
         
         let p = players[socket.id];
         let card = p.hand[data.index];
@@ -100,6 +109,7 @@ io.on('connection', (socket) => {
         // Έλεγχος Ποινής
         if (penaltyStack > 0) {
             if (penaltyType === '7' && card.value === '7') isValid = true;
+            if (penaltyType === '2' && card.value === '2') isValid = true; // Τα 2αρια αθροίζονται; (Συνήθως όχι, αλλά ας το αφήσουμε απλό)
             if (penaltyType === 'J' && card.value === 'J') isValid = true;
         } else {
             // Κανονική Ροή
@@ -110,9 +120,26 @@ io.on('connection', (socket) => {
         }
 
         if (isValid) {
+            // Αφαίρεση φύλλου
             p.hand.splice(data.index, 1);
             discardPile.push(card);
 
+            // --- ΕΛΕΓΧΟΣ ΝΙΚΗΣ (ΤΕΛΟΣ ΠΑΙΧΝΙΔΙΟΥ) ---
+            if (p.hand.length === 0) {
+                gameStarted = false;
+                // Υπολογισμός σκορ για όλους
+                let results = [];
+                playerOrder.forEach(id => {
+                    let pts = calculateHandScore(players[id].hand);
+                    players[id].score = pts; // Ο νικητής έχει 0
+                    results.push({ name: players[id].name, score: pts, isWinner: id === socket.id });
+                });
+                
+                io.emit('gameOver', results);
+                return; // Σταματάμε εδώ
+            }
+
+            // Χρώμα Άσσου
             if (card.value === 'A') {
                 activeSuit = declaredSuit ? declaredSuit : card.suit;
             } else {
@@ -122,14 +149,44 @@ io.on('connection', (socket) => {
             let advance = true; 
             let steps = 1;
 
+            // --- ΕΙΔΙΚΟΙ ΚΑΝΟΝΕΣ ---
+            
+            // Κανόνας 8: Ξαναπαίζει
             if (card.value === '8') { 
                 advance = false; 
                 io.to(socket.id).emit('notification', "Ξαναπαίζεις!"); 
             }
-            else if (card.value === '7') { penaltyStack += 2; penaltyType = '7'; }
-            else if (card.value === 'J' && card.color === 'black') { penaltyStack += 10; penaltyType = 'J'; }
-            else if (card.value === 'J' && card.color === 'red') { penaltyStack = 0; penaltyType = null; }
-            else if (card.value === '3') { direction *= -1; }
+            // Κανόνας 7: Ποινή +2
+            else if (card.value === '7') { 
+                penaltyStack += 2; 
+                penaltyType = '7'; 
+            }
+            // Κανόνας 2: Ποινή +1 (Στον επόμενο)
+            else if (card.value === '2') {
+                penaltyStack += 1;
+                penaltyType = '2'; // Ειδικός τύπος ποινής για το 2
+            }
+            // Κανόνας J (Μαύρος): Ποινή +10
+            else if (card.value === 'J' && card.color === 'black') { 
+                penaltyStack += 10; 
+                penaltyType = 'J'; 
+            }
+            // Κανόνας J (Κόκκινος): Ακύρωση
+            else if (card.value === 'J' && card.color === 'red') { 
+                penaltyStack = 0; 
+                penaltyType = null; 
+            }
+            // Κανόνας 3: Αλλαγή Φοράς
+            else if (card.value === '3') { 
+                if (playerOrder.length === 2) {
+                    // Αν είναι 2 παίκτες, το 3 λειτουργεί σαν "ξαναπαίζεις"
+                    advance = false;
+                    io.to(socket.id).emit('notification', "Ξαναπαίζεις!");
+                } else {
+                    direction *= -1; // Αλλαγή φοράς
+                }
+            }
+            // Κανόνας 9: Πηδάει παίκτη
             else if (card.value === '9') {
                  if (playerOrder.length === 2) { 
                      advance = false; 
@@ -147,7 +204,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('drawCard', () => {
-        if (playerOrder[turnIndex] !== socket.id) return;
+        if (!gameStarted || playerOrder[turnIndex] !== socket.id) return;
         let p = players[socket.id];
         let count = penaltyStack > 0 ? penaltyStack : 1;
         
@@ -164,7 +221,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('passTurn', () => {
-        if (playerOrder[turnIndex] !== socket.id) return;
+        if (!gameStarted || playerOrder[turnIndex] !== socket.id) return;
         if (penaltyStack > 0) return;
         
         advanceTurn(1);
@@ -173,14 +230,12 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         delete players[socket.id];
-        // Ενημερώνουμε όσους έμειναν
         io.emit('playerCountUpdate', Object.keys(players).length);
-        
-        // Αν το παιχνίδι είχε αρχίσει και έφυγε κάποιος, ίσως χρειαστεί reset
-        // ή αφαίρεση από το playerOrder. Για απλότητα, ξαναστέλνουμε το UI.
         if (gameStarted) {
-             playerOrder = playerOrder.filter(id => id !== socket.id);
-             io.emit('updateUI', getGameState());
+             // Reset αν φύγει κάποιος για να μην κολλήσει
+             gameStarted = false;
+             io.emit('notification', "Ο παίκτης αποσυνδέθηκε. Το παιχνίδι έληξε.");
+             setTimeout(() => io.emit('gameEndedForced'), 2000); // Reload
         }
     });
 });
