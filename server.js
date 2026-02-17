@@ -4,12 +4,15 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
+
+// --- Η ΜΕΓΑΛΗ ΔΙΟΡΘΩΣΗ ΕΙΝΑΙ ΕΔΩ ---
 const io = new Server(server, {
     cors: {
-        origin: "*",  // Αυτό επιτρέπει σε όλους να συνδεθούν
+        origin: "*",  // Επιτρέπει σύνδεση από παντού (κινητά, pc φίλων)
         methods: ["GET", "POST"]
     }
 });
+// ------------------------------------
 
 // --- ΜΕΤΑΒΛΗΤΕΣ ---
 let deck = [];
@@ -44,16 +47,15 @@ io.on('connection', (socket) => {
         id: socket.id, hand: [], name: "Παίκτης " + (Object.keys(players).length + 1)
     };
     
-    // Ενημέρωση για το πόσοι είναι συνδεδεμένοι (Για την οθόνη έναρξης)
+    // Ενημέρωση για το πόσοι είναι συνδεδεμένοι
     io.emit('playerCountUpdate', Object.keys(players).length);
 
     if (gameStarted) {
-        // Αν μπει κάποιος ενώ παίζουν, του στέλνουμε την κατάσταση
         socket.emit('updateUI', getGameState());
     }
 
     socket.on('startGameRequest', () => {
-        if (gameStarted || Object.keys(players).length < 2) return; // Ασφάλεια
+        if (gameStarted || Object.keys(players).length < 2) return;
         
         gameStarted = true;
         deck = createDeck();
@@ -63,13 +65,12 @@ io.on('connection', (socket) => {
         penaltyStack = 0;
         activeSuit = null;
         
-        // Μοίρασμα
         let dealCount = 0;
         let dealInterval = setInterval(() => {
             playerOrder.forEach(id => {
                 if (deck.length > 0) {
                     players[id].hand.push(deck.pop());
-                    io.to(id).emit('receiveCard'); // Εφέ ήχου/κίνησης
+                    io.to(id).emit('receiveCard');
                 }
             });
             dealCount++;
@@ -91,37 +92,32 @@ io.on('connection', (socket) => {
         let topCard = discardPile[discardPile.length - 1];
         let declaredSuit = data.declaredSuit;
 
-        // --- ΕΛΕΓΧΟΣ ΕΓΚΥΡΟΤΗΤΑΣ ---
         let isValid = false;
-        let effectiveSuit = activeSuit || topCard.suit; // Το χρώμα που ισχύει
+        let effectiveSuit = activeSuit || topCard.suit;
 
-        // Αν έχουμε ποινή (7 ή J)
         if (penaltyStack > 0) {
             if (penaltyType === '7' && card.value === '7') isValid = true;
             if (penaltyType === 'J' && card.value === 'J') isValid = true;
         } else {
-            // Κανονική ροή
-            if (card.value === 'A') isValid = true; // Ο Άσσος πέφτει πάντα
-            else if (card.value === topCard.value) isValid = true; // Ίδιο νούμερο
-            else if (card.suit === effectiveSuit) isValid = true; // Ίδιο χρώμα (ή δηλωμένο)
-            else if (card.value === 'J' && card.color === 'red') isValid = true; // Ακυρωτικός
+            if (card.value === 'A') isValid = true;
+            else if (card.value === topCard.value) isValid = true;
+            else if (card.suit === effectiveSuit) isValid = true;
+            else if (card.value === 'J' && card.color === 'red') isValid = true;
         }
 
         if (isValid) {
             p.hand.splice(data.index, 1);
             discardPile.push(card);
 
-            // Διαχείριση Άσσου
             if (card.value === 'A') {
                 activeSuit = declaredSuit ? declaredSuit : card.suit;
             } else {
-                activeSuit = null; // Reset αν δεν είναι Άσσος
+                activeSuit = null;
             }
 
             let advance = true; 
             let steps = 1;
 
-            // ΚΑΝΟΝΕΣ
             if (card.value === '8') { 
                 advance = false; 
                 io.to(socket.id).emit('notification', "Ξαναπαίζεις!"); 
@@ -156,21 +152,16 @@ io.on('connection', (socket) => {
             if(deck.length > 0) p.hand.push(deck.pop());
         }
 
-        // ΣΗΜΑΝΤΙΚΟ: Μηδενισμός ποινής
-        let wasPenalty = penaltyStack > 0;
         penaltyStack = 0;
         penaltyType = null;
         
         io.to(socket.id).emit('notification', `Τράβηξες ${count} φύλλα!`);
-        
-        // Αν τράβηξε λόγω ποινής (7άρι), ΔΕΝ χάνει τη σειρά του (advance = false)
-        // Αν τράβηξε μόνος του (πάσο), επίσης δεν χάνει τη σειρά του μέχρι να πατήσει ΠΑΣΟ.
         broadcastUpdate();
     });
 
     socket.on('passTurn', () => {
         if (playerOrder[turnIndex] !== socket.id) return;
-        if (penaltyStack > 0) return; // Δεν μπορείς να πας πάσο αν χρωστάς φύλλα
+        if (penaltyStack > 0) return;
         
         advanceTurn(1);
         broadcastUpdate();
@@ -179,7 +170,6 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         delete players[socket.id];
         io.emit('playerCountUpdate', Object.keys(players).length);
-        // Αν φύγει παίκτης, ίσως χρειαστεί reset, αλλά για τώρα το αφήνουμε απλό
     });
 });
 
