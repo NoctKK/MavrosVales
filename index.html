@@ -136,6 +136,7 @@
         .hand-card:first-child { margin-left: 0; }
         .hand-card:hover { transform: translateY(-50px) scale(1.1); z-index: 100; }
         
+        /* MODAL - ΔΙΟΡΘΩΣΗ Z-INDEX ΚΑΙ DISPLAY */
         #ace-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 5000; flex-direction: column; align-items: center; justify-content: center; }
         #ace-backdrop { position: absolute; inset: 0; }
         #ace-content { position: relative; z-index: 1; text-align: center; }
@@ -197,8 +198,7 @@
                 <div id="deck-count">52</div>
             </div>
             
-            <div id="pile-container">
-                </div>
+            <div id="pile-container"></div>
             
             <button class="game-btn" onclick="socket.emit('passTurn')">ΠΑΣΟ</button>
         </div>
@@ -214,6 +214,7 @@
     <script>
         const socket = io();
         let myId, lastTopCardId = null, selectedAceIndex = null;
+        let myCurrentHand = []; // Κρατάμε το χέρι τοπικά για ελέγχους
 
         function resizeGame() {
             const wrapper = document.getElementById('game-wrapper');
@@ -248,6 +249,9 @@
             document.getElementById('deck-count').innerText = data.deckCount;
             document.getElementById('direction-arrow').innerText = data.direction === 1 ? '↻' : '↺';
             
+            // Αποθήκευση topCard global για να το βλέπει η playLogic
+            window.currentTopCard = data.topCard; 
+
             if (data.topCard) {
                 const cardId = data.topCard.value + data.topCard.suit;
                 if (cardId !== lastTopCardId) {
@@ -275,7 +279,10 @@
                 ind.style.color = "#ffdddd";
             }
 
-            if (data.myHand) renderHand(data.myHand);
+            if (data.myHand) {
+                myCurrentHand = data.myHand;
+                renderHand(data.myHand);
+            }
             distributePlayers(data.players);
         });
 
@@ -316,14 +323,25 @@
             }).join('');
         }
 
+        // --- ΔΙΟΡΘΩΜΕΝΗ LOGIC: ΑΝ ΕΙΝΑΙ ΑΣΣΟΣ, ΑΝΟΙΓΕΙ ΠΑΝΤΑ (ΕΚΤΟΣ ΑΝ ΕΙΝΑΙ ΙΔΙΟΣ) ---
         function playLogic(index, value, suit) {
-            if (value === 'A' && currentTopCard && currentTopCard.value === 'A') {
-                if (suit === currentTopCard.suit) socket.emit('playCard', { index: index, declaredSuit: null });
-                else shakeCards();
-            } else if (value === 'A') {
-                selectedAceIndex = index;
-                document.getElementById('ace-modal').style.display = 'flex';
-            } else socket.emit('playCard', { index: index, declaredSuit: null });
+            // 1. Αν δεν είναι Άσσος, παίξε κατευθείαν
+            if (value !== 'A') {
+                socket.emit('playCard', { index: index, declaredSuit: null });
+                return;
+            }
+
+            // 2. Αν είναι Άσσος...
+            // Ελέγχουμε αν υπάρχει Top Card (για να μην κρασάρει στην αρχή)
+            if (window.currentTopCard && window.currentTopCard.value === 'A' && window.currentTopCard.suit === suit) {
+                 // Αν είναι ίδιος Άσσος (πχ Σπαθί σε Σπαθί), παίξτο χωρίς μενού
+                 socket.emit('playCard', { index: index, declaredSuit: null });
+                 return;
+            }
+
+            // 3. Αλλιώς, άνοιξε το μενού (Για να διαλέξεις χρώμα ή να αποτύχει στον Server αν είναι λάθος)
+            selectedAceIndex = index;
+            document.getElementById('ace-modal').style.display = 'flex';
         }
 
         function confirmAce(suit) {
@@ -358,16 +376,15 @@
             setTimeout(() => o.style.display = 'none', 1500);
         });
 
-        // Προσθήκη για Invalid Move
         socket.on('invalidMove', () => {
             const o = document.getElementById('msg-overlay');
-            o.innerText = "Δεν επιτρέπεται αυτή η κίνηση!"; 
+            o.innerText = "Ακυρη Κίνηση!"; 
             o.style.display = 'flex';
             o.style.fontSize = "40px";
             o.style.color = "red";
             setTimeout(() => {
                 o.style.display = 'none';
-                o.style.color = "#d4af37"; // Reset color
+                o.style.color = "#d4af37"; 
             }, 1000);
             shakeCards();
         });
