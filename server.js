@@ -57,7 +57,6 @@ io.on('connection', (socket) => {
     socket.on('joinGame', (username) => {
         let cleanName = username && username.trim() !== "" ? username.trim() : "Παίκτης " + (Object.keys(players).length + 1);
         
-        // EMOJI ΓΙΑ ΔΗΜΗΤΡΑ
         if (cleanName.toLowerCase() === "δήμητρα" || cleanName.toLowerCase() === "δημητρα" || 
             cleanName.toLowerCase() === "δημητρούλα" || cleanName.toLowerCase() === "δημητρουλα") {
             cleanName += " ❤️";
@@ -97,15 +96,20 @@ io.on('connection', (socket) => {
         let effectiveSuit = activeSuit || topCard.suit;
 
         if (penaltyStack > 0) {
+            // Στην ποινή παίζεις μόνο 7 ή Μαύρο Βαλέ
             if (penaltyType === '7' && card.value === '7') isValid = true;
             if (penaltyType === 'J' && card.value === 'J') isValid = true;
         } else {
-            // 1. Άσσος πάνω σε Άσσο (Αυστηρός Κανόνας: Ίδιο Χρώμα)
+            // --- LOGIC CHECK ---
+            
+            // 1. Άσσος πάνω σε Άσσο (Πρέπει να είναι ίδιο χρώμα/σχήμα)
             if (card.value === 'A' && topCard.value === 'A') {
                 if (card.suit === topCard.suit) isValid = true;
             }
-            // 2. Άσσος Μπαλαντέρ
-            else if (card.value === 'A') isValid = true;
+            // 2. Άσσος πάνω σε οτιδήποτε άλλο (Μπαλαντέρ - Περνάει ΠΑΝΤΑ)
+            else if (card.value === 'A') {
+                isValid = true;
+            }
             // 3. Κανονικοί κανόνες
             else if (card.value === topCard.value) isValid = true;
             else if (card.suit === effectiveSuit) isValid = true;
@@ -116,6 +120,7 @@ io.on('connection', (socket) => {
             p.hand.splice(data.index, 1);
             discardPile.push(card);
 
+            // Έλεγχος αν έκλεισε
             if (p.hand.length === 0) {
                 if (card.value === 'J') {
                     let nextIdx = (turnIndex + direction + playerOrder.length) % playerOrder.length;
@@ -130,14 +135,15 @@ io.on('connection', (socket) => {
                 return;
             }
 
+            // Διαχείριση Άσσου και Active Suit
             if (card.value === 'A') {
                 if (topCard.value === 'A' && card.suit === topCard.suit) {
-                    // Δεν αλλάζει
+                    // Ίδιος Άσσος -> Δεν αλλάζει χρώμα
                 } else {
                     activeSuit = declaredSuit ? declaredSuit : card.suit;
                 }
             } else {
-                activeSuit = null;
+                activeSuit = null; // Αν δεν είναι άσσος, το χρώμα καθαρίζει
             }
 
             processCardLogic(card, p);
@@ -204,10 +210,15 @@ function processCardLogic(card, currentPlayer) {
     let advance = true; 
     let steps = 1;
 
+    // --- ΔΙΟΡΘΩΣΗ BUG: Αν το currentPlayer είναι null (αρχή παιχνιδιού), δεν στέλνουμε notifications ---
+    const isStartOfGame = (!currentPlayer || !currentPlayer.id);
+
     if (card.value === '8') { 
         advance = false; 
-        currentPlayer.hasDrawn = false; 
-        io.to(currentPlayer.id).emit('notification', 'Έριξες 8! Ξαναπαίζεις (ή τραβάς)!');
+        if (!isStartOfGame) {
+            currentPlayer.hasDrawn = false; 
+            io.to(currentPlayer.id).emit('notification', 'Έριξες 8! Ξαναπαίζεις (ή τραβάς)!');
+        }
     }
     else if (card.value === '7') { penaltyStack += 2; penaltyType = '7'; }
     else if (card.value === 'J' && card.color === 'black') { penaltyStack += 10; penaltyType = 'J'; }
@@ -215,25 +226,33 @@ function processCardLogic(card, currentPlayer) {
     else if (card.value === '2') {
         let prevIdx = (turnIndex - direction + playerOrder.length) % playerOrder.length;
         let victimId = playerOrder[prevIdx];
-        if (deck.length === 0) refillDeck();
-        if (deck.length > 0) {
-            players[victimId].hand.push(deck.pop());
-            io.to(victimId).emit('notification', 'Ο παίκτης έριξε 2! Πήρες 1 κάρτα.');
+        
+        // Αν είναι αρχή παιχνιδιού, δεν τρώει κανείς το 2άρι (απλά υπάρχει κάτω)
+        if (!isStartOfGame) {
+            if (deck.length === 0) refillDeck();
+            if (deck.length > 0) {
+                players[victimId].hand.push(deck.pop());
+                io.to(victimId).emit('notification', 'Ο παίκτης έριξε 2! Πήρες 1 κάρτα.');
+            }
         }
     }
     else if (card.value === '3') { 
         if (playerOrder.length === 2) {
             advance = false; 
-            currentPlayer.hasDrawn = false; 
-            io.to(currentPlayer.id).emit('notification', 'Έριξες 3! Ξαναπαίζεις!');
+            if (!isStartOfGame) {
+                currentPlayer.hasDrawn = false; 
+                io.to(currentPlayer.id).emit('notification', 'Έριξες 3! Ξαναπαίζεις!');
+            }
         }
         else direction *= -1; 
     }
     else if (card.value === '9') {
          if (playerOrder.length === 2) {
              advance = false; 
-             currentPlayer.hasDrawn = false; 
-             io.to(currentPlayer.id).emit('notification', 'Έριξες 9! Ξαναπαίζεις!');
+             if (!isStartOfGame) {
+                currentPlayer.hasDrawn = false; 
+                io.to(currentPlayer.id).emit('notification', 'Έριξες 9! Ξαναπαίζεις!');
+             }
          }
          else steps = 2; 
     }
@@ -279,7 +298,9 @@ function startNewRound(resetTotalScores = false) {
             
             discardPile = [first];
             io.emit('gameReady');
-            processCardLogic(first, { id: null, hasDrawn: false });
+            
+            // Περνάμε null στον παίκτη για να μην κρασάρει αν είναι 3 ή 8
+            processCardLogic(first, null);
             broadcastUpdate();
         }
     }, 50);
@@ -289,7 +310,6 @@ function handleRoundEnd(winnerId, closedWithAce) {
     let historyEntry = {};
     let burnedPlayers = [];
 
-    // 1. Υπολογισμός Πόντων
     playerOrder.forEach(id => {
         if (id === winnerId) {
             historyEntry[players[id].name] = "WC";
@@ -303,14 +323,12 @@ function handleRoundEnd(winnerId, closedWithAce) {
         }
     });
 
-    // 2. Εύρεση του "Τελευταίου" (Μέγιστο σκορ από τους ΜΗ καμένους)
     let safeScores = playerOrder
         .map(id => players[id].totalScore)
         .filter(score => score < 500);
     
     let targetScore = safeScores.length > 0 ? Math.max(...safeScores) : 0;
 
-    // 3. Εφαρμογή Καψίματος
     playerOrder.forEach(id => {
         if (players[id].totalScore >= 500) {
             players[id].hats += 1;
@@ -327,7 +345,6 @@ function handleRoundEnd(winnerId, closedWithAce) {
         io.emit('notification', msg);
     }
 
-    // ΑΛΛΑΓΗ ΧΡΟΝΟΥ ΕΔΩ: 2000ms (2 δευτερόλεπτα)
     setTimeout(() => startNewRound(false), 2000);
 }
 
