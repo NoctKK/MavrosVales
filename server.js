@@ -289,7 +289,7 @@ function handleRoundEnd(winnerId, closedWithAce) {
     let historyEntry = {};
     let burnedPlayers = [];
 
-    // 1. Υπολογισμός Πόντων για όλους
+    // 1. Υπολογισμός Πόντων
     playerOrder.forEach(id => {
         if (id === winnerId) {
             historyEntry[players[id].name] = "WC";
@@ -304,19 +304,17 @@ function handleRoundEnd(winnerId, closedWithAce) {
     });
 
     // 2. Εύρεση του "Τελευταίου" (Μέγιστο σκορ από τους ΜΗ καμένους)
-    // Προσοχή: Υπολογίζουμε ποιος είναι ο max από όσους είναι ακόμα < 500
     let safeScores = playerOrder
         .map(id => players[id].totalScore)
         .filter(score => score < 500);
     
-    // Αν όλοι καούν ταυτόχρονα (σπάνιο), πάνε στο 0. Αλλιώς πάνε στο max των υπολοίπων.
     let targetScore = safeScores.length > 0 ? Math.max(...safeScores) : 0;
 
     // 3. Εφαρμογή Καψίματος
     playerOrder.forEach(id => {
         if (players[id].totalScore >= 500) {
             players[id].hats += 1;
-            players[id].totalScore = targetScore; // Μπαίνει με το σκορ του "τελευταίου"
+            players[id].totalScore = targetScore; 
             burnedPlayers.push(players[id].name);
         }
     });
@@ -329,7 +327,8 @@ function handleRoundEnd(winnerId, closedWithAce) {
         io.emit('notification', msg);
     }
 
-    setTimeout(() => startNewRound(false), 4000);
+    // ΑΛΛΑΓΗ ΧΡΟΝΟΥ ΕΔΩ: 2000ms (2 δευτερόλεπτα)
+    setTimeout(() => startNewRound(false), 2000);
 }
 
 function advanceTurn(steps) {
