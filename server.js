@@ -5,7 +5,7 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
-// Ρυθμίσεις CORS για σύνδεση από Render/Κινητά
+// Ρυθμίσεις CORS
 const io = new Server(server, {
     cors: { origin: "*", methods: ["GET", "POST"] }
 });
@@ -24,10 +24,10 @@ let gameStarted = false;
 let roundHistory = [];
 let roundStarterIndex = 0;
 
-// Keep Alive για το Render
+// Keep Alive
 app.get('/ping', (req, res) => res.send('pong'));
 
-// --- ΣΥΝΑΡΤΗΣΕΙΣ ΛΟΓΙΚΗΣ ---
+// --- ΣΥΝΑΡΤΗΣΕΙΣ ---
 function createDeck() {
     const suits = ['♠', '♣', '♥', '♦'];
     const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -54,11 +54,7 @@ app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
 
 io.on('connection', (socket) => {
     players[socket.id] = {
-        id: socket.id, 
-        hand: [], 
-        name: "Παίκτης " + (Object.keys(players).length + 1), 
-        totalScore: 0,
-        hasDrawn: false
+        id: socket.id, hand: [], name: "Παίκτης " + (Object.keys(players).length + 1), totalScore: 0, hasDrawn: false
     };
     
     io.emit('playerCountUpdate', Object.keys(players).length);
@@ -81,16 +77,23 @@ io.on('connection', (socket) => {
         let effectiveSuit = activeSuit || topCard.suit;
 
         if (penaltyStack > 0) {
+            // Αν υπάρχει ποινή, απαντάς μόνο με 7 ή Μαύρο Βαλέ
             if (penaltyType === '7' && card.value === '7') isValid = true;
             if (penaltyType === 'J' && card.value === 'J') isValid = true;
         } else {
-            // Κανόνας Άσσου πάνω σε Άσσο: Μόνο ίδιο σχήμα/χρώμα
+            // --- ΕΛΕΓΧΟΣ ΕΓΚΥΡΟΤΗΤΑΣ ---
+            
+            // 1. ΠΕΡΙΠΤΩΣΗ: Άσσος πάνω σε Άσσο (Αυστηρός Κανόνας)
             if (card.value === 'A' && topCard.value === 'A') {
                 if (card.suit === topCard.suit) isValid = true;
             }
+            // 2. ΠΕΡΙΠΤΩΣΗ: Άσσος πάνω σε οτιδήποτε άλλο (Μπαλαντέρ)
+            else if (card.value === 'A') {
+                isValid = true; // <-- ΑΥΤΟ ΕΛΕΙΠΕ ΚΑΙ ΚΟΛΛΟΥΣΕ!
+            }
+            // 3. ΚΑΝΟΝΙΚΗ ΡΟΗ
             else if (card.value === topCard.value) isValid = true;
             else if (card.suit === effectiveSuit) isValid = true;
-            // Κόκκινος Βαλές ακυρώνει μόνο πάνω σε Βαλέ
             else if (card.value === 'J' && card.color === 'red' && topCard.value === 'J') isValid = true;
         }
 
@@ -99,7 +102,7 @@ io.on('connection', (socket) => {
             discardPile.push(card);
 
             if (p.hand.length === 0) {
-                // Κλείσιμο με Βαλέ
+                // Κλείσιμο με Βαλέ -> Ποινή 10 στον επόμενο
                 if (card.value === 'J') {
                     let nextIdx = (turnIndex + direction + playerOrder.length) % playerOrder.length;
                     let victimId = playerOrder[nextIdx];
@@ -115,7 +118,7 @@ io.on('connection', (socket) => {
             // Logic Άσσου
             if (card.value === 'A') {
                 if (topCard.value === 'A' && card.suit === topCard.suit) {
-                    // Παίζει ως απλό φύλλο, δεν αλλάζει το declared suit
+                    // Παίζει ως απλό φύλλο (δεν αλλάζει χρώμα)
                 } else {
                     activeSuit = declaredSuit ? declaredSuit : card.suit;
                 }
@@ -133,6 +136,8 @@ io.on('connection', (socket) => {
     socket.on('drawCard', () => {
         if (!gameStarted || playerOrder[turnIndex] !== socket.id) return;
         let p = players[socket.id];
+        
+        // Αν δεν υπάρχει ποινή και έχει ήδη τραβήξει -> Stop
         if (penaltyStack === 0 && p.hasDrawn) return;
 
         let count = penaltyStack > 0 ? penaltyStack : 1;
@@ -141,6 +146,7 @@ io.on('connection', (socket) => {
             if(deck.length > 0) p.hand.push(deck.pop());
         }
         
+        // Αν έφαγε ποινή, του επιτρέπουμε να ξανατραβήξει αν θέλει (hasDrawn = false)
         if (penaltyStack > 0) p.hasDrawn = false;
         else p.hasDrawn = true;
 
@@ -170,6 +176,7 @@ function processCardLogic(card) {
     else if (card.value === 'J' && card.color === 'black') { penaltyStack += 10; penaltyType = 'J'; }
     else if (card.value === 'J' && card.color === 'red') { penaltyStack = 0; penaltyType = null; }
     else if (card.value === '2') {
+        // Το 2 δίνει 1 κάρτα στον ΠΡΟΗΓΟΥΜΕΝΟ
         let prevIdx = (turnIndex - direction + playerOrder.length) % playerOrder.length;
         if (deck.length === 0) refillDeck();
         if (deck.length > 0) players[playerOrder[prevIdx]].hand.push(deck.pop());
@@ -221,7 +228,7 @@ function startNewRound(resetTotalScores = false) {
             
             discardPile = [first];
             io.emit('gameReady');
-            processCardLogic(first); // Εφαρμογή ποινών αρχικού φύλλου
+            processCardLogic(first);
             broadcastUpdate();
         }
     }, 50);
