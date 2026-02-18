@@ -54,54 +54,50 @@ app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
 
 io.on('connection', (socket) => {
     
-    // Αλλαγή: Το joinGame δέχεται αντικείμενο με όνομα ΚΑΙ sessionId
-    socket.on('joinGame', ({ username, sessionId }) => {
-        
-        // 1. Έλεγχος αν υπάρχει ήδη παίκτης με αυτό το Session ID (Reconnection)
-        let existingPlayerId = Object.keys(players).find(id => players[id].sessionId === sessionId);
+    // ΕΔΩ ΗΤΑΝ ΤΟ ΠΡΟΒΛΗΜΑ: Τώρα δεχόμαστε αντικείμενο data
+    socket.on('joinGame', (data) => {
+        let username, sessionId;
+
+        // Έλεγχος ασφαλείας για να μην κολλάει αν λάβει λάθος μορφή
+        if (typeof data === 'object' && data !== null) {
+            username = data.username;
+            sessionId = data.sessionId;
+        } else {
+            username = data; // Για συμβατότητα με παλιά έκδοση
+            sessionId = null;
+        }
+
+        // 1. Reconnection Logic
+        let existingPlayerId = Object.keys(players).find(id => players[id].sessionId === sessionId && sessionId !== null);
 
         if (existingPlayerId) {
-            // --- ΛΟΓΙΚΗ ΕΠΑΝΑΣΥΝΔΕΣΗΣ ---
             console.log(`Player reconnected: ${username}`);
             
-            // Αντιγράφουμε τα δεδομένα του παλιού παίκτη στο νέο socket
             players[socket.id] = players[existingPlayerId];
-            players[socket.id].id = socket.id; // Ενημερώνουμε το ID
+            players[socket.id].id = socket.id;
             players[socket.id].connected = true;
 
-            // Ενημερώνουμε τη σειρά (playerOrder) με το νέο ID
             let orderIdx = playerOrder.indexOf(existingPlayerId);
-            if (orderIdx !== -1) {
-                playerOrder[orderIdx] = socket.id;
-            }
+            if (orderIdx !== -1) playerOrder[orderIdx] = socket.id;
 
-            // Σβήνουμε το παλιό "ορφανό" κλειδί (αν είναι διαφορετικό)
-            if (existingPlayerId !== socket.id) {
-                delete players[existingPlayerId];
-            }
+            if (existingPlayerId !== socket.id) delete players[existingPlayerId];
 
-            // Ενημερώνουμε τον παίκτη ότι ξαναμπήκε
             socket.emit('rejoinSuccess', { 
                 gameStarted: gameStarted,
                 myHand: players[socket.id].hand 
             });
 
             io.emit('playerCountUpdate', Object.keys(players).length);
-            
-            // Αν το παιχνίδι τρέχει, του στέλνουμε αμέσως την κατάσταση
-            if (gameStarted) {
-                broadcastUpdate();
-            }
+            if (gameStarted) broadcastUpdate();
 
         } else {
-            // --- ΝΕΟΣ ΠΑΙΚΤΗΣ ---
-            // Αν το παιχνίδι τρέχει ήδη και δεν είναι reconnect, δεν μπαίνει (ή μπαίνει θεατής)
+            // New Player Logic
             if (gameStarted) {
                 socket.emit('notification', 'Το παιχνίδι τρέχει ήδη!');
                 return;
             }
 
-            let cleanName = username && username.trim() !== "" ? username.trim() : "Παίκτης " + (Object.keys(players).length + 1);
+            let cleanName = (username && typeof username === 'string' && username.trim() !== "") ? username.trim() : "Παίκτης " + (Object.keys(players).length + 1);
             
             if (cleanName.toLowerCase() === "δήμητρα" || cleanName.toLowerCase() === "δημητρα" || 
                 cleanName.toLowerCase() === "δημητρούλα" || cleanName.toLowerCase() === "δημητρουλα") {
@@ -110,7 +106,7 @@ io.on('connection', (socket) => {
 
             players[socket.id] = {
                 id: socket.id, 
-                sessionId: sessionId, // Αποθηκεύουμε το Session ID
+                sessionId: sessionId, 
                 hand: [], 
                 name: cleanName, 
                 totalScore: 0, 
@@ -232,18 +228,13 @@ io.on('connection', (socket) => {
         broadcastUpdate();
     });
 
-    // ΔΙΟΡΘΩΜΕΝΟ DISCONNECT
     socket.on('disconnect', () => {
         if (players[socket.id]) {
-            players[socket.id].connected = false; // Σημειώνουμε ότι αποσυνδέθηκε
-            
-            // Αν το παιχνίδι ΔΕΝ έχει ξεκινήσει, τον διαγράφουμε για να μην πιάνει χώρο
+            players[socket.id].connected = false; 
             if (!gameStarted) {
                 delete players[socket.id];
                 io.emit('playerCountUpdate', Object.keys(players).length);
             } 
-            // Αν το παιχνίδι ΕΧΕΙ ξεκινήσει, ΔΕΝ τον διαγράφουμε. 
-            // Τον κρατάμε στη μνήμη για να μπορεί να ξαναμπεί.
         }
     });
 });
@@ -266,7 +257,6 @@ function processCardLogic(card, currentPlayer) {
     else if (card.value === '2') {
         let prevIdx = (turnIndex - direction + playerOrder.length) % playerOrder.length;
         let victimId = playerOrder[prevIdx];
-        
         if (!isStartOfGame) {
             if (deck.length === 0) refillDeck();
             if (deck.length > 0) {
@@ -360,10 +350,7 @@ function handleRoundEnd(winnerId, closedWithAce) {
         }
     });
 
-    let safeScores = playerOrder
-        .map(id => players[id].totalScore)
-        .filter(score => score < 500);
-    
+    let safeScores = playerOrder.map(id => players[id].totalScore).filter(score => score < 500);
     let targetScore = safeScores.length > 0 ? Math.max(...safeScores) : 0;
 
     playerOrder.forEach(id => {
@@ -392,14 +379,10 @@ function advanceTurn(steps) {
 }
 
 function broadcastUpdate() {
-    // Αν έχει αποσυνδεθεί κάποιος, το turnIndex μπορεί να δείχνει σε αυτόν.
-    // Ο κώδικας συνεχίζει να τον δείχνει, και περιμένει να συνδεθεί.
-    
     let currentPlayer = players[playerOrder[turnIndex]];
     let currentPlayerName = currentPlayer ? currentPlayer.name : "...";
     
     playerOrder.forEach(id => {
-        // Στέλνουμε update μόνο στους συνδεδεμένους (αν προσπαθήσουμε σε disconnected, δεν πειράζει, το socket.io το αγνοεί)
         io.to(id).emit('updateUI', {
             players: playerOrder.map(pid => ({ 
                 id: pid, 
@@ -407,7 +390,7 @@ function broadcastUpdate() {
                 handCount: players[pid].hand.length,
                 hats: players[pid].hats, 
                 totalScore: players[pid].totalScore,
-                connected: players[pid].connected // Χρήσιμο για να δείχνουμε ποιος λείπει
+                connected: players[pid].connected 
             })),
             topCard: discardPile[discardPile.length - 1],
             penalty: penaltyStack,
