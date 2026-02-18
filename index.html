@@ -17,6 +17,9 @@
             margin: 0; overflow: hidden; height: 100vh; width: 100vw;
             user-select: none; -webkit-user-select: none;
             display: flex; align-items: center; justify-content: center;
+            /* Βελτίωση αφής για κινητά */
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         /* --- GAME WRAPPER --- */
@@ -133,13 +136,14 @@
         .card-corner.bottom { top: auto; bottom: 5px; left: auto; right: 5px; transform: rotate(180deg); }
         .card-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 70px; }
 
-        /* ANIMATION CLASS */
+        /* ANIMATION CLASS - ΣΗΜΑΝΤΙΚΗ ΑΛΛΑΓΗ: Transform Origin */
         .flying-card {
-            position: fixed; /* Φεύγει από το flow */
+            position: fixed;
             z-index: 9999;
-            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* Smooth πέταγμα */
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             pointer-events: none;
-            box-shadow: 10px 10px 30px rgba(0,0,0,0.5); /* Μεγαλύτερη σκιά όταν πετάει */
+            box-shadow: 10px 10px 30px rgba(0,0,0,0.5);
+            transform-origin: top left; /* Κλειδί για σωστό scaling */
         }
 
         #turn-indicator { position: absolute; top: 20px; right: 20px; padding: 10px 25px; background: #1a472a; border: 3px solid #4f4; border-radius: 15px; font-weight: bold; z-index: 1000; font-size: 18px; color: white;}
@@ -259,11 +263,17 @@
         let myId, lastTopCardId = null, selectedAceIndex = null;
         let fullScoreHistory = [];
         let isScoreboardExpanded = false;
+        
+        // GLOBAL VARIABLE ΓΙΑ ΤΟ SCALE
+        let gameScale = 1;
 
         function resizeGame() {
             const wrapper = document.getElementById('game-wrapper');
-            const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
-            wrapper.style.transform = `scale(${scale})`;
+            const winWidth = window.innerWidth;
+            const winHeight = window.innerHeight;
+            // Υπολογισμός Scale
+            gameScale = Math.min(winWidth / 1280, winHeight / 720);
+            wrapper.style.transform = `scale(${gameScale})`;
         }
         window.addEventListener('resize', resizeGame);
         window.addEventListener('load', resizeGame);
@@ -408,49 +418,48 @@
             }).join('');
         }
 
-        // --- ANIMATION FUNCTION ---
+        // --- UPDATED ANIMATION LOGIC (WITH SCALING) ---
         function animateThrow(elem) {
-            // Κλωνοποίηση της κάρτας για το εφέ
             const rect = elem.getBoundingClientRect();
             const clone = elem.cloneNode(true);
             clone.classList.add('flying-card');
             
-            // Αρχική Θέση (στο χέρι)
+            // Set initial position (viewport relative)
             clone.style.left = rect.left + 'px';
             clone.style.top = rect.top + 'px';
-            clone.style.margin = '0'; // Reset margin
+            clone.style.margin = '0';
             
+            // APPLY SCALE: Σημαντικό για να μην φαίνεται τεράστια στο κινητό
+            clone.style.transform = `scale(${gameScale})`; 
+
             document.body.appendChild(clone);
 
-            // Τελική Θέση (Στοίβα)
             const pile = document.getElementById('pile-container');
             const pileRect = pile.getBoundingClientRect();
 
-            // Τρέχουμε το animation με μικρή καθυστέρηση για να προλάβει να ζωγραφιστεί
             setTimeout(() => {
                 clone.style.left = pileRect.left + 'px';
                 clone.style.top = pileRect.top + 'px';
-                clone.style.transform = `rotate(${Math.random() * 20 - 10}deg) scale(1)`;
+                // Στο τελικό στάδιο, κρατάμε το scale και προσθέτουμε στροφή
+                clone.style.transform = `scale(${gameScale}) rotate(${Math.random() * 20 - 10}deg)`;
                 clone.style.opacity = '0.8';
             }, 10);
 
-            // Διαγραφή μετά το animation
             setTimeout(() => {
                 clone.remove();
             }, 400);
         }
 
         function playLogic(index, value, suit) {
-            // 1. Εντοπισμός στοιχείου για animation
             const cardElement = document.querySelector(`.card-${index}`);
             
             if (value !== 'A') {
-                if (cardElement) animateThrow(cardElement); // Ρίξε animation
+                if (cardElement) animateThrow(cardElement);
                 socket.emit('playCard', { index: index, declaredSuit: null });
                 return;
             }
             if (window.currentTopCard && window.currentTopCard.value === 'A' && window.currentTopCard.suit === suit) {
-                 if (cardElement) animateThrow(cardElement); // Ρίξε animation
+                 if (cardElement) animateThrow(cardElement);
                  socket.emit('playCard', { index: index, declaredSuit: null });
                  return;
             }
@@ -459,7 +468,6 @@
         }
 
         function confirmAce(suit) {
-            // Animation για τον Άσσο (βρίσκουμε την κάρτα βάσει του αποθηκευμένου index)
             const cardElement = document.querySelector(`.card-${selectedAceIndex}`);
             if (cardElement) animateThrow(cardElement);
 
