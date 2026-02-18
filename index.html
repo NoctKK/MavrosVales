@@ -348,7 +348,6 @@
         socket.on('roundResultMsg', (t) => {
             const o = document.getElementById('msg-overlay');
             o.innerText = t; o.style.display = 'flex';
-            // ΑΛΛΑΓΗ ΧΡΟΝΟΥ ΕΔΩ: 1500ms
             setTimeout(() => o.style.display = 'none', 1500);
         });
         
@@ -356,8 +355,21 @@
             const o = document.getElementById('msg-overlay');
             o.innerText = msg; o.style.display = 'flex';
             o.style.fontSize = "40px";
-            // ΑΛΛΑΓΗ ΧΡΟΝΟΥ ΕΔΩ: 1500ms
             setTimeout(() => o.style.display = 'none', 1500);
+        });
+
+        // Προσθήκη για Invalid Move
+        socket.on('invalidMove', () => {
+            const o = document.getElementById('msg-overlay');
+            o.innerText = "Δεν επιτρέπεται αυτή η κίνηση!"; 
+            o.style.display = 'flex';
+            o.style.fontSize = "40px";
+            o.style.color = "red";
+            setTimeout(() => {
+                o.style.display = 'none';
+                o.style.color = "#d4af37"; // Reset color
+            }, 1000);
+            shakeCards();
         });
 
         function shakeCards() { 
