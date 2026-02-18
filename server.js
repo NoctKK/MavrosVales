@@ -54,27 +54,72 @@ app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
 
 io.on('connection', (socket) => {
     
-    socket.on('joinGame', (username) => {
-        let cleanName = username && username.trim() !== "" ? username.trim() : "Παίκτης " + (Object.keys(players).length + 1);
+    // Αλλαγή: Το joinGame δέχεται αντικείμενο με όνομα ΚΑΙ sessionId
+    socket.on('joinGame', ({ username, sessionId }) => {
         
-        if (cleanName.toLowerCase() === "δήμητρα" || cleanName.toLowerCase() === "δημητρα" || 
-            cleanName.toLowerCase() === "δημητρούλα" || cleanName.toLowerCase() === "δημητρουλα") {
-            cleanName += " ❤️";
-        }
+        // 1. Έλεγχος αν υπάρχει ήδη παίκτης με αυτό το Session ID (Reconnection)
+        let existingPlayerId = Object.keys(players).find(id => players[id].sessionId === sessionId);
 
-        players[socket.id] = {
-            id: socket.id, 
-            hand: [], 
-            name: cleanName, 
-            totalScore: 0, 
-            hats: 0, 
-            hasDrawn: false
-        };
-        
-        io.emit('playerCountUpdate', Object.keys(players).length);
-        
-        if (gameStarted) {
-            socket.emit('updateUI', getGameState());
+        if (existingPlayerId) {
+            // --- ΛΟΓΙΚΗ ΕΠΑΝΑΣΥΝΔΕΣΗΣ ---
+            console.log(`Player reconnected: ${username}`);
+            
+            // Αντιγράφουμε τα δεδομένα του παλιού παίκτη στο νέο socket
+            players[socket.id] = players[existingPlayerId];
+            players[socket.id].id = socket.id; // Ενημερώνουμε το ID
+            players[socket.id].connected = true;
+
+            // Ενημερώνουμε τη σειρά (playerOrder) με το νέο ID
+            let orderIdx = playerOrder.indexOf(existingPlayerId);
+            if (orderIdx !== -1) {
+                playerOrder[orderIdx] = socket.id;
+            }
+
+            // Σβήνουμε το παλιό "ορφανό" κλειδί (αν είναι διαφορετικό)
+            if (existingPlayerId !== socket.id) {
+                delete players[existingPlayerId];
+            }
+
+            // Ενημερώνουμε τον παίκτη ότι ξαναμπήκε
+            socket.emit('rejoinSuccess', { 
+                gameStarted: gameStarted,
+                myHand: players[socket.id].hand 
+            });
+
+            io.emit('playerCountUpdate', Object.keys(players).length);
+            
+            // Αν το παιχνίδι τρέχει, του στέλνουμε αμέσως την κατάσταση
+            if (gameStarted) {
+                broadcastUpdate();
+            }
+
+        } else {
+            // --- ΝΕΟΣ ΠΑΙΚΤΗΣ ---
+            // Αν το παιχνίδι τρέχει ήδη και δεν είναι reconnect, δεν μπαίνει (ή μπαίνει θεατής)
+            if (gameStarted) {
+                socket.emit('notification', 'Το παιχνίδι τρέχει ήδη!');
+                return;
+            }
+
+            let cleanName = username && username.trim() !== "" ? username.trim() : "Παίκτης " + (Object.keys(players).length + 1);
+            
+            if (cleanName.toLowerCase() === "δήμητρα" || cleanName.toLowerCase() === "δημητρα" || 
+                cleanName.toLowerCase() === "δημητρούλα" || cleanName.toLowerCase() === "δημητρουλα") {
+                cleanName += " ❤️";
+            }
+
+            players[socket.id] = {
+                id: socket.id, 
+                sessionId: sessionId, // Αποθηκεύουμε το Session ID
+                hand: [], 
+                name: cleanName, 
+                totalScore: 0, 
+                hats: 0, 
+                hasDrawn: false,
+                connected: true
+            };
+            
+            io.emit('playerCountUpdate', Object.keys(players).length);
         }
     });
 
@@ -96,21 +141,13 @@ io.on('connection', (socket) => {
         let effectiveSuit = activeSuit || topCard.suit;
 
         if (penaltyStack > 0) {
-            // Στην ποινή παίζεις μόνο 7 ή Μαύρο Βαλέ
             if (penaltyType === '7' && card.value === '7') isValid = true;
             if (penaltyType === 'J' && card.value === 'J') isValid = true;
         } else {
-            // --- LOGIC CHECK ---
-            
-            // 1. Άσσος πάνω σε Άσσο (Πρέπει να είναι ίδιο χρώμα/σχήμα)
             if (card.value === 'A' && topCard.value === 'A') {
                 if (card.suit === topCard.suit) isValid = true;
             }
-            // 2. Άσσος πάνω σε οτιδήποτε άλλο (Μπαλαντέρ - Περνάει ΠΑΝΤΑ)
-            else if (card.value === 'A') {
-                isValid = true;
-            }
-            // 3. Κανονικοί κανόνες
+            else if (card.value === 'A') isValid = true;
             else if (card.value === topCard.value) isValid = true;
             else if (card.suit === effectiveSuit) isValid = true;
             else if (card.value === 'J' && card.color === 'red' && topCard.value === 'J') isValid = true;
@@ -120,7 +157,6 @@ io.on('connection', (socket) => {
             p.hand.splice(data.index, 1);
             discardPile.push(card);
 
-            // Έλεγχος αν έκλεισε
             if (p.hand.length === 0) {
                 if (card.value === 'J') {
                     let nextIdx = (turnIndex + direction + playerOrder.length) % playerOrder.length;
@@ -135,15 +171,13 @@ io.on('connection', (socket) => {
                 return;
             }
 
-            // Διαχείριση Άσσου και Active Suit
             if (card.value === 'A') {
                 if (topCard.value === 'A' && card.suit === topCard.suit) {
-                    // Ίδιος Άσσος -> Δεν αλλάζει χρώμα
                 } else {
                     activeSuit = declaredSuit ? declaredSuit : card.suit;
                 }
             } else {
-                activeSuit = null; // Αν δεν είναι άσσος, το χρώμα καθαρίζει
+                activeSuit = null;
             }
 
             processCardLogic(card, p);
@@ -198,10 +232,18 @@ io.on('connection', (socket) => {
         broadcastUpdate();
     });
 
+    // ΔΙΟΡΘΩΜΕΝΟ DISCONNECT
     socket.on('disconnect', () => {
         if (players[socket.id]) {
-            delete players[socket.id];
-            io.emit('playerCountUpdate', Object.keys(players).length);
+            players[socket.id].connected = false; // Σημειώνουμε ότι αποσυνδέθηκε
+            
+            // Αν το παιχνίδι ΔΕΝ έχει ξεκινήσει, τον διαγράφουμε για να μην πιάνει χώρο
+            if (!gameStarted) {
+                delete players[socket.id];
+                io.emit('playerCountUpdate', Object.keys(players).length);
+            } 
+            // Αν το παιχνίδι ΕΧΕΙ ξεκινήσει, ΔΕΝ τον διαγράφουμε. 
+            // Τον κρατάμε στη μνήμη για να μπορεί να ξαναμπεί.
         }
     });
 });
@@ -209,8 +251,6 @@ io.on('connection', (socket) => {
 function processCardLogic(card, currentPlayer) {
     let advance = true; 
     let steps = 1;
-
-    // --- ΔΙΟΡΘΩΣΗ BUG: Αν το currentPlayer είναι null (αρχή παιχνιδιού), δεν στέλνουμε notifications ---
     const isStartOfGame = (!currentPlayer || !currentPlayer.id);
 
     if (card.value === '8') { 
@@ -227,7 +267,6 @@ function processCardLogic(card, currentPlayer) {
         let prevIdx = (turnIndex - direction + playerOrder.length) % playerOrder.length;
         let victimId = playerOrder[prevIdx];
         
-        // Αν είναι αρχή παιχνιδιού, δεν τρώει κανείς το 2άρι (απλά υπάρχει κάτω)
         if (!isStartOfGame) {
             if (deck.length === 0) refillDeck();
             if (deck.length > 0) {
@@ -298,8 +337,6 @@ function startNewRound(resetTotalScores = false) {
             
             discardPile = [first];
             io.emit('gameReady');
-            
-            // Περνάμε null στον παίκτη για να μην κρασάρει αν είναι 3 ή 8
             processCardLogic(first, null);
             broadcastUpdate();
         }
@@ -355,15 +392,22 @@ function advanceTurn(steps) {
 }
 
 function broadcastUpdate() {
-    let currentPlayerName = players[playerOrder[turnIndex]].name;
+    // Αν έχει αποσυνδεθεί κάποιος, το turnIndex μπορεί να δείχνει σε αυτόν.
+    // Ο κώδικας συνεχίζει να τον δείχνει, και περιμένει να συνδεθεί.
+    
+    let currentPlayer = players[playerOrder[turnIndex]];
+    let currentPlayerName = currentPlayer ? currentPlayer.name : "...";
+    
     playerOrder.forEach(id => {
+        // Στέλνουμε update μόνο στους συνδεδεμένους (αν προσπαθήσουμε σε disconnected, δεν πειράζει, το socket.io το αγνοεί)
         io.to(id).emit('updateUI', {
             players: playerOrder.map(pid => ({ 
                 id: pid, 
                 name: players[pid].name, 
                 handCount: players[pid].hand.length,
                 hats: players[pid].hats, 
-                totalScore: players[pid].totalScore
+                totalScore: players[pid].totalScore,
+                connected: players[pid].connected // Χρήσιμο για να δείχνουμε ποιος λείπει
             })),
             topCard: discardPile[discardPile.length - 1],
             penalty: penaltyStack,
