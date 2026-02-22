@@ -5,6 +5,11 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
+// ΣΥΣΤΗΜΑ ANTI-CRASH: Αποτρέπει τον server από το να κλείσει αν γίνει λάθος στη μνήμη
+process.on('uncaughtException', (err) => {
+    console.error('Αποτράπηκε Crash του Server:', err);
+});
+
 // Ρυθμίσεις CORS
 const io = new Server(server, {
     cors: { origin: "*", methods: ["GET", "POST"] }
@@ -23,6 +28,7 @@ let activeSuit = null;
 let gameStarted = false;
 let roundHistory = [];
 let roundStarterIndex = 0;
+let consecutiveTwos = 0; // Μετρητής για τα 2άρια
 
 // Keep Alive
 app.get('/ping', (req, res) => res.send('pong'));
@@ -54,25 +60,19 @@ app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
 
 io.on('connection', (socket) => {
     
-    // ΕΔΩ ΗΤΑΝ ΤΟ ΠΡΟΒΛΗΜΑ: Τώρα δεχόμαστε αντικείμενο data
     socket.on('joinGame', (data) => {
         let username, sessionId;
-
-        // Έλεγχος ασφαλείας για να μην κολλάει αν λάβει λάθος μορφή
         if (typeof data === 'object' && data !== null) {
             username = data.username;
             sessionId = data.sessionId;
         } else {
-            username = data; // Για συμβατότητα με παλιά έκδοση
+            username = data;
             sessionId = null;
         }
 
-        // 1. Reconnection Logic
         let existingPlayerId = Object.keys(players).find(id => players[id].sessionId === sessionId && sessionId !== null);
 
         if (existingPlayerId) {
-            console.log(`Player reconnected: ${username}`);
-            
             players[socket.id] = players[existingPlayerId];
             players[socket.id].id = socket.id;
             players[socket.id].connected = true;
@@ -91,7 +91,6 @@ io.on('connection', (socket) => {
             if (gameStarted) broadcastUpdate();
 
         } else {
-            // New Player Logic
             if (gameStarted) {
                 socket.emit('notification', 'Το παιχνίδι τρέχει ήδη!');
                 return;
@@ -154,24 +153,23 @@ io.on('connection', (socket) => {
             discardPile.push(card);
 
             if (p.hand.length === 0) {
-                if (card.value === 'J') {
+                // ΔΙΟΡΘΩΣΗ: Ποινή ΜΟΝΟ αν κλείσει με ΜΑΥΡΟ Βαλέ
+                if (card.value === 'J' && card.color === 'black') {
                     let nextIdx = (turnIndex + direction + playerOrder.length) % playerOrder.length;
                     let victimId = playerOrder[nextIdx];
                     for(let i=0; i<10; i++) {
                         if(deck.length===0) refillDeck();
                         if(deck.length>0) players[victimId].hand.push(deck.pop());
                     }
-                    io.to(victimId).emit('notification', 'Ο αντίπαλος έκλεισε με Βαλέ! +10 κάρτες!');
+                    io.to(victimId).emit('notification', 'Κλείσιμο με Μαύρο Βαλέ! +10 κάρτες!');
                 }
                 handleRoundEnd(socket.id, card.value === 'A');
                 return;
             }
 
             if (card.value === 'A') {
-                if (topCard.value === 'A' && card.suit === topCard.suit) {
-                } else {
-                    activeSuit = declaredSuit ? declaredSuit : card.suit;
-                }
+                if (topCard.value === 'A' && card.suit === topCard.suit) {} 
+                else { activeSuit = declaredSuit ? declaredSuit : card.suit; }
             } else {
                 activeSuit = null;
             }
@@ -244,17 +242,14 @@ function processCardLogic(card, currentPlayer) {
     let steps = 1;
     const isStartOfGame = (!currentPlayer || !currentPlayer.id);
 
-    if (card.value === '8') { 
-        advance = false; 
-        if (!isStartOfGame) {
-            currentPlayer.hasDrawn = false; 
-            io.to(currentPlayer.id).emit('notification', 'Έριξες 8! Ξαναπαίζεις (ή τραβάς)!');
+    // EASTER EGG ΓΙΑ ΤΑ 2ΑΡΙΑ
+    if (card.value === '2') {
+        consecutiveTwos++;
+        if (consecutiveTwos >= 3) {
+            io.emit('notification', 'Ξες πώς πάνε αυτά! 😂');
+            consecutiveTwos = 0; // Μηδενίζει αφού το πει
         }
-    }
-    else if (card.value === '7') { penaltyStack += 2; penaltyType = '7'; }
-    else if (card.value === 'J' && card.color === 'black') { penaltyStack += 10; penaltyType = 'J'; }
-    else if (card.value === 'J' && card.color === 'red') { penaltyStack = 0; penaltyType = null; }
-    else if (card.value === '2') {
+        
         let prevIdx = (turnIndex - direction + playerOrder.length) % playerOrder.length;
         let victimId = playerOrder[prevIdx];
         if (!isStartOfGame) {
@@ -264,7 +259,20 @@ function processCardLogic(card, currentPlayer) {
                 io.to(victimId).emit('notification', 'Ο παίκτης έριξε 2! Πήρες 1 κάρτα.');
             }
         }
+    } else {
+        consecutiveTwos = 0; // Σπάει το σερί αν πέσει άλλο φύλλο
     }
+
+    if (card.value === '8') { 
+        advance = false; 
+        if (!isStartOfGame) {
+            currentPlayer.hasDrawn = false; 
+            io.to(currentPlayer.id).emit('notification', 'Έριξες 8! Ξαναπαίζεις!');
+        }
+    }
+    else if (card.value === '7') { penaltyStack += 2; penaltyType = '7'; }
+    else if (card.value === 'J' && card.color === 'black') { penaltyStack += 10; penaltyType = 'J'; }
+    else if (card.value === 'J' && card.color === 'red') { penaltyStack = 0; penaltyType = null; }
     else if (card.value === '3') { 
         if (playerOrder.length === 2) {
             advance = false; 
@@ -280,10 +288,19 @@ function processCardLogic(card, currentPlayer) {
              advance = false; 
              if (!isStartOfGame) {
                 currentPlayer.hasDrawn = false; 
+                let victimId = playerOrder.find(id => id !== currentPlayer.id);
+                io.to(victimId).emit('notification', 'Άραξε 🍹'); // EASTER EGG (2 players)
                 io.to(currentPlayer.id).emit('notification', 'Έριξες 9! Ξαναπαίζεις!');
              }
          }
-         else steps = 2; 
+         else {
+             steps = 2; 
+             if (!isStartOfGame) {
+                 let skippedIdx = (turnIndex + direction + playerOrder.length) % playerOrder.length;
+                 let skippedId = playerOrder[skippedIdx];
+                 io.to(skippedId).emit('notification', 'Άραξε 🍹'); // EASTER EGG (3+ players)
+             }
+         }
     }
 
     if (advance) advanceTurn(steps);
@@ -295,7 +312,7 @@ function startNewRound(resetTotalScores = false) {
     playerOrder = Object.keys(players);
     turnIndex = roundStarterIndex % playerOrder.length;
     roundStarterIndex++;
-    direction = 1; penaltyStack = 0; activeSuit = null;
+    direction = 1; penaltyStack = 0; activeSuit = null; consecutiveTwos = 0;
 
     if (resetTotalScores) {
         roundHistory = [];
@@ -384,6 +401,7 @@ function broadcastUpdate() {
     
     playerOrder.forEach(id => {
         io.to(id).emit('updateUI', {
+            // Στέλνουμε τη ΣΕΙΡΑ των παικτών όπως είναι στο playerOrder!
             players: playerOrder.map(pid => ({ 
                 id: pid, 
                 name: players[pid].name, 
@@ -406,16 +424,14 @@ function broadcastUpdate() {
 }
 
 function getGameState() {
-    let safePlayers = [];
-    Object.keys(players).forEach(id => {
-        safePlayers.push({ 
-            id: id, 
-            name: players[id].name, 
-            handCount: players[id].hand.length,
-            hats: players[id].hats,
-            totalScore: players[id].totalScore
-        });
-    });
+    let safePlayers = playerOrder.map(id => ({ 
+        id: id, 
+        name: players[id].name, 
+        handCount: players[id].hand.length,
+        hats: players[id].hats,
+        totalScore: players[id].totalScore,
+        connected: players[id].connected
+    }));
     return {
         players: safePlayers,
         topCard: discardPile.length > 0 ? discardPile[discardPile.length - 1] : null,
