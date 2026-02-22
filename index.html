@@ -249,16 +249,16 @@
         window.addEventListener('resize', resizeGame);
         window.addEventListener('load', resizeGame);
 
+        // --- ΑΛΛΑΓΗ ΣΕ SESSION STORAGE & ΑΦΑΙΡΕΣΗ AUTO-LOGIN ---
         socket.on('connect', () => {
             myId = socket.id;
-            const savedName = localStorage.getItem('mv_username');
-            const savedSession = localStorage.getItem('mv_session');
-            if (savedName && savedSession) {
-                socket.emit('joinGame', { username: savedName, sessionId: savedSession });
+            const savedName = sessionStorage.getItem('mv_username');
+            if (savedName) {
+                // Απλά συμπληρώνει το όνομα για ευκολία, ΠΡΕΠΕΙ ΝΑ ΠΑΤΗΣΕΙΣ ΕΙΣΟΔΟΣ
+                document.getElementById('username').value = savedName;
             }
         });
 
-        // ΝΕΟ: Αν ο server έκανε restart, σε βάζει σωστά στο Lobby
         socket.on('joinedLobby', () => {
             document.getElementById('start-screen').style.display = 'flex';
             document.getElementById('login-area').style.display = 'none';
@@ -281,12 +281,12 @@
             const name = document.getElementById('username').value;
             if (name.trim() === "") return alert("Παρακαλώ βάλε ένα όνομα!");
             
-            let sessionId = localStorage.getItem('mv_session');
+            let sessionId = sessionStorage.getItem('mv_session');
             if (!sessionId) {
                 sessionId = 'sess_' + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('mv_session', sessionId);
+                sessionStorage.setItem('mv_session', sessionId);
             }
-            localStorage.setItem('mv_username', name);
+            sessionStorage.setItem('mv_username', name);
 
             socket.emit('joinGame', { username: name, sessionId: sessionId });
             
@@ -306,46 +306,48 @@
         });
 
         socket.on('updateUI', (data) => {
-            document.getElementById('deck-count').innerText = data.deckCount;
-            
-            // --- ΤΟ BUG ΗΤΑΝ ΕΔΩ. ΔΙΕΓΡΑΨΑ ΤΟ direction-arrow ---
+            // --- TRY/CATCH ΓΙΑ ΝΑ ΜΗΝ ΠΑΓΩΝΕΙ Η ΟΘΟΝΗ ΣΕ ΠΕΡΙΠΤΩΣΗ ΛΑΘΟΥΣ ---
+            try {
+                document.getElementById('deck-count').innerText = data.deckCount;
+                window.currentTopCard = data.topCard; 
 
-            window.currentTopCard = data.topCard; 
-
-            if (data.topCard) {
-                const cardId = data.topCard.value + data.topCard.suit;
-                if (cardId !== lastTopCardId) {
-                    addCardToPile(data.topCard);
-                    lastTopCardId = cardId;
+                if (data.topCard) {
+                    const cardId = data.topCard.value + data.topCard.suit;
+                    if (cardId !== lastTopCardId) {
+                        addCardToPile(data.topCard);
+                        lastTopCardId = cardId;
+                    }
                 }
+
+                const suitDisplay = document.getElementById('active-suit-display');
+                if (data.activeSuit) {
+                    suitDisplay.innerText = data.activeSuit;
+                    suitDisplay.style.color = (data.activeSuit === '♥' || data.activeSuit === '♦') ? '#ff4444' : '#222';
+                    suitDisplay.style.display = 'block';
+                    suitDisplay.style.textShadow = "0 0 10px white, 0 0 20px white";
+                } else { suitDisplay.style.display = 'none'; }
+
+                const ind = document.getElementById('turn-indicator');
+                if (data.isMyTurn) {
+                    ind.innerText = data.penalty > 0 ? `⚠️ ΦΑΕ ${data.penalty}!` : "ΔΙΚΗ ΣΟΥ ΣΕΙΡΑ";
+                    ind.style.borderColor = "#4f4"; ind.style.color = "#4f4";
+                } else {
+                    ind.innerText = `ΠΑΙΖΕΙ: ${data.currentPlayerName}`;
+                    ind.style.borderColor = "#ff4444"; ind.style.color = "#ffdddd";
+                }
+
+                if (data.myHand) renderHand(data.myHand);
+                
+                distributePlayers(data.players);
+                updateDirectionIndicator(data.players, data.direction);
+            } catch (err) {
+                console.error("Σφάλμα κατά την ανανέωση του παιχνιδιού:", err);
             }
-
-            const suitDisplay = document.getElementById('active-suit-display');
-            if (data.activeSuit) {
-                suitDisplay.innerText = data.activeSuit;
-                suitDisplay.style.color = (data.activeSuit === '♥' || data.activeSuit === '♦') ? '#ff4444' : '#222';
-                suitDisplay.style.display = 'block';
-                suitDisplay.style.textShadow = "0 0 10px white, 0 0 20px white";
-            } else { suitDisplay.style.display = 'none'; }
-
-            const ind = document.getElementById('turn-indicator');
-            if (data.isMyTurn) {
-                ind.innerText = data.penalty > 0 ? `⚠️ ΦΑΕ ${data.penalty}!` : "ΔΙΚΗ ΣΟΥ ΣΕΙΡΑ";
-                ind.style.borderColor = "#4f4"; ind.style.color = "#4f4";
-            } else {
-                ind.innerText = `ΠΑΙΖΕΙ: ${data.currentPlayerName}`;
-                ind.style.borderColor = "#ff4444"; ind.style.color = "#ffdddd";
-            }
-
-            if (data.myHand) renderHand(data.myHand);
-            
-            distributePlayers(data.players);
-            updateDirectionIndicator(data.players, data.direction);
         });
 
         function updateDirectionIndicator(playersArray, dir) {
-            if(playersArray.length === 0) return;
-            let names = playersArray.map(p => p.name.replace('❤️','').trim());
+            if(!playersArray || playersArray.length === 0) return;
+            let names = playersArray.map(p => (p.name || "").replace('❤️','').trim());
             let initials = names.map(n => n.charAt(0).toUpperCase());
             
             for(let i=0; i<initials.length; i++) {
@@ -389,6 +391,7 @@
         }
 
         function renderOpponent(p, slotId) {
+            if(!p) return;
             const opacity = p.connected ? 1 : 0.4;
             const name = p.connected ? p.name : p.name + " (Αποσ.)";
             let cards = '';
