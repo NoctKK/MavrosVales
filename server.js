@@ -110,7 +110,6 @@ io.on('connection', (socket) => {
             };
             
             io.emit('playerCountUpdate', Object.keys(players).length);
-            // ΝΕΟ: Ενημερώνουμε τον παίκτη ότι μπήκε επιτυχώς στο lobby
             socket.emit('joinedLobby'); 
         }
     });
@@ -415,30 +414,6 @@ function broadcastUpdate() {
             deckCount: deck.length
         });
     });
-}
-
-function getGameState() {
-    let safePlayers = playerOrder.map(id => ({ 
-        id: id, 
-        name: players[id].name, 
-        handCount: players[id].hand.length,
-        hats: players[id].hats,
-        totalScore: players[id].totalScore,
-        connected: players[id].connected
-    }));
-    return {
-        players: safePlayers,
-        topCard: discardPile.length > 0 ? discardPile[discardPile.length - 1] : null,
-        penalty: penaltyStack,
-        penaltyType: penaltyType,
-        direction: direction
-    };
-}
-
-function refillDeck() {
-    let top = discardPile.pop();
-    deck = discardPile.sort(() => Math.random() - 0.5);
-    discardPile = [top];
 }
 
 const port = process.env.PORT || 3000;
