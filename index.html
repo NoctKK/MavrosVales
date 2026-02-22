@@ -166,11 +166,24 @@
             pointer-events: none; text-align: center;
         }
         
+        /* ΣΥΣΤΗΜΑ ΔΙΑΓΝΩΣΗΣ ΣΦΑΛΜΑΤΩΝ */
+        #error-overlay {
+            display: none; position: fixed; inset: 0; z-index: 99999;
+            background: rgba(150, 0, 0, 0.9); flex-direction: column; 
+            align-items: center; justify-content: center; padding: 20px; text-align: center;
+        }
+        
         .shake { animation: shake 0.2s; border-color: red !important; }
         @keyframes shake { 0%, 100% {transform:translateX(0);} 25% {transform:translateX(-5px);} 75% {transform:translateX(5px);} }
     </style>
 </head>
 <body>
+
+    <div id="error-overlay">
+        <h2>ΠΡΟΕΚΥΨΕ ΣΦΑΛΜΑ ΚΩΔΙΚΑ!</h2>
+        <p id="error-text" style="font-family: monospace; background: black; padding: 10px;"></p>
+        <button onclick="window.location.reload()" style="padding:10px 20px; font-size:20px; cursor:pointer;">ΕΠΑΝΑΦΟΡΤΩΣΗ ΣΕΛΙΔΑΣ</button>
+    </div>
 
     <div id="rotate-msg">
         <div style="font-size: 50px;">🔄</div>
@@ -232,13 +245,18 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        // Πιάνουμε τα σφάλματα πριν "παγώσουν" το παιχνίδι
+        window.onerror = function(message, source, lineno, colno, error) {
+            document.getElementById('error-overlay').style.display = 'flex';
+            document.getElementById('error-text').innerText = message + " \nΓραμμή: " + lineno;
+        };
+
         const socket = io();
         let myId, lastTopCardId = null, selectedAceIndex = null;
         let fullScoreHistory = [];
         let isScoreboardExpanded = false;
         let gameScale = 1;
 
-        // KEEP ALIVE PING
         setInterval(() => { fetch('/ping').catch(() => {}); }, 60000);
 
         function resizeGame() {
@@ -249,13 +267,12 @@
         window.addEventListener('resize', resizeGame);
         window.addEventListener('load', resizeGame);
 
-        // --- ΑΛΛΑΓΗ ΣΕ SESSION STORAGE & ΑΦΑΙΡΕΣΗ AUTO-LOGIN ---
+        // --- ΑΦΑΙΡΕΘΗΚΕ ΕΝΤΕΛΩΣ ΤΟ AUTO-JOIN (Μόνο συμπλήρωση του text) ---
         socket.on('connect', () => {
             myId = socket.id;
             const savedName = sessionStorage.getItem('mv_username');
             if (savedName) {
-                // Απλά συμπληρώνει το όνομα για ευκολία, ΠΡΕΠΕΙ ΝΑ ΠΑΤΗΣΕΙΣ ΕΙΣΟΔΟΣ
-                document.getElementById('username').value = savedName;
+                document.getElementById('username').value = savedName; // Απλά συμπληρώνει το όνομα! ΔΕΝ μπαίνει αυτόματα!
             }
         });
 
@@ -306,7 +323,6 @@
         });
 
         socket.on('updateUI', (data) => {
-            // --- TRY/CATCH ΓΙΑ ΝΑ ΜΗΝ ΠΑΓΩΝΕΙ Η ΟΘΟΝΗ ΣΕ ΠΕΡΙΠΤΩΣΗ ΛΑΘΟΥΣ ---
             try {
                 document.getElementById('deck-count').innerText = data.deckCount;
                 window.currentTopCard = data.topCard; 
@@ -336,23 +352,28 @@
                     ind.style.borderColor = "#ff4444"; ind.style.color = "#ffdddd";
                 }
 
-                if (data.myHand) renderHand(data.myHand);
+                // ΜΟΝΟ ΑΝ ΥΠΑΡΧΕΙ ΧΕΡΙ
+                if (data.myHand && Array.isArray(data.myHand)) {
+                    renderHand(data.myHand);
+                }
                 
                 distributePlayers(data.players);
                 updateDirectionIndicator(data.players, data.direction);
-            } catch (err) {
-                console.error("Σφάλμα κατά την ανανέωση του παιχνιδιού:", err);
+            } catch(e) {
+                // Εμφάνιση Σφάλματος στην Οθόνη!
+                document.getElementById('error-overlay').style.display = 'flex';
+                document.getElementById('error-text').innerText = e.message;
             }
         });
 
         function updateDirectionIndicator(playersArray, dir) {
             if(!playersArray || playersArray.length === 0) return;
             let names = playersArray.map(p => (p.name || "").replace('❤️','').trim());
-            let initials = names.map(n => n.charAt(0).toUpperCase());
+            let initials = names.map(n => n.charAt(0) ? n.charAt(0).toUpperCase() : "?");
             
             for(let i=0; i<initials.length; i++) {
                 for(let j=i+1; j<initials.length; j++) {
-                    if(initials[i] === initials[j]) {
+                    if(initials[i] === initials[j] && initials[i] !== "?") {
                         initials[i] = names[i].substring(0,2).toUpperCase();
                         initials[j] = names[j].substring(0,2).toUpperCase();
                     }
@@ -368,8 +389,10 @@
         }
 
         function distributePlayers(players) {
+            if (!players || !Array.isArray(players)) return;
+            
             const myIndex = players.findIndex(p => p.id === myId);
-            if(myIndex === -1) return;
+            if(myIndex === -1) return; // Είμαστε θεατές
             
             const ordered = players.slice(myIndex).concat(players.slice(0, myIndex));
             const others = ordered.slice(1); 
@@ -391,17 +414,18 @@
         }
 
         function renderOpponent(p, slotId) {
-            if(!p) return;
+            if (!p) return;
             const opacity = p.connected ? 1 : 0.4;
-            const name = p.connected ? p.name : p.name + " (Αποσ.)";
+            const name = p.connected ? p.name : (p.name || "Unknown") + " (Αποσ.)";
             let cards = '';
-            for(let k=0; k<p.handCount; k++) cards += '<div class="mini-card"></div>';
+            let handCount = p.handCount || 0;
+            for(let k=0; k<handCount; k++) cards += '<div class="mini-card"></div>';
             let hatsHTML = p.hats > 0 ? `<div class="hats-container">${"🎩".repeat(p.hats)}</div>` : "";
             
             document.getElementById(slotId).innerHTML = `
                 <div class="player-info" style="opacity: ${opacity}">
                     <div class="player-name">${name}</div>
-                    <div class="player-score">Φύλλα: ${p.handCount}</div>
+                    <div class="player-score">Φύλλα: ${handCount}</div>
                     ${hatsHTML}
                 </div>
                 <div class="opp-hand" style="opacity: ${opacity}">${cards}</div>`;
@@ -423,6 +447,7 @@
         }
 
         function animateThrow(elem) {
+            if (!elem) return;
             const rect = elem.getBoundingClientRect();
             const clone = elem.cloneNode(true);
             clone.classList.add('flying-card');
@@ -480,7 +505,7 @@
 
         function renderScoreboard() {
             const t = document.getElementById('score-table');
-            if (fullScoreHistory.length === 0) return;
+            if (!fullScoreHistory || fullScoreHistory.length === 0) return;
             let names = Object.keys(fullScoreHistory[0]);
             let html = `<tr>${names.map(n => `<th>${n}</th>`).join('')}</tr>`;
             let dataToShow = isScoreboardExpanded ? fullScoreHistory : fullScoreHistory.slice(-5);
@@ -517,6 +542,21 @@
             setTimeout(() => { o.style.display = 'none'; o.style.color = "#d4af37"; }, 1000);
             shakeCards();
         });
+
+        function addCardToPile(c) {
+            const container = document.getElementById('pile-container');
+            if(!container) return;
+            const div = document.createElement('div');
+            const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : '';
+            div.className = `pile-card ${color}`;
+            const rotation = (Math.random() * 20) - 10; 
+            div.style.transform = `rotate(${rotation}deg)`;
+            div.innerHTML = `<div class="card-corner">${c.value}<div>${c.suit}</div></div><div class="card-center">${c.suit}</div><div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>`;
+            container.appendChild(div);
+            if (container.children.length > 5) {
+                container.removeChild(container.firstChild);
+            }
+        }
 
         function shakeCards() { 
             document.querySelectorAll('.hand-card').forEach(c => c.classList.add('shake')); 
