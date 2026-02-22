@@ -68,9 +68,8 @@
         }
         .game-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #111; }
         
-        /* ΝΕΑ ΕΝΔΕΙΞΗ ΦΟΡΑΣ ΠΑΙΧΝΙΔΙΟΥ */
         #direction-indicator {
-            position: absolute; top: 15px; right: 250px; /* Δίπλα στο turn-indicator */
+            position: absolute; top: 15px; right: 250px;
             padding: 10px 20px; background: rgba(0,0,0,0.8);
             border: 2px solid var(--gold); border-radius: 15px;
             font-weight: bold; font-size: 20px; color: var(--gold);
@@ -239,8 +238,8 @@
         let isScoreboardExpanded = false;
         let gameScale = 1;
 
-        // KEEP ALIVE PING (Αποτρέπει το Render να "κοιμηθεί")
-        setInterval(() => { fetch('/ping').catch(() => {}); }, 60000); // Κάθε 1 λεπτό
+        // KEEP ALIVE PING
+        setInterval(() => { fetch('/ping').catch(() => {}); }, 60000);
 
         function resizeGame() {
             const wrapper = document.getElementById('game-wrapper');
@@ -257,6 +256,14 @@
             if (savedName && savedSession) {
                 socket.emit('joinGame', { username: savedName, sessionId: savedSession });
             }
+        });
+
+        // ΝΕΟ: Αν ο server έκανε restart, σε βάζει σωστά στο Lobby
+        socket.on('joinedLobby', () => {
+            document.getElementById('start-screen').style.display = 'flex';
+            document.getElementById('login-area').style.display = 'none';
+            document.getElementById('waiting-area').style.display = 'block';
+            document.getElementById('scoreboard').style.display = 'none';
         });
 
         socket.on('rejoinSuccess', (data) => {
@@ -300,6 +307,9 @@
 
         socket.on('updateUI', (data) => {
             document.getElementById('deck-count').innerText = data.deckCount;
+            
+            // --- ΤΟ BUG ΗΤΑΝ ΕΔΩ. ΔΙΕΓΡΑΨΑ ΤΟ direction-arrow ---
+
             window.currentTopCard = data.topCard; 
 
             if (data.topCard) {
@@ -329,18 +339,15 @@
 
             if (data.myHand) renderHand(data.myHand);
             
-            // ΚΛΗΣΕΙΣ ΓΙΑ ΚΑΘΙΣΜΑ & ΒΕΛΑΚΙΑ
             distributePlayers(data.players);
             updateDirectionIndicator(data.players, data.direction);
         });
 
-        // ΣΥΝΑΡΤΗΣΗ ΓΙΑ ΒΕΛΑΚΙΑ ΜΕ ΑΡΧΙΚΑ
         function updateDirectionIndicator(playersArray, dir) {
             if(playersArray.length === 0) return;
             let names = playersArray.map(p => p.name.replace('❤️','').trim());
             let initials = names.map(n => n.charAt(0).toUpperCase());
             
-            // Έλεγχος για διπλό αρχικό (βάζουμε τα πρώτα 2 γράμματα)
             for(let i=0; i<initials.length; i++) {
                 for(let j=i+1; j<initials.length; j++) {
                     if(initials[i] === initials[j]) {
@@ -358,21 +365,17 @@
             }
         }
 
-        // ΣΩΣΤΟ ΚΑΘΙΣΜΑ ΠΑΙΚΤΩΝ
         function distributePlayers(players) {
             const myIndex = players.findIndex(p => p.id === myId);
-            if(myIndex === -1) return; // Θεατής (θα θέλει άλλη λογική, αλλά τώρα μας νοιάζει ο παίκτης)
+            if(myIndex === -1) return;
             
-            // Βάζουμε τον εαυτό μας πρώτο στο Array (index 0)
             const ordered = players.slice(myIndex).concat(players.slice(0, myIndex));
-            const others = ordered.slice(1); // Όλοι εκτός από εμάς
+            const others = ordered.slice(1); 
             
-            // Καθαρισμός
             document.getElementById('slot-top').innerHTML = '';
             document.getElementById('slot-left').innerHTML = '';
             document.getElementById('slot-right').innerHTML = '';
 
-            // Θέσεις δεξιόστροφα: [0] Είναι αριστερά σου (επόμενος), [1] Απέναντι, [2] Δεξιά σου (προηγούμενος)
             if (others.length === 1) {
                 renderOpponent(others[0], 'slot-top');
             } else if (others.length === 2) {
@@ -498,7 +501,7 @@
         socket.on('notification', (msg) => {
             const o = document.getElementById('msg-overlay');
             o.innerText = msg; o.style.display = 'flex';
-            o.style.fontSize = "6vw";
+            o.style.fontSize = "5vw";
             setTimeout(() => o.style.display = 'none', 1500);
         });
 
@@ -506,7 +509,7 @@
             const o = document.getElementById('msg-overlay');
             o.innerText = "Ακυρη Κίνηση!"; 
             o.style.display = 'flex';
-            o.style.fontSize = "6vw";
+            o.style.fontSize = "5vw";
             o.style.color = "red";
             setTimeout(() => { o.style.display = 'none'; o.style.color = "#d4af37"; }, 1000);
             shakeCards();
