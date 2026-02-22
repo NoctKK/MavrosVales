@@ -5,6 +5,7 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
+// Anti-Crash System
 process.on('uncaughtException', (err) => {
     console.error('Αποτράπηκε Crash του Server:', err);
 });
@@ -394,20 +395,26 @@ function broadcastUpdate() {
     let currentPlayerName = currentPlayer ? currentPlayer.name : "...";
     
     playerOrder.forEach(id => {
+        let p = players[id];
+        if (!p) return; // Safeguard
+
         io.to(id).emit('updateUI', {
-            players: playerOrder.map(pid => ({ 
-                id: pid, 
-                name: players[pid].name, 
-                handCount: players[pid].hand.length,
-                hats: players[pid].hats, 
-                totalScore: players[pid].totalScore,
-                connected: players[pid].connected 
-            })),
-            topCard: discardPile[discardPile.length - 1],
+            players: playerOrder.map(pid => {
+                let player = players[pid] || { name: "Άγνωστος", hand: [], hats: 0, totalScore: 0, connected: false };
+                return { 
+                    id: pid, 
+                    name: player.name, 
+                    handCount: player.hand.length,
+                    hats: player.hats, 
+                    totalScore: player.totalScore,
+                    connected: player.connected 
+                };
+            }),
+            topCard: discardPile.length > 0 ? discardPile[discardPile.length - 1] : null,
             penalty: penaltyStack,
             penaltyType: penaltyType,
             direction: direction,
-            myHand: players[id].hand,
+            myHand: p.hand,
             isMyTurn: (id === playerOrder[turnIndex]),
             currentPlayerName: currentPlayerName,
             activeSuit: activeSuit,
