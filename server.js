@@ -5,17 +5,14 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
-// ΣΥΣΤΗΜΑ ANTI-CRASH: Αποτρέπει τον server από το να κλείσει αν γίνει λάθος στη μνήμη
 process.on('uncaughtException', (err) => {
     console.error('Αποτράπηκε Crash του Server:', err);
 });
 
-// Ρυθμίσεις CORS
 const io = new Server(server, {
     cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
-// --- ΜΕΤΑΒΛΗΤΕΣ ---
 let deck = [];
 let discardPile = [];
 let players = {};
@@ -28,12 +25,10 @@ let activeSuit = null;
 let gameStarted = false;
 let roundHistory = [];
 let roundStarterIndex = 0;
-let consecutiveTwos = 0; // Μετρητής για τα 2άρια
+let consecutiveTwos = 0; 
 
-// Keep Alive
 app.get('/ping', (req, res) => res.send('pong'));
 
-// --- ΣΥΝΑΡΤΗΣΕΙΣ ---
 function createDeck() {
     const suits = ['♠', '♣', '♥', '♦'];
     const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -115,6 +110,8 @@ io.on('connection', (socket) => {
             };
             
             io.emit('playerCountUpdate', Object.keys(players).length);
+            // ΝΕΟ: Ενημερώνουμε τον παίκτη ότι μπήκε επιτυχώς στο lobby
+            socket.emit('joinedLobby'); 
         }
     });
 
@@ -153,7 +150,6 @@ io.on('connection', (socket) => {
             discardPile.push(card);
 
             if (p.hand.length === 0) {
-                // ΔΙΟΡΘΩΣΗ: Ποινή ΜΟΝΟ αν κλείσει με ΜΑΥΡΟ Βαλέ
                 if (card.value === 'J' && card.color === 'black') {
                     let nextIdx = (turnIndex + direction + playerOrder.length) % playerOrder.length;
                     let victimId = playerOrder[nextIdx];
@@ -242,12 +238,11 @@ function processCardLogic(card, currentPlayer) {
     let steps = 1;
     const isStartOfGame = (!currentPlayer || !currentPlayer.id);
 
-    // EASTER EGG ΓΙΑ ΤΑ 2ΑΡΙΑ
     if (card.value === '2') {
         consecutiveTwos++;
         if (consecutiveTwos >= 3) {
             io.emit('notification', 'Ξες πώς πάνε αυτά! 😂');
-            consecutiveTwos = 0; // Μηδενίζει αφού το πει
+            consecutiveTwos = 0; 
         }
         
         let prevIdx = (turnIndex - direction + playerOrder.length) % playerOrder.length;
@@ -260,7 +255,7 @@ function processCardLogic(card, currentPlayer) {
             }
         }
     } else {
-        consecutiveTwos = 0; // Σπάει το σερί αν πέσει άλλο φύλλο
+        consecutiveTwos = 0; 
     }
 
     if (card.value === '8') { 
@@ -289,7 +284,7 @@ function processCardLogic(card, currentPlayer) {
              if (!isStartOfGame) {
                 currentPlayer.hasDrawn = false; 
                 let victimId = playerOrder.find(id => id !== currentPlayer.id);
-                io.to(victimId).emit('notification', 'Άραξε 🍹'); // EASTER EGG (2 players)
+                io.to(victimId).emit('notification', 'Άραξε 🍹'); 
                 io.to(currentPlayer.id).emit('notification', 'Έριξες 9! Ξαναπαίζεις!');
              }
          }
@@ -298,7 +293,7 @@ function processCardLogic(card, currentPlayer) {
              if (!isStartOfGame) {
                  let skippedIdx = (turnIndex + direction + playerOrder.length) % playerOrder.length;
                  let skippedId = playerOrder[skippedIdx];
-                 io.to(skippedId).emit('notification', 'Άραξε 🍹'); // EASTER EGG (3+ players)
+                 io.to(skippedId).emit('notification', 'Άραξε 🍹'); 
              }
          }
     }
@@ -401,7 +396,6 @@ function broadcastUpdate() {
     
     playerOrder.forEach(id => {
         io.to(id).emit('updateUI', {
-            // Στέλνουμε τη ΣΕΙΡΑ των παικτών όπως είναι στο playerOrder!
             players: playerOrder.map(pid => ({ 
                 id: pid, 
                 name: players[pid].name, 
