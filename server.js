@@ -390,13 +390,31 @@ function advanceTurn(steps) {
     playerOrder.forEach(id => players[id].hasDrawn = false);
 }
 
+// --- ΝΕΟ ΑΣΦΑΛΕΣ REFILL DECK ---
+function refillDeck() {
+    // Αν υπάρχουν φύλλα κάτω (εκτός από το 1 που φαίνεται), τα παίρνουμε
+    if (discardPile.length > 1) {
+        let top = discardPile.pop(); // Κρατάμε το τελευταίο χαρτί που έπεσε
+        deck = [...discardPile].sort(() => Math.random() - 0.5); // Όλα τα υπόλοιπα γίνονται η νέα τράπουλα (ανακατεμένα)
+        discardPile = [top]; // Η στοίβα ρίψεων μένει μόνο με το 1 φύλλο
+        
+        io.emit('notification', '🔄 Τα φύλλα ανακατεύτηκαν!');
+    }
+}
+
 function broadcastUpdate() {
+    
+    // --- AUTO-REFILL ΜΗΧΑΝΙΣΜΟΣ ΠΡΙΝ ΣΤΑΛΟΥΝ ΤΑ ΔΕΔΟΜΕΝΑ ---
+    if (deck.length === 0 && discardPile.length > 1) {
+        refillDeck();
+    }
+
     let currentPlayer = players[playerOrder[turnIndex]];
     let currentPlayerName = currentPlayer ? currentPlayer.name : "...";
     
     playerOrder.forEach(id => {
         let p = players[id];
-        if (!p) return; // Safeguard
+        if (!p) return; 
 
         io.to(id).emit('updateUI', {
             players: playerOrder.map(pid => {
