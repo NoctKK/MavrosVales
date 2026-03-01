@@ -166,7 +166,6 @@
             pointer-events: none; text-align: center;
         }
         
-        /* ΣΥΣΤΗΜΑ ΔΙΑΓΝΩΣΗΣ ΣΦΑΛΜΑΤΩΝ */
         #error-overlay {
             display: none; position: fixed; inset: 0; z-index: 99999;
             background: rgba(150, 0, 0, 0.9); flex-direction: column; 
@@ -245,7 +244,6 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // Πιάνουμε τα σφάλματα πριν "παγώσουν" το παιχνίδι
         window.onerror = function(message, source, lineno, colno, error) {
             document.getElementById('error-overlay').style.display = 'flex';
             document.getElementById('error-text').innerText = message + " \nΓραμμή: " + lineno;
@@ -267,19 +265,18 @@
         window.addEventListener('resize', resizeGame);
         window.addEventListener('load', resizeGame);
 
-        // --- ΑΦΑΙΡΕΘΗΚΕ ΕΝΤΕΛΩΣ ΤΟ AUTO-JOIN (Μόνο συμπλήρωση του text) ---
         socket.on('connect', () => {
             myId = socket.id;
             const savedName = sessionStorage.getItem('mv_username');
             if (savedName) {
-                document.getElementById('username').value = savedName; // Απλά συμπληρώνει το όνομα! ΔΕΝ μπαίνει αυτόματα!
+                document.getElementById('username').value = savedName; 
             }
         });
 
         socket.on('joinedLobby', () => {
             document.getElementById('start-screen').style.display = 'flex';
-            document.getElementById('login-area').style.display = 'none';
-            document.getElementById('waiting-area').style.display = 'block';
+            document.getElementById('login-area').style.display = 'flex'; // Fix: Show login again
+            document.getElementById('waiting-area').style.display = 'none';
             document.getElementById('scoreboard').style.display = 'none';
         });
 
@@ -352,7 +349,6 @@
                     ind.style.borderColor = "#ff4444"; ind.style.color = "#ffdddd";
                 }
 
-                // ΜΟΝΟ ΑΝ ΥΠΑΡΧΕΙ ΧΕΡΙ
                 if (data.myHand && Array.isArray(data.myHand)) {
                     renderHand(data.myHand);
                 }
@@ -360,10 +356,31 @@
                 distributePlayers(data.players);
                 updateDirectionIndicator(data.players, data.direction);
             } catch(e) {
-                // Εμφάνιση Σφάλματος στην Οθόνη!
                 document.getElementById('error-overlay').style.display = 'flex';
                 document.getElementById('error-text').innerText = e.message;
             }
+        });
+
+        // ΕΠΙΚΗ ΟΘΟΝΗ ΝΙΚΗΣ (GAME OVER)
+        socket.on('gameOver', (winnerName) => {
+            document.getElementById('start-screen').style.display = 'flex';
+            document.getElementById('login-area').style.display = 'none';
+            document.getElementById('waiting-area').style.display = 'block';
+            
+            const o = document.getElementById('msg-overlay');
+            o.innerHTML = `🏆 ΤΕΛΟΣ ΠΑΙΧΝΙΔΙΟΥ 🏆<br><br>ΜΕΓΑΛΟΣ ΝΙΚΗΤΗΣ:<br><span style="color:white; font-size: 8vw;">${winnerName}</span>`; 
+            o.style.display = 'flex';
+            o.style.fontSize = "5vw";
+            o.style.color = "#4f4"; 
+            o.style.background = "rgba(0,0,0,0.95)";
+            
+            // Παραμένει για 10 δευτερόλεπτα
+            setTimeout(() => { 
+                o.style.display = 'none'; 
+                o.innerHTML = '';
+                o.style.background = "none";
+                o.style.color = "var(--gold)";
+            }, 10000);
         });
 
         function updateDirectionIndicator(playersArray, dir) {
@@ -392,7 +409,7 @@
             if (!players || !Array.isArray(players)) return;
             
             const myIndex = players.findIndex(p => p.id === myId);
-            if(myIndex === -1) return; // Είμαστε θεατές
+            if(myIndex === -1) return;
             
             const ordered = players.slice(myIndex).concat(players.slice(0, myIndex));
             const others = ordered.slice(1); 
