@@ -349,6 +349,7 @@ function handleRoundEnd(winnerId, closedWithAce) {
     let historyEntry = {};
     let burnedPlayers = [];
 
+    // 1. Υπολογισμός τελικών σκορ για τον γύρο
     playerOrder.forEach(id => {
         if (id === winnerId) {
             historyEntry[players[id].name] = "WC";
@@ -362,7 +363,25 @@ function handleRoundEnd(winnerId, closedWithAce) {
         }
     });
 
-    let safeScores = playerOrder.map(id => players[id].totalScore).filter(score => score < 500);
+    // 2. ΕΛΕΓΧΟΣ ΜΕΓΑΛΟΥ ΝΙΚΗΤΗ (Last Man Standing)
+    let safePlayers = playerOrder.filter(id => players[id].totalScore < 500);
+
+    // Αν έμεινε ΜΟΝΟ ΕΝΑΣ κάτω από 500 (και οι άλλοι είναι >= 500)
+    if (safePlayers.length === 1 && playerOrder.length > 1) {
+        let ultimateWinner = players[safePlayers[0]];
+        
+        roundHistory.push(historyEntry);
+        io.emit('updateScoreboard', roundHistory);
+        
+        gameStarted = false; // Το παιχνίδι τελειώνει οριστικά
+        
+        // Στέλνουμε Event Νίκης σε όλους τους clients
+        io.emit('gameOver', ultimateWinner.name);
+        return; // Βγαίνουμε, ΔΕΝ ξεκινάει νέος γύρος!
+    }
+
+    // 3. Αν δεν τελείωσε, μοιράζουμε Καπέλα και συνεχίζουμε
+    let safeScores = safePlayers.map(id => players[id].totalScore);
     let targetScore = safeScores.length > 0 ? Math.max(...safeScores) : 0;
 
     playerOrder.forEach(id => {
@@ -390,13 +409,11 @@ function advanceTurn(steps) {
     playerOrder.forEach(id => players[id].hasDrawn = false);
 }
 
-// --- ΝΕΟ ΑΣΦΑΛΕΣ REFILL DECK ---
 function refillDeck() {
-    // Αν υπάρχουν φύλλα κάτω (εκτός από το 1 που φαίνεται), τα παίρνουμε
     if (discardPile.length > 1) {
-        let top = discardPile.pop(); // Κρατάμε το τελευταίο χαρτί που έπεσε
-        deck = [...discardPile].sort(() => Math.random() - 0.5); // Όλα τα υπόλοιπα γίνονται η νέα τράπουλα (ανακατεμένα)
-        discardPile = [top]; // Η στοίβα ρίψεων μένει μόνο με το 1 φύλλο
+        let top = discardPile.pop(); 
+        deck = [...discardPile].sort(() => Math.random() - 0.5); 
+        discardPile = [top]; 
         
         io.emit('notification', '🔄 Τα φύλλα ανακατεύτηκαν!');
     }
@@ -404,7 +421,6 @@ function refillDeck() {
 
 function broadcastUpdate() {
     
-    // --- AUTO-REFILL ΜΗΧΑΝΙΣΜΟΣ ΠΡΙΝ ΣΤΑΛΟΥΝ ΤΑ ΔΕΔΟΜΕΝΑ ---
     if (deck.length === 0 && discardPile.length > 1) {
         refillDeck();
     }
