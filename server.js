@@ -5,7 +5,7 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
-process.on('uncaughtException', (err) => { console.error('Server Error:', err); });
+process.on('uncaughtException', (err) => { console.error('Αποτράπηκε Crash:', err); });
 
 const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
 
@@ -129,19 +129,8 @@ function processCardLogic(card, currentPlayer) {
     else if (card.value === 'J' && card.color === 'red') { penaltyStack = 0; penaltyType = null; }
     else if (card.value === '3') { if (playerOrder.length === 2) advance = false; else direction *= -1; }
     else if (card.value === '9') {
-        if (playerOrder.length === 2) {
-             advance = false;
-             if (!isStart) {
-                let victimId = playerOrder.find(id => id !== currentPlayer.id);
-                io.emit('notification', 'Άραξε 🍹'); 
-             }
-        } else { 
-            steps = 2; 
-            if (!isStart) {
-                let skippedIdx = (turnIndex + direction + playerOrder.length) % playerOrder.length;
-                io.emit('notification', 'Άραξε 🍹');
-            }
-        }
+        if (playerOrder.length === 2) advance = false; else steps = 2;
+        if (!isStart) io.emit('notification', 'Άραξε 🍹');
     }
     if (advance) advanceTurn(steps);
 }
@@ -180,7 +169,7 @@ function handleRoundEnd(winnerId, closedWithAce) {
     }
     let target = safe.length > 0 ? Math.max(...safe.map(id => players[id].totalScore)) : 0;
     playerOrder.forEach(id => { if (players[id].totalScore >= 500) { players[id].hats++; players[id].totalScore = target; } });
-    roundHistory.push(historyEntry); 
+    roundHistory.push(historyEntry);
     io.emit('updateScoreboard', { history: roundHistory, players: playerOrder.map(id => players[id]) });
     setTimeout(() => startNewRound(false), 2000);
 }
