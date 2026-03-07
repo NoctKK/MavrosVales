@@ -39,7 +39,6 @@ function calculateHandScore(hand) {
 
 io.on('connection', (socket) => {
     socket.on('joinGame', (data) => {
-        // ΔΙΚΛΕΙΔΑ ΑΣΦΑΛΕΙΑΣ ΓΙΑ CACHED BROWSERS
         let username, sessionId;
         if (typeof data === 'object' && data !== null) {
             username = data.username;
@@ -49,14 +48,13 @@ io.on('connection', (socket) => {
             sessionId = null;
         }
 
-        // Ελέγχουμε αυστηρά για να μην μπερδεύει τους παίκτες
         let existingId = Object.keys(players).find(id => players[id].sessionId === sessionId && sessionId != null);
 
         if (existingId) {
             players[socket.id] = players[existingId];
             players[socket.id].id = socket.id; players[socket.id].connected = true;
             let idx = playerOrder.indexOf(existingId); if (idx !== -1) playerOrder[idx] = socket.id;
-            if (existingId !== socket.id) delete players[existingId]; // ΠΡΕΠΕΙ να διαγράφεται ο παλιός
+            if (existingId !== socket.id) delete players[existingId];
             socket.emit('rejoinSuccess', { gameStarted, myHand: players[socket.id].hand });
             io.emit('playerCountUpdate', Object.keys(players).length);
             if (gameStarted) broadcastUpdate();
@@ -66,7 +64,6 @@ io.on('connection', (socket) => {
             if (["δήμητρα", "δημητρα", "δημητρούλα", "δημητρουλα"].includes(cleanName.toLowerCase())) cleanName += " ❤️";
             
             players[socket.id] = { id: socket.id, sessionId: sessionId, hand: [], name: cleanName, totalScore: 0, hats: 0, hasDrawn: false, connected: true };
-            
             io.emit('playerCountUpdate', Object.keys(players).length);
             socket.emit('joinedLobby');
         }
@@ -94,6 +91,17 @@ io.on('connection', (socket) => {
         }
 
         if (isValid) {
+            // --- ΛΟΓΙΚΗ COPY PASTE & COPY ERASED ---
+            let top1 = discardPile[discardPile.length - 1];
+            let top2 = discardPile[discardPile.length - 2];
+
+            if (top1 && card.value === top1.value && card.suit === top1.suit) {
+                io.emit('notification', 'Copy paste! 👯');
+            } else if (top1 && top2 && top1.value === top2.value && top1.suit === top2.suit && card.value === top1.value && card.suit !== top1.suit) {
+                io.emit('notification', 'Copy erased! ❌');
+            }
+            // ----------------------------------------
+
             p.hand.splice(data.index, 1); 
             discardPile.push(card);
             
@@ -162,7 +170,6 @@ io.on('connection', (socket) => {
         advanceTurn(1); broadcastUpdate();
     });
 
-    // ΔΙΑΓΡΑΦΗ ΠΑΙΚΤΗ ΑΝ ΚΛΕΙΣΕΙ ΤΟ ΠΑΡΑΘΥΡΟ ΠΡΙΝ ΑΡΧΙΣΕΙ ΤΟ ΠΑΙΧΝΙΔΙ
     socket.on('disconnect', () => {
         if (players[socket.id]) {
             players[socket.id].connected = false; 
@@ -193,14 +200,10 @@ function processCardLogic(card, currentPlayer) {
     else if (card.value === '9') {
         if (playerOrder.length === 2) {
              advance = false;
-             if (!isStart) {
-                io.emit('notification', 'Άραξε 🍹'); 
-             }
+             if (!isStart) io.emit('notification', 'Άραξε 🍹'); 
         } else { 
             steps = 2; 
-            if (!isStart) {
-                io.emit('notification', 'Άραξε 🍹');
-            }
+            if (!isStart) io.emit('notification', 'Άραξε 🍹');
         }
     }
     if (advance) advanceTurn(steps);
