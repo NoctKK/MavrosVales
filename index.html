@@ -29,7 +29,6 @@
         #game-wrapper {
             width: 1280px; height: 720px;
             position: relative;
-            /* Το wrapper πλέον είναι διάφανο για να φαίνεται το τραπέζι από κάτω */
             background: transparent;
             display: grid;
             grid-template-areas: 
@@ -267,21 +266,29 @@
 
         const socket = io();
         let myId, lastTopCardId = null, selectedAceIndex = null;
-        let fullScoreHistory = [], isScoreboardExpanded = false, gameScale = 1;
-
-        // Μεταβλητή για τον έλεγχο του αν υπάρχει ήδη ενεργό χρώμα από προηγούμενο Άσσο
+        let fullScoreHistory = [], isScoreboardExpanded = false;
+        let gameScale = 1;
+        let lastClickTime = 0; // Ασπίδα για τα διπλά κλικ κινητού
         window.currentActiveSuit = null; 
 
-        setInterval(() => { fetch('/ping').catch(() => {}); }, 60000);
-
+        // ΑΣΠΙΔΑ RESIZE: Σταματάει το τρεμόπαιγμα από το URL bar των κινητών
+        let lastWidth = window.innerWidth;
+        let lastHeight = window.innerHeight;
         function resizeGame() {
+            // Αν αλλάξει μόνο το ύψος ελάχιστα (λόγω URL bar), μην κάνεις scale ξανά!
+            if (Math.abs(window.innerHeight - lastHeight) < 100 && window.innerWidth === lastWidth && gameScale !== 1) return;
+            
             const wrapper = document.getElementById('game-wrapper');
-            // Υπολογίζουμε την κλίμακα με βάση την ανάλυση της οθόνης
             gameScale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
             wrapper.style.transform = `scale(${gameScale})`;
+            
+            lastWidth = window.innerWidth;
+            lastHeight = window.innerHeight;
         }
         window.addEventListener('resize', resizeGame);
         window.addEventListener('load', resizeGame);
+
+        setInterval(() => { fetch('/ping').catch(() => {}); }, 60000);
 
         socket.on('connect', () => {
             myId = socket.id;
@@ -356,7 +363,7 @@
                 window.currentScoreData = data; 
                 document.getElementById('deck-count').innerText = data.deckCount;
                 window.currentTopCard = data.topCard; 
-                window.currentActiveSuit = data.activeSuit; // Αποθηκεύουμε το χρώμα που ζητήθηκε
+                window.currentActiveSuit = data.activeSuit; 
 
                 if (data.topCard) {
                     const cardId = data.topCard.value + data.topCard.suit;
@@ -504,6 +511,7 @@
             else if (hand.length > 8) overlap = -60;
 
             container.innerHTML = hand.map((c, i) => {
+                if(!c) return ''; // ΑΣΠΙΔΑ για τα αόρατα φύλλα
                 const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : '';
                 return `<div class="card hand-card ${color} card-${i}" style="margin-left: ${i === 0 ? 0 : overlap}px" onclick="playLogic(${i}, '${c.value}', '${c.suit}')"><div class="card-corner">${c.value}<div>${c.suit}</div></div><div class="card-center">${c.suit}</div><div class="card-corner bottom">${c.value}<div>${c.suit}</div></div></div>`;
             }).join('');
@@ -534,9 +542,14 @@
         }
 
         function playLogic(index, value, suit) {
+            // ΑΣΠΙΔΑ 400ms ΓΙΑ ΤΑ ΔΙΠΛΑ ΚΛΙΚ ΣΤΟ ΚΙΝΗΤΟ
+            let now = Date.now();
+            if (now - lastClickTime < 400) return; 
+            lastClickTime = now;
+
             const cardElement = document.querySelector(`.card-${index}`);
             
-            // ΕΛΕΓΧΟΣ ΑΣΣΟΥ: Αν είναι Άσσος και ΔΕΝ υπάρχει ήδη ενεργό χρώμα
+            // ΕΛΕΓΧΟΣ ΑΣΣΟΥ: Μόνο αν ΔΕΝ υπάρχει ήδη χρώμα βγάζει επιλογή
             if (value === 'A' && !window.currentActiveSuit) {
                 if (cardElement) animateThrow(cardElement);
                 selectedAceIndex = index;
@@ -544,12 +557,13 @@
                 return;
             }
             
-            // Για όλες τις άλλες κάρτες (και τον Άσσο αν υπάρχει ήδη ενεργό χρώμα)
             if (cardElement) animateThrow(cardElement);
             socket.emit('playCard', { index: index, declaredSuit: null });
         }
 
         function confirmAce(suit) {
+            const cardElement = document.querySelector(`.card-${selectedAceIndex}`);
+            if (cardElement) animateThrow(cardElement);
             document.getElementById('ace-modal').style.display = 'none';
             socket.emit('playCard', { index: selectedAceIndex, declaredSuit: suit });
         }
