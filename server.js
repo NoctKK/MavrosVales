@@ -81,35 +81,47 @@ io.on('connection', (socket) => {
         let p = players[socket.id], card = p.hand[data.index], topCard = discardPile[discardPile.length - 1];
         let effectiveSuit = activeSuit || topCard.suit, isValid = false;
 
+        // Βασικοί Κανόνες & Ο Νέος Κανόνας του Άσσου
         if (penaltyStack > 0) {
             if (penaltyType === '7' && card.value === '7') isValid = true;
             if (penaltyType === 'J' && card.value === 'J') isValid = true;
         } else {
-            if (card.value === 'A') isValid = true;
+            if (card.value === 'A') {
+                if (activeSuit) { // Αν υπάρχει ενεργό σχέδιο από προηγούμενο Άσσο, ΠΡΕΠΕΙ να ταιριάζει
+                    if (card.suit === activeSuit) isValid = true; 
+                } else {
+                    isValid = true; // Αν δεν υπάρχει περιορισμός, πέφτει παντού
+                }
+            }
             else if (card.value === topCard.value || card.suit === effectiveSuit) isValid = true;
             else if (card.value === 'J' && card.color === 'red' && topCard.value === 'J') isValid = true;
         }
 
         if (isValid) {
-            // --- ΛΟΓΙΚΗ COPY PASTE & COPY ERASED ---
+            // --- ΛΟΓΙΚΗ COPY PASTE & ERASED ---
+            let isSpecial = ['7', '8', 'J'].includes(card.value);
             let top1 = discardPile[discardPile.length - 1];
-            let top2 = discardPile[discardPile.length - 2];
+            let top2 = discardPile.length >= 2 ? discardPile[discardPile.length - 2] : null;
 
-            if (top1 && card.value === top1.value && card.suit === top1.suit) {
-                io.emit('notification', 'Copy paste! 👯');
-            } else if (top1 && top2 && top1.value === top2.value && top1.suit === top2.suit && card.value === top1.value && card.suit !== top1.suit) {
-                io.emit('notification', 'Copy erased! ❌');
+            if (!isSpecial) {
+                if (top1 && card.value === top1.value && card.suit === top1.suit) {
+                    io.emit('notification', 'Copy paste! 👯');
+                } else if (top1 && top2 && top1.value === top2.value && top1.suit === top2.suit && card.value === top1.value && card.suit !== top1.suit) {
+                    io.emit('notification', 'Copy erased! ❌');
+                }
             }
-            // ----------------------------------------
+            // ----------------------------------
 
             p.hand.splice(data.index, 1); 
             discardPile.push(card);
             
+            // Έλεγχος: Αν έκλεισε με 8 τραβάει υποχρεωτικά
             if (p.hand.length === 0 && card.value === '8') {
                 if (deck.length === 0) refillDeck();
                 if (deck.length > 0) p.hand.push(deck.pop());
                 io.emit('notification', `${p.name}: Έκλεισε με 8 και τραβάει αναγκαστικά 1 κάρτα!`);
             } 
+            // Έλεγχος: Κανονικό κλείσιμο
             else if (p.hand.length === 0) {
                 let isPenalty = false;
                 let victimId = playerOrder[(turnIndex + direction + playerOrder.length) % playerOrder.length];
@@ -133,21 +145,27 @@ io.on('connection', (socket) => {
                     isPenalty = true;
                 }
 
-                activeSuit = (card.value === 'A') ? (data.declaredSuit || card.suit) : null;
-                broadcastUpdate(); 
+                if (card.value === 'A') activeSuit = activeSuit ? null : (data.declaredSuit || card.suit);
+                else activeSuit = null;
 
-                setTimeout(() => {
-                    handleRoundEnd(socket.id, card.value === 'A');
-                }, isPenalty ? 3500 : 1500);
-                
+                broadcastUpdate(); 
+                setTimeout(() => { handleRoundEnd(socket.id, card.value === 'A'); }, isPenalty ? 3500 : 1500);
                 return;
             }
 
+            // Μία μία
             if (p.hand.length === 1) {
                 io.emit('notification', `${p.name}: Μία μία μία μία! ⚠️`);
             }
 
-            activeSuit = (card.value === 'A') ? (data.declaredSuit || card.suit) : null;
+            // Άσσος χάνει την ιδιότητα του αν πέσει πάνω σε απαιτούμενο σχέδιο
+            if (card.value === 'A') {
+                if (activeSuit) activeSuit = null; 
+                else activeSuit = data.declaredSuit || card.suit;
+            } else {
+                activeSuit = null;
+            }
+
             processCardLogic(card, p); 
             broadcastUpdate();
         } else { 
@@ -217,7 +235,8 @@ function startNewRound(reset = false) {
         turnIndex = 0; 
         io.emit('updateScoreboard', { history: [], players: playerOrder.map(id => players[id]) }); 
     }
-    direction = 1; penaltyStack = 0; activeSuit = null;
+    direction = 1; // Επαναφορά φοράς δεξιόστροφα σε κάθε γύρο!
+    penaltyStack = 0; activeSuit = null;
     playerOrder.forEach(id => { players[id].hand = []; players[id].hasDrawn = false; });
     let dealCount = 0;
     let interval = setInterval(() => {
@@ -244,11 +263,12 @@ function handleRoundEnd(winnerId, closedWithAce) {
 
     let safePlayers = playerOrder.filter(id => players[id].totalScore < 500);
     
+    // ΕΛΕΓΧΟΣ ΜΕΓΑΛΟΥ ΝΙΚΗΤΗ
     if (safePlayers.length === 1 && playerOrder.length > 1) {
         let ultimateWinner = players[safePlayers[0]];
         
         let msgs = [
-            `Είσαι ο μάστερ του Μαύρου Βαλέ, μπράβο κέρδισες ${ultimateWinner.name}!`,
+            `Είσαι ο μαστερ του Μαύρου Βαλέ, μπράβο κέρδισες ${ultimateWinner.name}!`,
             `Μπράβο είσαι η καλύτερη, έκανες την τύχη σου ${ultimateWinner.name}!`,
             `Συγχαρητήρια, είσαι κωλόφαρδος ${ultimateWinner.name}!`,
             `Πάτε, ε πάτε!`,
@@ -257,7 +277,7 @@ function handleRoundEnd(winnerId, closedWithAce) {
         let finalMsg = msgs[Math.floor(Math.random() * msgs.length)];
         
         if (ultimateWinner.hats >= 2) {
-            finalMsg = `Μπα, με τόσα καπέλα και ο παππούς μου κέρδιζε 😂`;
+            finalMsg = `Μπα, με τόσα καπέλα και ο παππούς μου κέρδιζε ${ultimateWinner.name} 😂`;
         }
 
         roundHistory.push(historyEntry);
@@ -301,7 +321,7 @@ function broadcastUpdate() {
             players: playerOrder.map(pid => ({ id: pid, name: players[pid].name, handCount: players[pid].hand.length, hats: players[pid].hats, totalScore: players[pid].totalScore, connected: players[pid].connected })),
             topCard: discardPile[discardPile.length - 1],
             penalty: penaltyStack, direction, myHand: players[id].hand, isMyTurn: (id === playerOrder[turnIndex]),
-            currentPlayerName: cp ? cp.name : "...", activeSuit, deckCount: deck.length
+            currentPlayerName: cp ? cp.name : "...", activeSuit, deckCount: deck.length, activeSuitModalTriggered: !!activeSuit
         });
     });
 }
