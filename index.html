@@ -11,10 +11,10 @@
             --panel-bg: rgba(0, 0, 0, 0.85);
         }
         
-        /* ΤΟ ΤΡΑΠΕΖΙ ΠΙΑΝΕΙ ΟΛΗ ΤΗΝ ΟΘΟΝΗ */
+        /* ΤΟ ΤΡΑΠΕΖΙ ΠΛΕΟΝ ΠΙΑΝΕΙ ΟΛΗ ΤΗΝ ΟΘΟΝΗ ΤΟΥ ΚΙΝΗΤΟΥ ΣΟΥ */
         body { 
             background: var(--felt); 
-            box-shadow: inset 0 0 200px rgba(0,0,0,0.9);
+            box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
             border: 15px solid #2b1d12;
             box-sizing: border-box;
             color: white; 
@@ -29,10 +29,8 @@
         #game-wrapper {
             width: 1280px; height: 720px;
             position: relative;
-            background: transparent; /* Αφαιρέθηκε το background από εδώ */
-            box-shadow: none; /* Αφαιρέθηκε το shadow από εδώ */
-            border: none; /* Αφαιρέθηκε το border από εδώ */
-            box-sizing: border-box;
+            /* Το wrapper πλέον είναι διάφανο για να φαίνεται το τραπέζι από κάτω */
+            background: transparent;
             display: grid;
             grid-template-areas: 
                 ". top ."
@@ -271,10 +269,14 @@
         let myId, lastTopCardId = null, selectedAceIndex = null;
         let fullScoreHistory = [], isScoreboardExpanded = false, gameScale = 1;
 
+        // Μεταβλητή για τον έλεγχο του αν υπάρχει ήδη ενεργό χρώμα από προηγούμενο Άσσο
+        window.currentActiveSuit = null; 
+
         setInterval(() => { fetch('/ping').catch(() => {}); }, 60000);
 
         function resizeGame() {
             const wrapper = document.getElementById('game-wrapper');
+            // Υπολογίζουμε την κλίμακα με βάση την ανάλυση της οθόνης
             gameScale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
             wrapper.style.transform = `scale(${gameScale})`;
         }
@@ -354,6 +356,7 @@
                 window.currentScoreData = data; 
                 document.getElementById('deck-count').innerText = data.deckCount;
                 window.currentTopCard = data.topCard; 
+                window.currentActiveSuit = data.activeSuit; // Αποθηκεύουμε το χρώμα που ζητήθηκε
 
                 if (data.topCard) {
                     const cardId = data.topCard.value + data.topCard.suit;
@@ -532,23 +535,21 @@
 
         function playLogic(index, value, suit) {
             const cardElement = document.querySelector(`.card-${index}`);
-            if (value !== 'A') {
+            
+            // ΕΛΕΓΧΟΣ ΑΣΣΟΥ: Αν είναι Άσσος και ΔΕΝ υπάρχει ήδη ενεργό χρώμα
+            if (value === 'A' && !window.currentActiveSuit) {
                 if (cardElement) animateThrow(cardElement);
-                socket.emit('playCard', { index: index, declaredSuit: null });
+                selectedAceIndex = index;
+                document.getElementById('ace-modal').style.display = 'flex';
                 return;
             }
-            if (window.currentTopCard && window.currentTopCard.value === 'A' && window.currentTopCard.suit === suit) {
-                 if (cardElement) animateThrow(cardElement);
-                 socket.emit('playCard', { index: index, declaredSuit: null });
-                 return;
-            }
-            selectedAceIndex = index;
-            document.getElementById('ace-modal').style.display = 'flex';
+            
+            // Για όλες τις άλλες κάρτες (και τον Άσσο αν υπάρχει ήδη ενεργό χρώμα)
+            if (cardElement) animateThrow(cardElement);
+            socket.emit('playCard', { index: index, declaredSuit: null });
         }
 
         function confirmAce(suit) {
-            const cardElement = document.querySelector(`.card-${selectedAceIndex}`);
-            if (cardElement) animateThrow(cardElement);
             document.getElementById('ace-modal').style.display = 'none';
             socket.emit('playCard', { index: selectedAceIndex, declaredSuit: suit });
         }
