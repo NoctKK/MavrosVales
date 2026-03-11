@@ -237,6 +237,16 @@
         let lastClickTime = 0, isAnimating = false;
         window.currentActiveSuit = null;
 
+        // ΣΥΝΑΡΤΗΣΗ ΠΡΟΣΑΡΜΟΓΗΣ ΜΕΓΕΘΟΥΣ ΣΕ ΚΙΝΗΤΑ (Scale)
+        let gameScale = 1;
+        function resizeGame() {
+            const wrapper = document.getElementById('game-wrapper');
+            gameScale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+            wrapper.style.transform = `scale(${gameScale})`;
+        }
+        window.addEventListener('resize', resizeGame);
+        window.addEventListener('load', resizeGame);
+
         socket.on('connect', () => { myId = socket.id; });
 
         function joinGame() {
@@ -248,6 +258,12 @@
             document.getElementById('login-area').style.display = 'none';
             document.getElementById('waiting-area').style.display = 'block';
         }
+
+        // --- ΕΔΩ ΕΙΧΕ ΓΙΝΕΙ ΤΟ ΛΑΘΟΣ, ΠΡΟΣΤΕΘΗΚΕ ΤΟ gameReady ---
+        socket.on('gameReady', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('scoreboard').style.display = 'block';
+        });
 
         socket.on('rejoinSuccess', (data) => {
             document.getElementById('start-screen').style.display = 'none';
@@ -285,7 +301,6 @@
             if (Date.now() - lastClickTime < 450 || isAnimating) return;
             lastClickTime = Date.now();
 
-            // ΚΑΝΟΝΑΣ: "Σαν φύλλο" - αν το suit ταιριάζει με το ενεργό, παίζει αυτόματα
             if (value === 'A' && window.currentActiveSuit && suit === window.currentActiveSuit) {
                 animateThrow(document.querySelector(`.card-${index}`));
                 socket.emit('chatMessage', 'Σαν φύλλο! 🃏');
@@ -316,12 +331,13 @@
             const clone = elem.cloneNode(true);
             clone.classList.add('flying-card');
             clone.style.left = rect.left + 'px'; clone.style.top = rect.top + 'px';
+            clone.style.transform = `scale(${gameScale})`;
             document.body.appendChild(clone);
 
             const pileRect = document.getElementById('pile-container').getBoundingClientRect();
             setTimeout(() => {
                 clone.style.left = pileRect.left + 'px'; clone.style.top = pileRect.top + 'px';
-                clone.style.transform = `scale(0.8) rotate(${Math.random() * 20 - 10}deg)`;
+                clone.style.transform = `scale(${gameScale * 0.8}) rotate(${Math.random() * 20 - 10}deg)`;
                 clone.style.opacity = '0';
             }, 10);
             setTimeout(() => { clone.remove(); isAnimating = false; }, 400);
@@ -342,9 +358,9 @@
 
         socket.on('gameOver', (data) => {
             const o = document.getElementById('msg-overlay');
-            let roast = data.isRoasting ? `<br><small style="font-size:20px;">Μπα, με τόσα καπέλα και ο παππούς μου κέρδιζε 😂</small>` : "";
+            let roast = data.isRoasting ? `<br><small style="font-size:20px; color:#ddd;">Μπα, με τόσα καπέλα και ο παππούς μου κέρδιζε 😂</small>` : "";
             o.innerHTML = `
-                <div style="background:rgba(0,0,0,0.95); padding:30px; border-radius:20px; border:3px solid var(--gold); position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:600px; white-space:normal; pointer-events:auto;">
+                <div style="background:rgba(0,0,0,0.95); padding:30px; border-radius:20px; border:3px solid var(--gold); position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:600px; white-space:normal; pointer-events:auto; z-index:9999;">
                     <div style="font-size:30px; margin-bottom:20px;">🏆 Νικητής: ${data.winnerName}! ${roast}</div>
                     <button class="game-btn" onclick="location.reload()" style="margin:5px;">Άντε πάμε άλλο ένα</button>
                     <button class="game-btn" onclick="location.reload()" style="margin:5px;">Ένα τελευταίο 😂</button>
@@ -401,7 +417,8 @@
 
         function toggleScoreboard() { isScoreboardExpanded = !isScoreboardExpanded; document.getElementById('scoreboard').style.maxHeight = isScoreboardExpanded ? '600px' : '300px'; }
         function toggleChat() { const c = document.getElementById('chat-box'); c.style.display = c.style.display === 'flex' ? 'none' : 'flex'; }
-        socket.on('notification', (msg) => { const o = document.getElementById('msg-overlay'); o.innerText = msg; o.style.display = 'flex'; setTimeout(() => o.style.display = 'none', 3000); });
+        
+        socket.on('notification', (msg) => { const o = document.getElementById('msg-overlay'); o.innerHTML = msg; o.style.display = 'flex'; setTimeout(() => o.style.display = 'none', 3000); });
         socket.on('playerCountUpdate', (c) => { document.getElementById('waiting-msg').innerText = `Παίκτες: ${c}`; document.getElementById('start-btn').style.display = c >= 2 ? 'inline-block' : 'none'; });
     </script>
 </body>
