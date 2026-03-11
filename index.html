@@ -11,6 +11,7 @@
             --panel-bg: rgba(0, 0, 0, 0.85);
         }
         
+        /* ΤΟ ΤΡΑΠΕΖΙ ΠΙΑΝΕΙ ΠΛΗΡΩΣ ΤΗΝ ΟΘΟΝΗ */
         body { 
             background: var(--felt); 
             box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
@@ -48,7 +49,7 @@
             white-space: nowrap; justify-content: center; align-items: center;
         }
 
-        /* --- ΝΕΑ ΟΘΟΝΗ ΝΙΚΗΣ ΠΟΥ ΜΕΝΕΙ ΜΟΝΙΜΑ --- */
+        /* Η ΟΘΟΝΗ ΝΙΚΗΣ ΠΟΥ ΜΕΝΕΙ ΜΟΝΙΜΑ */
         #victory-screen {
             display: none; position: fixed; inset: 0; z-index: 10000;
             background: rgba(0,0,0,0.92); flex-direction: column;
@@ -434,7 +435,7 @@
             });
         });
 
-        // Η ΝΕΑ ΛΟΓΙΚΗ ΓΙΑ ΤΗ ΜΟΝΙΜΗ ΟΘΟΝΗ ΝΙΚΗΣ
+        // Η ΟΘΟΝΗ ΝΙΚΗΣ
         socket.on('gameOver', (finalMsg) => {
             document.getElementById('game-wrapper').style.filter = "blur(10px)";
             
@@ -448,7 +449,6 @@
             document.getElementById('victory-msg').innerText = finalMsg;
             document.getElementById('victory-btn').innerText = randomBtnText;
             
-            // Την εμφανίζουμε για πάντα μέχρι να πατηθεί το κουμπί
             document.getElementById('victory-screen').style.display = 'flex';
         });
 
