@@ -11,7 +11,6 @@
             --panel-bg: rgba(0, 0, 0, 0.85);
         }
         
-        /* ΤΟ ΤΡΑΠΕΖΙ ΠΙΑΝΕΙ ΠΛΗΡΩΣ ΤΗΝ ΟΘΟΝΗ */
         body { 
             background: var(--felt); 
             box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
@@ -48,14 +47,14 @@
             text-shadow: 2px 2px 10px black; pointer-events: none; text-align: center; width: 500px;
             white-space: nowrap; justify-content: center; align-items: center;
         }
-        
-        /* --- ΠΡΟΣΘΗΚΗ: ΜΟΝΙΜΗ ΟΘΟΝΗ ΝΙΚΗΣ --- */
+
+        /* Η ΝΕΑ ΜΟΝΙΜΗ ΟΘΟΝΗ ΝΙΚΗΣ */
         #victory-screen {
             display: none; position: fixed; inset: 0; z-index: 10000;
             background: rgba(0,0,0,0.92); flex-direction: column;
             align-items: center; justify-content: center; text-align: center; padding: 20px;
         }
-
+        
         #chat-toggle { position: absolute; bottom: 20px; left: 20px; width: 60px; height: 60px; background: var(--gold); border-radius: 50%; border: none; font-size: 30px; cursor: pointer; z-index: 7000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         #chat-box { position: absolute; bottom: 90px; left: 20px; width: 300px; height: 350px; background: var(--panel-bg); border: 2px solid var(--gold); border-radius: 10px; display: none; flex-direction: column; z-index: 7000; }
         #chat-messages { flex: 1; overflow-y: auto; padding: 10px; font-size: 14px; color: #eee; text-align: left; }
@@ -90,8 +89,9 @@
         }
         .game-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #111; }
         
+        /* ΔΙΟΡΘΩΣΗ: Πιο κάτω τα βελάκια για να μην καλύπτονται στο κινητό! */
         #direction-indicator {
-            position: absolute; top: 15px; right: 250px;
+            position: absolute; top: 65px; right: 20px;
             padding: 10px 20px; background: rgba(0,0,0,0.8);
             border: 2px solid var(--gold); border-radius: 15px;
             font-weight: bold; font-size: 20px; color: var(--gold);
@@ -321,7 +321,6 @@
             b.style.display = b.style.display === 'flex' ? 'none' : 'flex';
         }
 
-        // --- ΔΙΟΡΘΩΣΗ ΓΙΑ ΝΑ ΠΑΤΙΕΤΑΙ ΣΩΣΤΑ Η ΕΙΣΟΔΟΣ ---
         socket.on('joinedLobby', () => {
             document.getElementById('start-screen').style.display = 'flex';
             document.getElementById('login-area').style.display = 'none'; 
@@ -412,7 +411,30 @@
             }
         });
 
-        // --- ΜΟΝΙΜΗ ΕΜΦΑΝΙΣΗ ΜΗΝΥΜΑΤΟΣ ΝΙΚΗΣ ---
+        socket.on('revealHands', (playersData) => {
+            const others = playersData.filter(p => p.id !== myId);
+            const slots = ['slot-left', 'slot-top', 'slot-right'];
+            
+            others.forEach((p, i) => {
+                if(slots[i] && p.hand) {
+                    let cardsHtml = '';
+                    p.hand.forEach((c, idx) => {
+                        if(!c) return;
+                        const color = (c.color === 'red') ? '#d00' : 'black';
+                        cardsHtml += `<div style="background:white; color:${color}; width:35px; height:50px; border-radius:4px; border:1px solid #ccc; margin-left:${idx===0?0:'-15'}px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:bold; font-size:16px; box-shadow:2px 2px 5px black; z-index:${idx};">${c.value}<div style="font-size:18px; line-height:1;">${c.suit}</div></div>`;
+                    });
+                    
+                    document.getElementById(slots[i]).innerHTML = `
+                        <div class="player-info" style="opacity: 1">
+                            <div class="player-name">${p.name}</div>
+                            <div style="font-size:12px; color:#4f4; margin-top:3px;">Σκορ: ${p.totalScore}</div>
+                        </div>
+                        <div class="opp-hand" style="display:flex; justify-content:center; align-items:center;">${cardsHtml}</div>`;
+                }
+            });
+        });
+
+        // Η ΟΘΟΝΗ ΝΙΚΗΣ ΠΟΥ ΜΕΝΕΙ ΜΟΝΙΜΑ
         socket.on('gameOver', (finalMsg) => {
             document.getElementById('game-wrapper').style.filter = "blur(8px)";
             
@@ -423,10 +445,9 @@
             ];
             const randomBtnText = btnPhrases[Math.floor(Math.random() * btnPhrases.length)];
             
-            document.getElementById('victory-msg').innerText = finalMsg;
+            document.getElementById('victory-msg').innerHTML = finalMsg;
             document.getElementById('victory-btn').innerText = randomBtnText;
             
-            // Το εμφανίζει μόνιμα, μέχρι να πατηθεί το κουμπί!
             document.getElementById('victory-screen').style.display = 'flex';
         });
 
@@ -550,7 +571,8 @@
 
             const cardElement = document.querySelector(`.card-${index}`);
             
-            if (value === 'A' && !window.currentActiveSuit) {
+            // ΔΙΟΡΘΩΣΗ: Το modal επιλογής χρώματος ανοίγει ΠΑΝΤΑ όταν παίζεις Άσσο!
+            if (value === 'A') {
                 if (cardElement) animateThrow(cardElement);
                 selectedAceIndex = index;
                 document.getElementById('ace-modal').style.display = 'flex';
@@ -606,19 +628,19 @@
 
         socket.on('roundResultMsg', (t) => {
             const o = document.getElementById('msg-overlay');
-            o.innerText = t; o.style.display = 'flex';
+            o.innerHTML = t; o.style.display = 'flex';
             setTimeout(() => o.style.display = 'none', 1500);
         });
         
         socket.on('notification', (msg) => {
             const o = document.getElementById('msg-overlay');
-            o.innerText = msg; o.style.display = 'flex';
+            o.innerHTML = msg; o.style.display = 'flex';
             setTimeout(() => o.style.display = 'none', 3000); 
         });
 
         socket.on('invalidMove', () => {
             const o = document.getElementById('msg-overlay');
-            o.innerText = "Ακυρη Κίνηση!"; 
+            o.innerHTML = "Ακυρη Κίνηση!"; 
             o.style.display = 'flex';
             o.style.color = "red";
             setTimeout(() => { o.style.display = 'none'; o.style.color = "#d4af37"; }, 1000);
