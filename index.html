@@ -11,6 +11,7 @@
             --panel-bg: rgba(0, 0, 0, 0.85);
         }
         
+        /* ΤΟ ΤΡΑΠΕΖΙ ΠΙΑΝΕΙ ΠΛΗΡΩΣ ΤΗΝ ΟΘΟΝΗ */
         body { 
             background: var(--felt); 
             box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
@@ -48,7 +49,7 @@
             white-space: nowrap; justify-content: center; align-items: center;
         }
 
-        /* Η ΝΕΑ ΟΘΟΝΗ ΝΙΚΗΣ */
+        /* --- ΝΕΑ ΜΟΝΙΜΗ ΟΘΟΝΗ ΝΙΚΗΣ --- */
         #victory-screen {
             display: none; position: fixed; inset: 0; z-index: 10000;
             background: rgba(0,0,0,0.92); flex-direction: column;
@@ -320,10 +321,11 @@
             b.style.display = b.style.display === 'flex' ? 'none' : 'flex';
         }
 
+        // ΕΔΩ ΗΤΑΝ ΤΟ ΛΑΘΟΣ ΠΟΥ ΔΕΝ ΕΚΑΝΕ "ΚΛΙΚ"! Το διόρθωσα να κρύβει το Login Area!
         socket.on('joinedLobby', () => {
             document.getElementById('start-screen').style.display = 'flex';
-            document.getElementById('login-area').style.display = 'flex'; 
-            document.getElementById('waiting-area').style.display = 'none';
+            document.getElementById('login-area').style.display = 'none'; 
+            document.getElementById('waiting-area').style.display = 'block';
             document.getElementById('scoreboard').style.display = 'none';
         });
 
@@ -342,12 +344,18 @@
             const name = document.getElementById('username').value;
             if (name.trim() === "") return alert("Παρακαλώ βάλε ένα όνομα!");
             
-            let sessionId = sessionStorage.getItem('mv_session');
-            if (!sessionId) {
+            let sessionId = '';
+            try {
+                sessionId = sessionStorage.getItem('mv_session');
+                if (!sessionId) {
+                    sessionId = 'sess_' + Math.random().toString(36).substr(2, 9);
+                    sessionStorage.setItem('mv_session', sessionId);
+                }
+                sessionStorage.setItem('mv_username', name);
+            } catch(e) {
+                // Ασπίδα αν παίζουν από incognito mode
                 sessionId = 'sess_' + Math.random().toString(36).substr(2, 9);
-                sessionStorage.setItem('mv_session', sessionId);
             }
-            sessionStorage.setItem('mv_username', name);
 
             socket.emit('joinGame', { username: name, sessionId: sessionId });
             
@@ -410,7 +418,6 @@
             }
         });
 
-        // ΕΜΦΑΝΙΣΗ ΦΥΛΛΩΝ
         socket.on('revealHands', (playersData) => {
             const others = playersData.filter(p => p.id !== myId);
             const slots = ['slot-left', 'slot-top', 'slot-right'];
@@ -434,7 +441,7 @@
             });
         });
 
-        // Η ΟΘΟΝΗ ΝΙΚΗΣ ΠΟΥ ΜΕΝΕΙ ΜΟΝΙΜΑ
+        // ΜΟΝΙΜΟ ΜΗΝΥΜΑ ΝΙΚΗΣ
         socket.on('gameOver', (finalMsg) => {
             document.getElementById('game-wrapper').style.filter = "blur(8px)";
             
@@ -448,7 +455,6 @@
             document.getElementById('victory-msg').innerText = finalMsg;
             document.getElementById('victory-btn').innerText = randomBtnText;
             
-            // Εμφανίζεται μόνιμα, δεν κλείνει μόνο του!
             document.getElementById('victory-screen').style.display = 'flex';
         });
 
@@ -557,4 +563,115 @@
 
             setTimeout(() => {
                 clone.style.left = pileRect.left + 'px';
-                clone.style.top =
+                clone.style.top = pileRect.top + 'px';
+                clone.style.transform = `scale(${gameScale}) rotate(${Math.random() * 20 - 10}deg)`;
+                clone.style.opacity = '0.8';
+            }, 10);
+
+            setTimeout(() => { clone.remove(); }, 400);
+        }
+
+        function playLogic(index, value, suit) {
+            let now = Date.now();
+            if (now - lastClickTime < 400) return; 
+            lastClickTime = now;
+
+            const cardElement = document.querySelector(`.card-${index}`);
+            
+            if (value === 'A' && !window.currentActiveSuit) {
+                if (cardElement) animateThrow(cardElement);
+                selectedAceIndex = index;
+                document.getElementById('ace-modal').style.display = 'flex';
+                return;
+            }
+            
+            if (cardElement) animateThrow(cardElement);
+            socket.emit('playCard', { index: index, declaredSuit: null });
+        }
+
+        function confirmAce(suit) {
+            const cardElement = document.querySelector(`.card-${selectedAceIndex}`);
+            if (cardElement) animateThrow(cardElement);
+            document.getElementById('ace-modal').style.display = 'none';
+            socket.emit('playCard', { index: selectedAceIndex, declaredSuit: suit });
+        }
+        
+        function cancelAce() {
+            document.getElementById('ace-modal').style.display = 'none';
+            selectedAceIndex = null;
+        }
+
+        socket.on('updateScoreboard', (data) => {
+            fullScoreHistory = data.history;
+            renderScoreboard();
+        });
+
+        function renderScoreboard() {
+            const t = document.getElementById('score-table');
+            if (!fullScoreHistory || fullScoreHistory.length === 0) {
+                t.innerHTML = "";
+                return;
+            }
+            const names = Object.keys(fullScoreHistory[0]);
+            
+            const hatsMap = {};
+            if(window.currentScoreData && window.currentScoreData.players) {
+                window.currentScoreData.players.forEach(p => { hatsMap[p.name] = p.hats; });
+            }
+
+            let html = `<tr>${names.map(n => `<th>${n} ${"🎩".repeat(hatsMap[n] || 0)}</th>`).join('')}</tr>`;
+            let dataToShow = isScoreboardExpanded ? fullScoreHistory : fullScoreHistory.slice(-5);
+            dataToShow.forEach(r => { 
+                html += '<tr>' + names.map(n => `<td>${r[n] === "WC" ? '<span class="wc-text">WC</span>' : r[n]}</td>`).join('') + '</tr>'; 
+            });
+            t.innerHTML = html;
+        }
+
+        function toggleScoreboard() {
+            isScoreboardExpanded = !isScoreboardExpanded;
+            renderScoreboard();
+        }
+
+        socket.on('roundResultMsg', (t) => {
+            const o = document.getElementById('msg-overlay');
+            o.innerText = t; o.style.display = 'flex';
+            setTimeout(() => o.style.display = 'none', 1500);
+        });
+        
+        socket.on('notification', (msg) => {
+            const o = document.getElementById('msg-overlay');
+            o.innerText = msg; o.style.display = 'flex';
+            setTimeout(() => o.style.display = 'none', 3000); 
+        });
+
+        socket.on('invalidMove', () => {
+            const o = document.getElementById('msg-overlay');
+            o.innerText = "Ακυρη Κίνηση!"; 
+            o.style.display = 'flex';
+            o.style.color = "red";
+            setTimeout(() => { o.style.display = 'none'; o.style.color = "#d4af37"; }, 1000);
+            shakeCards();
+        });
+
+        function addCardToPile(c) {
+            const container = document.getElementById('pile-container');
+            if(!container) return;
+            const div = document.createElement('div');
+            const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : '';
+            div.className = `pile-card ${color}`;
+            const rotation = (Math.random() * 20) - 10; 
+            div.style.transform = `rotate(${rotation}deg)`;
+            div.innerHTML = `<div class="card-corner">${c.value}<div>${c.suit}</div></div><div class="card-center">${c.suit}</div><div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>`;
+            container.appendChild(div);
+            if (container.children.length > 6) {
+                container.removeChild(container.children[1]);
+            }
+        }
+
+        function shakeCards() { 
+            document.querySelectorAll('.hand-card').forEach(c => c.classList.add('shake')); 
+            setTimeout(() => document.querySelectorAll('.hand-card').forEach(c => c.classList.remove('shake')), 200); 
+        }
+    </script>
+</body>
+</html>
