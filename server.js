@@ -13,8 +13,7 @@ let deck = [], discardPile = [], players = {}, playerOrder = [], turnIndex = 0;
 let direction = 1, penaltyStack = 0, penaltyType = null, activeSuit = null;
 let gameStarted = false, roundHistory = [], roundStarterIndex = 0, consecutiveTwos = 0;
 
-// ΠΡΟΣΘΗΚΗ 1: Χρονόμετρο για Reset
-let emptyRoomTimer = null;
+let emptyRoomTimer = null; // Χρονόμετρο για Reset (ΜΟΝΟ για το lobby)
 
 app.get('/ping', (req, res) => res.send('pong'));
 app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
@@ -42,7 +41,7 @@ function calculateHandScore(hand) {
 
 io.on('connection', (socket) => {
     socket.on('joinGame', (data) => {
-        // ΠΡΟΣΘΗΚΗ 1: Αν μπει παίκτης, ακυρώνουμε το Reset
+        // Αν μπει παίκτης στο lobby, σταματάει η αντίστροφη μέτρηση διαγραφής
         if (emptyRoomTimer) {
             clearTimeout(emptyRoomTimer);
             emptyRoomTimer = null;
@@ -64,8 +63,13 @@ io.on('connection', (socket) => {
             players[socket.id].id = socket.id; players[socket.id].connected = true;
             let idx = playerOrder.indexOf(existingId); if (idx !== -1) playerOrder[idx] = socket.id;
             if (existingId !== socket.id) delete players[existingId];
+            
             socket.emit('rejoinSuccess', { gameStarted, myHand: players[socket.id].hand });
             io.emit('playerCountUpdate', Object.keys(players).length);
+            
+            // ΔΙΟΡΘΩΣΗ: Όταν κάνει ανανέωση, του στέλνουμε ΞΑΝΑ τον πίνακα σκορ για να τον βλέπει!
+            socket.emit('updateScoreboard', { history: roundHistory, players: playerOrder.map(id => players[id]).filter(p => p) });
+            
             if (gameStarted) broadcastUpdate();
         } else {
             if (gameStarted) return socket.emit('notification', 'Το παιχνίδι τρέχει ήδη!');
@@ -139,14 +143,14 @@ io.on('connection', (socket) => {
                 let victimId = playerOrder[(turnIndex + direction + playerOrder.length) % playerOrder.length];
                 let prevVictimId = playerOrder[(turnIndex - direction + playerOrder.length) % playerOrder.length];
 
+                // ΑΘΡΟΙΣΤΙΚΟΙ ΒΑΛΕΔΕΣ ΚΑΙ 7ΑΡΙΑ ΣΤΟ ΚΛΕΙΣΙΜΟ
                 if (card.value === 'J' && card.color === 'black') {
-                    // ΠΡΟΣΘΗΚΗ 4: Αθροιστικοί Βαλέδες
                     let totalCards = (penaltyType === 'J' ? penaltyStack : 0) + 10;
                     for(let i=0; i<totalCards; i++) {
                         if(deck.length === 0) refillDeck();
                         if(deck.length > 0 && players[victimId]) players[victimId].hand.push(deck.pop());
                     }
-                    io.emit('notification', `Ο/Η ${p.name} έκλεισε με Μαύρο Βαλέ! +${totalCards} στον/στην ${players[victimId].name}!`);
+                    if(players[victimId]) io.emit('notification', `Ο/Η ${p.name} έκλεισε με Μαύρο Βαλέ! +${totalCards} στον/στην ${players[victimId].name}!`);
                     penaltyStack = 0; penaltyType = null;
                     isPenalty = true;
                 } else if (card.value === '7') {
@@ -155,15 +159,15 @@ io.on('connection', (socket) => {
                         if(deck.length === 0) refillDeck();
                         if(deck.length > 0 && players[victimId]) { players[victimId].hand.push(deck.pop()); }
                     }
-                    io.emit('notification', `Ο/Η ${p.name} έκλεισε με 7! +${totalCards} στον/στην ${players[victimId].name}!`);
+                    if(players[victimId]) io.emit('notification', `Ο/Η ${p.name} έκλεισε με 7! +${totalCards} στον/στην ${players[victimId].name}!`);
                     penaltyStack = 0; penaltyType = null;
                     isPenalty = true;
                 } else if (card.value === '2') {
-                    // ΠΡΟΣΘΗΚΗ 2: Ο προηγούμενος παίρνει 1 φύλλο αν κλείσεις με 2
+                    // Ο ΚΑΝΟΝΑΣ ΤΟΥ 2: Παίρνει φύλλο ο προηγούμενος
                     if(deck.length === 0) refillDeck();
                     if(deck.length > 0 && players[prevVictimId]) { players[prevVictimId].hand.push(deck.pop()); }
-                    io.emit('notification', `Ο/Η ${p.name} έκλεισε με 2! Ο/Η ${players[prevVictimId].name} παίρνει 1 κάρτα!`);
-                    isPenalty = true; // Καθυστερεί το τέλος για να το δουν
+                    if(players[prevVictimId]) io.emit('notification', `Ο/Η ${p.name} έκλεισε με 2! +1 στον/στην ${players[prevVictimId].name}!`);
+                    isPenalty = true;
                 } else if (card.value === 'J' && card.color === 'red') {
                     penaltyStack = 0; penaltyType = null;
                 }
@@ -228,29 +232,21 @@ io.on('connection', (socket) => {
         if (players[socket.id]) {
             players[socket.id].connected = false; 
             
+            // Το reset ισχύει ΜΟΝΟ αν ΔΕΝ έχει ξεκινήσει το παιχνίδι (Lobby phase)
             if (!gameStarted) {
                 delete players[socket.id];
                 playerOrder = playerOrder.filter(id => id !== socket.id);
+                
+                let activeCount = Object.values(players).filter(p => p.connected).length;
+                if (activeCount === 0) {
+                    emptyRoomTimer = setTimeout(() => {
+                        players = {};
+                        playerOrder = [];
+                        console.log("Το lobby καθαρίστηκε επειδή δεν μπήκε κανείς για 2 λεπτά.");
+                    }, 120000); // 2 λεπτά
+                }
             }
-            
             io.emit('playerCountUpdate', Object.keys(players).length);
-
-            // ΠΡΟΣΘΗΚΗ 1: Αν φύγουν όλοι, 2 λεπτά χρονόμετρο για καθαρισμό δωματίου
-            let activeCount = Object.values(players).filter(p => p.connected).length;
-            if (activeCount === 0) {
-                emptyRoomTimer = setTimeout(() => {
-                    gameStarted = false;
-                    players = {};
-                    playerOrder = [];
-                    deck = [];
-                    discardPile = [];
-                    penaltyStack = 0;
-                    activeSuit = null;
-                    roundHistory = [];
-                    turnIndex = 0;
-                    console.log("Το δωμάτιο καθάρισε επιτυχώς μετά από 2 λεπτά αδράνειας.");
-                }, 120000); // 120.000 ms = 2 λεπτά
-            }
         }
     });
 });
@@ -288,8 +284,11 @@ function startNewRound(reset = false) {
     gameStarted = true; deck = createDeck(); 
     
     if (reset) { 
+        playerOrder = Object.keys(players); 
         roundHistory = []; 
-        playerOrder.forEach(id => { players[id].totalScore = 0; players[id].hats = 0; }); 
+        playerOrder.forEach(id => { 
+            if(players[id]) { players[id].totalScore = 0; players[id].hats = 0; }
+        }); 
         roundStarterIndex = 0;
         turnIndex = 0; 
         io.emit('updateScoreboard', { history: [], players: playerOrder.map(id => players[id]) }); 
@@ -300,11 +299,15 @@ function startNewRound(reset = false) {
     
     direction = 1; 
     penaltyStack = 0; activeSuit = null;
-    playerOrder.forEach(id => { players[id].hand = []; players[id].hasDrawn = false; });
+    playerOrder.forEach(id => { 
+        if(players[id]) { players[id].hand = []; players[id].hasDrawn = false; }
+    });
     
     let dealCount = 0;
     let interval = setInterval(() => {
-        playerOrder.forEach(id => { if(deck.length > 0) players[id].hand.push(deck.pop()); });
+        playerOrder.forEach(id => { 
+            if(players[id] && deck.length > 0) players[id].hand.push(deck.pop()); 
+        });
         if (++dealCount === 11) {
             clearInterval(interval);
             let first = deck.pop();
@@ -322,21 +325,23 @@ function startNewRound(reset = false) {
 function handleRoundEnd(winnerId, closedWithAce) {
     let historyEntry = {};
     playerOrder.forEach(id => {
-        if (id === winnerId) historyEntry[players[id].name] = "WC";
-        else {
-            let pts = calculateHandScore(players[id].hand) + (closedWithAce ? 50 : 0);
-            players[id].totalScore += pts; historyEntry[players[id].name] = players[id].totalScore;
+        if (players[id]) {
+            if (id === winnerId) historyEntry[players[id].name] = "WC";
+            else {
+                let pts = calculateHandScore(players[id].hand) + (closedWithAce ? 50 : 0);
+                players[id].totalScore += pts; historyEntry[players[id].name] = players[id].totalScore;
+            }
         }
     });
 
     io.emit('revealHands', playerOrder.map(id => players[id]).filter(p => p));
 
-    let safePlayers = playerOrder.filter(id => players[id].totalScore < 500);
+    let safePlayers = playerOrder.filter(id => players[id] && players[id].totalScore < 500);
     
     if (safePlayers.length === 1 && playerOrder.length > 1) {
         let ultimateWinner = players[safePlayers[0]];
         let msgs = [
-            `Είσαι ο μαστερ του Μαύρου Βαλέ, μπράβο κέρδισες ${ultimateWinner.name}!`,
+            `Είσαι ο μάστερ του Μαύρου Βαλέ, μπράβο κέρδισες ${ultimateWinner.name}!`,
             `Μπράβο είσαι η καλύτερη, έκανες την τύχη σου ${ultimateWinner.name}!`,
             `Συγχαρητήρια, είσαι κωλόφαρδος/η ${ultimateWinner.name}!`
         ];
@@ -347,20 +352,24 @@ function handleRoundEnd(winnerId, closedWithAce) {
         }
 
         roundHistory.push(historyEntry);
-        io.emit('updateScoreboard', { history: roundHistory, players: playerOrder.map(id => players[id]) });
+        io.emit('updateScoreboard', { history: roundHistory, players: playerOrder.map(id => players[id]).filter(p => p) });
         gameStarted = false; 
         io.emit('gameOver', finalMsg); 
         
         roundHistory = [];
-        playerOrder.forEach(id => { players[id].totalScore = 0; players[id].hats = 0; });
+        playerOrder.forEach(id => { 
+            if(players[id]) { players[id].totalScore = 0; players[id].hats = 0; }
+        });
         return;
     }
 
     let target = safePlayers.length > 0 ? Math.max(...safePlayers.map(id => players[id].totalScore)) : 0;
-    playerOrder.forEach(id => { if (players[id].totalScore >= 500) { players[id].hats++; players[id].totalScore = target; } });
+    playerOrder.forEach(id => { 
+        if (players[id] && players[id].totalScore >= 500) { players[id].hats++; players[id].totalScore = target; } 
+    });
     
     roundHistory.push(historyEntry); 
-    io.emit('updateScoreboard', { history: roundHistory, players: playerOrder.map(id => players[id]) });
+    io.emit('updateScoreboard', { history: roundHistory, players: playerOrder.map(id => players[id]).filter(p => p) });
     
     setTimeout(() => startNewRound(false), 3000);
 }
@@ -368,7 +377,7 @@ function handleRoundEnd(winnerId, closedWithAce) {
 function advanceTurn(steps) {
     turnIndex = (turnIndex + (direction * steps)) % playerOrder.length;
     if (turnIndex < 0) turnIndex += playerOrder.length;
-    playerOrder.forEach(id => players[id].hasDrawn = false);
+    playerOrder.forEach(id => { if(players[id]) players[id].hasDrawn = false; });
 }
 
 function refillDeck() {
@@ -383,15 +392,15 @@ function refillDeck() {
 function broadcastUpdate() {
     let cp = players[playerOrder[turnIndex]];
     playerOrder.forEach(id => {
-        let safeHand = [];
-        if (players[id] && players[id].hand) {
-            safeHand = players[id].hand.filter(c => c && c.value && c.suit);
-        }
+        if (!players[id]) return;
+        let safeHand = players[id].hand ? players[id].hand.filter(c => c && c.value && c.suit) : [];
+        
         io.to(id).emit('updateUI', {
             players: playerOrder.map(pid => {
                 let p = players[pid];
+                if (!p) return null;
                 return { id: pid, name: p.name, handCount: p.hand.length, hats: p.hats, totalScore: p.totalScore, connected: p.connected };
-            }),
+            }).filter(p => p !== null),
             topCard: discardPile[discardPile.length - 1],
             penalty: penaltyStack, direction, myHand: safeHand, isMyTurn: (id === playerOrder[turnIndex]),
             currentPlayerName: cp ? cp.name : "...", activeSuit, deckCount: deck.length
