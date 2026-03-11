@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="el">
 <head>
@@ -11,6 +12,7 @@
             --panel-bg: rgba(0, 0, 0, 0.85);
         }
         
+        /* ΤΟ ΤΡΑΠΕΖΙ ΠΙΑΝΕΙ ΠΛΗΡΩΣ ΤΗΝ ΟΘΟΝΗ */
         body { 
             background: var(--felt); 
             box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
@@ -46,12 +48,6 @@
             z-index: 6000; font-size: 30px; color: var(--gold); font-weight: bold; 
             text-shadow: 2px 2px 10px black; pointer-events: none; text-align: center; width: 500px;
             white-space: nowrap; justify-content: center; align-items: center;
-        }
-
-        #victory-screen {
-            display: none; position: fixed; inset: 0; z-index: 10000;
-            background: rgba(0,0,0,0.92); flex-direction: column;
-            align-items: center; justify-content: center; text-align: center; padding: 20px;
         }
         
         #chat-toggle { position: absolute; bottom: 20px; left: 20px; width: 60px; height: 60px; background: var(--gold); border-radius: 50%; border: none; font-size: 30px; cursor: pointer; z-index: 7000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
@@ -89,7 +85,7 @@
         .game-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #111; }
         
         #direction-indicator {
-            position: absolute; top: 65px; right: 20px;
+            position: absolute; top: 15px; right: 250px;
             padding: 10px 20px; background: rgba(0,0,0,0.8);
             border: 2px solid var(--gold); border-radius: 15px;
             font-weight: bold; font-size: 20px; color: var(--gold);
@@ -213,12 +209,6 @@
         </div>
     </div>
 
-    <div id="victory-screen">
-        <div style="font-size: 100px; margin-bottom: 20px;">🏆</div>
-        <h1 id="victory-msg" style="color: white; font-size: 55px; text-shadow: 0 0 20px #4f4; line-height: 1.2; max-width: 90%; margin-bottom: 50px;"></h1>
-        <button id="victory-btn" class="game-btn" style="font-size: 28px; padding: 20px 40px; border: 3px solid #4f4; color: #4f4; box-shadow: 0 0 20px rgba(79, 255, 68, 0.5);" onclick="location.reload()"></button>
-    </div>
-
     <div id="game-wrapper">
         <div id="ace-modal">
             <div id="ace-backdrop" onclick="cancelAce()"></div>
@@ -321,8 +311,8 @@
 
         socket.on('joinedLobby', () => {
             document.getElementById('start-screen').style.display = 'flex';
-            document.getElementById('login-area').style.display = 'none'; 
-            document.getElementById('waiting-area').style.display = 'block';
+            document.getElementById('login-area').style.display = 'flex'; 
+            document.getElementById('waiting-area').style.display = 'none';
             document.getElementById('scoreboard').style.display = 'none';
         });
 
@@ -409,6 +399,7 @@
             }
         });
 
+        // ΝΕΟ: ΑΠΟΚΑΛΥΨΗ ΦΥΛΛΩΝ ΑΝΤΙΠΑΛΩΝ ΣΤΟ ΤΕΛΟΣ
         socket.on('revealHands', (playersData) => {
             const others = playersData.filter(p => p.id !== myId);
             const slots = ['slot-left', 'slot-top', 'slot-right'];
@@ -432,20 +423,18 @@
             });
         });
 
+        // ΝΕΟ: ΜΗΝΥΜΑ ΝΙΚΗΣ ΠΑΝΩ ΑΠΟ ΤΟ ΤΡΑΠΕΖΙ ΓΙΑ 8 ΔΕΥΤΕΡΟΛΕΠΤΑ
         socket.on('gameOver', (finalMsg) => {
-            document.getElementById('game-wrapper').style.filter = "blur(8px)";
+            const o = document.getElementById('msg-overlay');
+            o.innerHTML = `<div style="background:rgba(0,0,0,0.95); padding:30px; border-radius:20px; border:3px solid #4f4;"><div style="color:white; font-size: 35px; text-shadow: 2px 2px 10px black; text-align: center; white-space:normal; line-height:1.4;">${finalMsg}</div></div>`; 
+            o.style.display = 'flex';
+            o.style.top = "50%";
+            o.style.transform = "translate(-50%, -50%)"; 
+            o.style.zIndex = "9999";
             
-            const btnPhrases = [
-                "Άντε πάμε άλλο ένα 🃏",
-                "Ένα τελευταίο 😂",
-                "Θα πάρω το αίμα μου πίσω, πάμε 💪🏻"
-            ];
-            const randomBtnText = btnPhrases[Math.floor(Math.random() * btnPhrases.length)];
-            
-            document.getElementById('victory-msg').innerHTML = finalMsg;
-            document.getElementById('victory-btn').innerText = randomBtnText;
-            
-            document.getElementById('victory-screen').style.display = 'flex';
+            setTimeout(() => { 
+                location.reload(); 
+            }, 8000);
         });
 
         function updateDirectionIndicator(playersArray, dir) {
@@ -561,7 +550,6 @@
             setTimeout(() => { clone.remove(); }, 400);
         }
 
-        // Η ΛΟΓΙΚΗ ΓΙΑ ΤΟ "ΣΑΝ ΦΥΛΛΟ" ΤΟΥ ΑΣΣΟΥ ΕΙΝΑΙ ΕΔΩ!
         function playLogic(index, value, suit) {
             let now = Date.now();
             if (now - lastClickTime < 400) return; 
@@ -569,19 +557,11 @@
 
             const cardElement = document.querySelector(`.card-${index}`);
             
-            if (value === 'A') {
-                let effectiveSuit = window.currentActiveSuit || (window.currentTopCard ? window.currentTopCard.suit : null);
-                
-                if (suit === effectiveSuit) {
-                    if (cardElement) animateThrow(cardElement);
-                    socket.emit('playCard', { index: index, declaredSuit: suit, asRegularCard: true });
-                    return;
-                } else {
-                    if (cardElement) animateThrow(cardElement);
-                    selectedAceIndex = index;
-                    document.getElementById('ace-modal').style.display = 'flex';
-                    return;
-                }
+            if (value === 'A' && !window.currentActiveSuit) {
+                if (cardElement) animateThrow(cardElement);
+                selectedAceIndex = index;
+                document.getElementById('ace-modal').style.display = 'flex';
+                return;
             }
             
             if (cardElement) animateThrow(cardElement);
@@ -633,7 +613,10 @@
 
         socket.on('roundResultMsg', (t) => {
             const o = document.getElementById('msg-overlay');
-            o.innerText = t; o.style.display = 'flex';
+            o.innerHTML = t; 
+            o.style.display = 'flex';
+            o.style.top = "-75px";
+            o.style.transform = "translateX(-50%)";
             setTimeout(() => o.style.display = 'none', 1500);
         });
         
@@ -641,14 +624,18 @@
             const o = document.getElementById('msg-overlay');
             o.innerHTML = msg; 
             o.style.display = 'flex';
+            o.style.top = "-75px";
+            o.style.transform = "translateX(-50%)";
             setTimeout(() => o.style.display = 'none', 3000); 
         });
 
         socket.on('invalidMove', () => {
             const o = document.getElementById('msg-overlay');
-            o.innerText = "Ακυρη Κίνηση!"; 
+            o.innerHTML = "Ακυρη Κίνηση!"; 
             o.style.display = 'flex';
             o.style.color = "red";
+            o.style.top = "-75px";
+            o.style.transform = "translateX(-50%)";
             setTimeout(() => { o.style.display = 'none'; o.style.color = "#d4af37"; }, 1000);
             shakeCards();
         });
