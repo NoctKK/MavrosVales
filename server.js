@@ -5,6 +5,7 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
+// Ασπίδα για να μην κρασάρει ποτέ ο server
 process.on('uncaughtException', (err) => { console.error('Αποτράπηκε Crash:', err); });
 
 const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
@@ -64,7 +65,6 @@ io.on('connection', (socket) => {
             if (["δήμητρα", "δημητρα", "δημητρούλα", "δημητρουλα"].includes(cleanName.toLowerCase())) cleanName += " ❤️";
             
             players[socket.id] = { id: socket.id, sessionId: sessionId, hand: [], name: cleanName, totalScore: 0, hats: 0, hasDrawn: false, connected: true };
-            
             if (!playerOrder.includes(socket.id)) playerOrder.push(socket.id);
             
             io.emit('playerCountUpdate', Object.keys(players).length);
@@ -82,13 +82,13 @@ io.on('connection', (socket) => {
     socket.on('playCard', (data) => {
         if (!gameStarted || playerOrder[turnIndex] !== socket.id) return;
         
-        let p = players[socket.id];
-        let card = p.hand[data.index];
+        let p = players[socket.id], card = p.hand[data.index];
         if (!card) return;
 
         let topCard = discardPile[discardPile.length - 1];
         let effectiveSuit = activeSuit || topCard.suit, isValid = false;
 
+        // ΒΑΣΙΚΟΣ ΕΛΕΓΧΟΣ - ΟΠΩΣ ΗΤΑΝ ΑΡΧΙΚΑ ΠΟΥ ΔΟΥΛΕΥΕ ΤΕΛΕΙΑ
         if (penaltyStack > 0) {
             if (penaltyType === '7' && card.value === '7') isValid = true;
             if (penaltyType === 'J' && card.value === 'J') isValid = true;
@@ -120,17 +120,20 @@ io.on('connection', (socket) => {
             p.hand.splice(data.index, 1); 
             discardPile.push(card);
             
+            // 1. ΚΛΕΙΣΙΜΟ ΜΕ 8 -> ΠΑΙΡΝΕΙ ΦΥΛΛΟ ΚΑΙ Ο ΓΥΡΟΣ ΣΥΝΕΧΙΖΕΤΑΙ ΚΑΝΟΝΙΚΑ!
             if (p.hand.length === 0 && card.value === '8') {
                 if (deck.length === 0) refillDeck();
                 if (deck.length > 0) p.hand.push(deck.pop());
                 io.emit('notification', `${p.name}: Έκλεισε με 8 και τραβάει αναγκαστικά 1 κάρτα!`);
             } 
+            // 2. ΚΑΝΟΝΙΚΟ ΚΛΕΙΣΙΜΟ
             else if (p.hand.length === 0) {
                 let isPenalty = false;
                 let victimId = playerOrder[(turnIndex + direction + playerOrder.length) % playerOrder.length];
                 let prevVictimId = playerOrder[(turnIndex - direction + playerOrder.length) % playerOrder.length];
 
                 if (card.value === 'J' && card.color === 'black') {
+                    // ΥΠΟΛΟΓΙΣΜΟΣ ΠΟΙΝΩΝ ΑΘΡΟΙΣΤΙΚΑ!
                     let totalCards = (penaltyType === 'J' ? penaltyStack : 0) + 10;
                     for(let i=0; i<totalCards; i++) {
                         if(deck.length === 0) refillDeck();
@@ -140,6 +143,7 @@ io.on('connection', (socket) => {
                     penaltyStack = 0; penaltyType = null;
                     isPenalty = true;
                 } else if (card.value === '7') {
+                    // ΥΠΟΛΟΓΙΣΜΟΣ ΠΟΙΝΩΝ ΑΘΡΟΙΣΤΙΚΑ!
                     let totalCards = (penaltyType === '7' ? penaltyStack : 0) + 2;
                     for(let i=0; i<totalCards; i++) {
                         if(deck.length === 0) refillDeck();
@@ -149,11 +153,11 @@ io.on('connection', (socket) => {
                     penaltyStack = 0; penaltyType = null;
                     isPenalty = true;
                 } else if (card.value === '2') {
-                    // Ο ΝΕΟΣ ΚΑΝΟΝΑΣ ΓΙΑ ΤΟ 2 ΣΤΟ ΚΛΕΙΣΙΜΟ
+                    // Ο ΠΡΟΗΓΟΥΜΕΝΟΣ ΤΡΩΕΙ ΤΟ 2
                     if(deck.length === 0) refillDeck();
                     if(deck.length > 0) { players[prevVictimId].hand.push(deck.pop()); }
                     io.emit('notification', `Ο/Η ${p.name} έκλεισε με 2! +1 στον/στην ${players[prevVictimId].name}!`);
-                    isPenalty = true; // Του βάζουμε penalty status για να καθυστερήσει το scoreboard να το δουν όλοι
+                    isPenalty = true; 
                 } else if (card.value === 'J' && card.color === 'red') {
                     penaltyStack = 0; penaltyType = null;
                 }
@@ -162,8 +166,7 @@ io.on('connection', (socket) => {
                 else activeSuit = null;
 
                 broadcastUpdate(); 
-                
-                setTimeout(() => { handleRoundEnd(socket.id, card.value === 'A'); }, isPenalty ? 3500 : 1000);
+                setTimeout(() => { handleRoundEnd(socket.id, card.value === 'A'); }, isPenalty ? 3500 : 1500);
                 return;
             }
 
@@ -172,7 +175,7 @@ io.on('connection', (socket) => {
             }
 
             if (card.value === 'A') {
-                if (activeSuit) activeSuit = null; 
+                if (activeSuit) activeSuit = null; // Χάνει τη δύναμή του
                 else activeSuit = data.declaredSuit || card.suit;
             } else {
                 activeSuit = null;
@@ -189,23 +192,21 @@ io.on('connection', (socket) => {
         if (!gameStarted || playerOrder[turnIndex] !== socket.id) return;
         let p = players[socket.id];
         
-        if (penaltyStack > 0) {
-            let count = penaltyStack;
-            for(let i=0; i<count; i++) { 
-                if(deck.length === 0) refillDeck(); 
-                if(deck.length > 0) p.hand.push(deck.pop()); 
-            }
-            penaltyStack = 0; penaltyType = null;
-            advanceTurn(1); 
-            broadcastUpdate();
+        // ΛΟΓΙΚΗ ΑΡΧΙΚΟΥ ΚΩΔΙΚΑ
+        if (penaltyStack === 0 && p.hasDrawn) {
+            socket.emit('notification', 'Έχεις ήδη τραβήξει!');
             return;
         }
 
-        if (p.hasDrawn) return socket.emit('notification', 'Έχεις ήδη τραβήξει!');
+        let count = penaltyStack > 0 ? penaltyStack : 1;
+        for(let i=0; i<count; i++) { 
+            if(deck.length === 0) refillDeck(); 
+            if(deck.length > 0) p.hand.push(deck.pop()); 
+        }
         
-        if(deck.length === 0) refillDeck(); 
-        if(deck.length > 0) p.hand.push(deck.pop()); 
-        p.hasDrawn = true;
+        p.hasDrawn = (penaltyStack === 0); // Αν έφαγε ποινή (πχ 10), μπορεί να παίξει ή να πάει πάσο
+        penaltyStack = 0; 
+        penaltyType = null;
         broadcastUpdate();
     });
 
@@ -228,6 +229,7 @@ io.on('connection', (socket) => {
 
 function processCardLogic(card, currentPlayer) {
     let advance = true, steps = 1, isStart = (!currentPlayer || !currentPlayer.id);
+    
     if (card.value === '2') {
         consecutiveTwos++;
         if (consecutiveTwos >= 3) { io.emit('notification', 'Ξες πώς πάνε αυτά! 😂'); consecutiveTwos = 0; }
@@ -238,11 +240,17 @@ function processCardLogic(card, currentPlayer) {
         }
     } else consecutiveTwos = 0;
 
-    if (card.value === '8') { advance = false; if(!isStart) currentPlayer.hasDrawn = false; }
+    if (card.value === '8') { 
+        advance = false; 
+        if(!isStart) currentPlayer.hasDrawn = false; 
+    }
     else if (card.value === '7') { penaltyStack += 2; penaltyType = '7'; }
     else if (card.value === 'J' && card.color === 'black') { penaltyStack += 10; penaltyType = 'J'; }
     else if (card.value === 'J' && card.color === 'red') { penaltyStack = 0; penaltyType = null; }
-    else if (card.value === '3') { if (playerOrder.length === 2) advance = false; else direction *= -1; }
+    else if (card.value === '3') { 
+        if (playerOrder.length === 2) advance = false; 
+        else direction *= -1; 
+    }
     else if (card.value === '9') {
         if (playerOrder.length === 2) {
              advance = false;
@@ -252,6 +260,7 @@ function processCardLogic(card, currentPlayer) {
             if (!isStart) io.emit('notification', 'Άραξε 🍹');
         }
     }
+    
     if (advance) advanceTurn(steps);
 }
 
@@ -300,6 +309,7 @@ function handleRoundEnd(winnerId, closedWithAce) {
         }
     });
 
+    // Γυρνάμε τα φύλλα των άλλων για 3 δευτερόλεπτα
     io.emit('revealHands', playerOrder.map(id => players[id]));
 
     let safePlayers = playerOrder.filter(id => players[id].totalScore < 500);
