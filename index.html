@@ -5,192 +5,404 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Μαύρος Βαλές ♠️</title>
     <style>
-        :root { --gold: #d4af37; --felt: radial-gradient(circle at center, #2e5c3e 0%, #13351f 100%); --panel-bg: rgba(0, 0, 0, 0.85); }
-        body { background: var(--felt); color: white; font-family: sans-serif; margin: 0; overflow: hidden; height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; touch-action: none; }
+        :root { 
+            --gold: #d4af37; 
+            --felt: radial-gradient(circle at center, #2e5c3e 0%, #13351f 100%);
+            --panel-bg: rgba(0, 0, 0, 0.85);
+        }
         
-        #game-wrapper { width: 1280px; height: 720px; position: relative; display: grid; grid-template-areas: ". top ." "left center right" ". bottom ."; grid-template-columns: 250px 1fr 250px; grid-template-rows: 150px 1fr 220px; transform-origin: center center; }
+        body { 
+            background: var(--felt); 
+            box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
+            border: 15px solid #2b1d12;
+            box-sizing: border-box;
+            color: white; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; overflow: hidden; height: 100vh; width: 100vw;
+            user-select: none; -webkit-user-select: none;
+            display: flex; align-items: center; justify-content: center;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-        /* UI FIX: Ταμπέλες να μην κρύβουν τα βέλη */
-        #turn-indicator { position: absolute; top: 70px; right: 20px; padding: 10px; background: rgba(0,0,0,0.7); border: 2px solid #4f4; border-radius: 10px; z-index: 500; font-weight: bold; }
-        #direction-indicator { position: absolute; top: 15px; right: 20px; padding: 10px; background: rgba(0,0,0,0.8); border: 1px solid var(--gold); border-radius: 10px; z-index: 500; font-size: 18px; color: var(--gold); }
+        #game-wrapper {
+            width: 1280px; height: 720px;
+            position: relative;
+            background: transparent;
+            display: grid;
+            grid-template-areas: 
+                ". top ."
+                "left center right"
+                ". bottom .";
+            grid-template-columns: 250px 1fr 250px;
+            grid-template-rows: 150px 1fr 220px;
+            transform-origin: center center;
+            backface-visibility: hidden;
+            perspective: 1000px;
+        }
 
-        #msg-overlay { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9000; pointer-events: none; width: 100%; justify-content: center; }
+        #msg-overlay { 
+            display: none; position: absolute; top: -75px; left: 50%; transform: translateX(-50%); 
+            z-index: 6000; font-size: 30px; color: var(--gold); font-weight: bold; 
+            text-shadow: 2px 2px 10px black; pointer-events: none; text-align: center; width: 500px;
+            white-space: nowrap; justify-content: center; align-items: center;
+        }
         
-        /* Game Over Screen */
-        #final-screen { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 10000; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .win-msg { font-size: 40px; color: var(--gold); margin-bottom: 30px; }
+        #chat-toggle { position: absolute; bottom: 20px; left: 20px; width: 60px; height: 60px; background: var(--gold); border-radius: 50%; border: none; font-size: 30px; cursor: pointer; z-index: 7000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        #chat-box { position: absolute; bottom: 90px; left: 20px; width: 300px; height: 350px; background: var(--panel-bg); border: 2px solid var(--gold); border-radius: 10px; display: none; flex-direction: column; z-index: 7000; }
+        #chat-messages { flex: 1; overflow-y: auto; padding: 10px; font-size: 14px; color: #eee; text-align: left; }
+        #chat-input-area { display: flex; padding: 10px; border-top: 1px solid #444; }
+        #chat-input { flex: 1; background: #222; border: 1px solid var(--gold); color: white; padding: 8px; border-radius: 5px; outline: none; }
+
+        #rotate-msg {
+            display: none; position: fixed; inset: 0; z-index: 9999;
+            background: black; color: white; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center;
+        }
+        @media screen and (orientation: portrait) { #rotate-msg { display: flex; } }
+
+        #start-screen { 
+            position: fixed; inset: 0; z-index: 8000; 
+            background: radial-gradient(circle, #222 0%, #000 100%); 
+            display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; 
+        }
         
-        .player-slot { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .card { width: 110px; height: 160px; background: white; color: black; border-radius: 10px; position: relative; box-shadow: 5px 5px 15px rgba(0,0,0,0.4); cursor: pointer; transition: transform 0.1s; flex-shrink: 0; }
+        .name-input {
+            background: transparent; border: none; border-bottom: 3px solid var(--gold);
+            color: white; font-size: 30px; text-align: center; padding: 10px;
+            margin-bottom: 30px; outline: none; width: 300px;
+        }
+
+        .game-btn { 
+            background: linear-gradient(to bottom, #4a4a4a, #2a2a2a); 
+            border: 2px solid #666; border-radius: 10px; 
+            color: white; padding: 15px 35px; font-size: 20px; 
+            font-weight: bold; cursor: pointer; box-shadow: 0 5px 0 #111; 
+        }
+        .game-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #111; }
+        
+        #direction-indicator {
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+            padding: 8px 20px; background: rgba(0,0,0,0.85);
+            border: 2px solid var(--gold); border-radius: 15px;
+            font-weight: bold; font-size: 18px; color: var(--gold);
+            z-index: 2000; letter-spacing: 2px; min-width: 200px; text-align: center;
+        }
+
+        #active-suit-display {
+            position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 120px; z-index: 100; text-shadow: 0 0 20px black; display: none; pointer-events: none; opacity: 0.6;
+        }
+
+        .player-slot { display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 10; }
+        #slot-top { grid-area: top; }
+        #slot-left { grid-area: left; }
+        #slot-right { grid-area: right; }
+        #slot-bottom { grid-area: bottom; align-self: center; width: 100%; }
+
+        .player-info {
+            background: var(--panel-bg); border: 2px solid var(--gold);
+            border-radius: 10px; padding: 5px 15px; text-align: center; min-width: 140px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); margin-bottom: 10px;
+        }
+        .player-name { font-weight: bold; color: var(--gold); font-size: 16px; }
+
+        .opp-hand { display: flex; justify-content: center; }
+        .mini-card { width: 30px; height: 45px; background: linear-gradient(135deg, #a00, #500); border: 1.5px solid white; border-radius: 4px; margin-left: -20px; box-shadow: 2px 2px 5px black; }
+        .mini-card:first-child { margin-left: 0; }
+
+        #game-center { grid-area: center; display: flex; align-items: center; justify-content: center; gap: 40px; z-index: 20; position: relative; }
+        #draw-pile { width: 100px; height: 145px; background: linear-gradient(135deg, #8e2424, #4d0000); border: 3px solid white; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; box-shadow: 10px 10px 20px rgba(0,0,0,0.6); }
+        #deck-count { font-size: 28px; font-weight: bold; color: var(--gold); margin-top: 5px; }
+
+        #pile-container { width: 110px; height: 160px; position: relative; }
+        .pile-card {
+            width: 110px; height: 160px; background: white; color: black;
+            border-radius: 10px; border: 1px solid #ccc; position: absolute; top: 0; left: 0;
+            box-shadow: 3px 3px 8px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; padding: 8px; box-sizing: border-box;
+            transition: transform 0.2s; will-change: transform; pointer-events: none;
+        }
+        .pile-card.red { color: #d00; }
+        
+        .card { 
+            width: 110px; height: 160px; background: white; color: black; 
+            border-radius: 10px; border: 1px solid #ccc; position: relative;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.4); cursor: pointer; transition: transform 0.1s; flex-shrink: 0; 
+            will-change: transform; backface-visibility: hidden;
+        }
         .card.red { color: #d00; }
-        .card-corner { position: absolute; top: 5px; left: 5px; font-size: 24px; font-weight: bold; }
+        .card-corner { position: absolute; top: 5px; left: 5px; font-size: 24px; font-weight: bold; line-height: 1; display: flex; flex-direction: column; align-items: center; }
+        .card-corner.bottom { top: auto; bottom: 5px; left: auto; right: 5px; transform: rotate(180deg); }
         .card-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 70px; }
-        
-        #my-hand-container { width: 95%; display: flex; justify-content: center; height: 180px; margin: 0 auto; }
-        .hand-card { margin-left: -55px; }
-        .hand-card:hover { transform: translateY(-30px); z-index: 100; }
 
-        #scoreboard { position: absolute; top: 20px; left: 20px; background: var(--panel-bg); border: 1px solid var(--gold); padding: 10px; z-index: 1000; border-radius: 10px; max-height: 200px; overflow-y: auto; }
-        .suit-btn { width: 80px; height: 80px; font-size: 40px; margin: 10px; cursor: pointer; }
-        #ace-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9500; align-items: center; justify-content: center; flex-direction: column; }
+        .flying-card {
+            position: fixed; z-index: 9999; pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 10px 10px 30px rgba(0,0,0,0.5); transform-origin: top left;
+        }
+
+        #turn-indicator { position: absolute; top: 70px; right: 20px; padding: 10px 20px; background: #1a472a; border: 3px solid #4f4; border-radius: 15px; font-weight: bold; z-index: 1000; font-size: 16px; color: white; box-shadow: 0 4px 10px black;}
+        
+        #scoreboard { 
+            position: absolute; top: 20px; left: 20px; 
+            background: var(--panel-bg); border: 2px solid var(--gold); 
+            border-radius: 10px; padding: 10px; z-index: 1000; font-size: 14px; 
+            max-height: 300px; overflow-y: auto; display: none; color: white; cursor: pointer; 
+        }
+        
+        #my-hand-container { width: 90%; display: flex; justify-content: center; align-items: center; height: 180px; margin: 0 auto; }
+        .hand-card { margin-left: -55px; box-shadow: -2px 0 5px rgba(0,0,0,0.3); }
+        .hand-card:first-child { margin-left: 0; }
+        .hand-card:hover { transform: translateY(-30px) scale(1.05); z-index: 100; }
+        
+        #ace-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9000; flex-direction: column; align-items: center; justify-content: center; }
+        .suit-btn { width: 90px; height: 90px; font-size: 55px; background: white; border-radius: 15px; margin: 15px; cursor: pointer; border: 4px solid var(--gold); }
+        
+        #error-overlay { display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(150, 0, 0, 0.9); flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+        .shake { animation: shake 0.2s; border-color: red !important; }
+        @keyframes shake { 0%, 100% {transform:translateX(0);} 25% {transform:translateX(-5px);} 75% {transform:translateX(5px);} }
+
+        .wc-text { color: #4f4; font-weight: bold; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #444; padding: 5px 10px; text-align: center; }
     </style>
 </head>
 <body>
 
-    <div id="final-screen">
-        <div class="win-msg" id="win-text"></div>
-        <button class="game-btn" onclick="location.reload()" style="margin:10px; padding:15px; background:var(--gold); border:none; cursor:pointer;">Άντε πάμε άλλο ένα</button>
-        <button class="game-btn" onclick="location.reload()" style="margin:10px; padding:15px; background:var(--gold); border:none; cursor:pointer;">Ένα τελευταίο 😂</button>
-        <button class="game-btn" onclick="location.reload()" style="margin:10px; padding:15px; background:var(--gold); border:none; cursor:pointer;">Θα πάρω το αίμα μου πίσω, πάμε 💪🏻</button>
+    <div id="error-overlay">
+        <h2>ΠΡΟΕΚΥΨΕ ΣΦΑΛΜΑ!</h2>
+        <p id="error-text" style="font-family: monospace;"></p>
+        <button onclick="window.location.reload()" class="game-btn">ΕΠΑΝΑΦΟΡΤΩΣΗ</button>
     </div>
 
-    <div id="start-screen" style="position:fixed; inset:0; background:black; z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-        <h1 style="color:var(--gold)">Μαύρος Βαλές ♠️</h1>
-        <input type="text" id="username" placeholder="Όνομα..." style="padding:10px; font-size:20px;">
-        <button onclick="joinGame()" style="padding:10px 30px; margin-top:20px; font-size:20px; cursor:pointer;">ΕΙΣΟΔΟΣ</button>
-        <p id="waiting-msg" style="display:none">Περιμένοντας παίκτες...</p>
-        <button id="start-btn" onclick="socket.emit('startGameRequest')" style="display:none; padding:10px 30px; margin-top:20px; cursor:pointer;">ΕΚΚΙΝΗΣΗ</button>
+    <div id="rotate-msg">
+        <div style="font-size: 50px;">🔄</div>
+        <h2>Γυρίστε τη συσκευή οριζόντια</h2>
+    </div>
+
+    <div id="start-screen">
+        <h1 style="color:var(--gold); font-size:80px; margin-bottom:10px; text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);">Μαύρος Βαλές ♠️</h1>
+        <div id="login-area" style="display:flex; flex-direction:column; align-items:center;">
+            <input type="text" id="username" class="name-input" placeholder="Το όνομά σου..." maxlength="12">
+            <button class="game-btn" onclick="joinGame()">ΕΙΣΟΔΟΣ</button>
+        </div>
+        <div id="waiting-area" style="display:none; text-align:center;">
+            <p id="waiting-msg" style="font-size:24px; color:#aaa; margin-bottom:20px;">Περιμένοντας παίκτες...</p>
+            <button id="start-btn" class="game-btn" style="border-color:#4f4; color:#4f4; display:none;" onclick="socket.emit('startGameRequest')">ΕΚΚΙΝΗΣΗ</button>
+        </div>
     </div>
 
     <div id="game-wrapper">
-        <div id="scoreboard" onclick="this.style.maxHeight='500px'"><table id="score-table"></table></div>
+        <div id="ace-modal">
+            <h2 style="color:var(--gold); font-size: 40px; margin-bottom:20px;">Διάλεξε Χρώμα</h2>
+            <div>
+                <button class="suit-btn" style="color:red;" onclick="confirmAce('♥')">♥</button>
+                <button class="suit-btn" style="color:red;" onclick="confirmAce('♦')">♦</button>
+                <button class="suit-btn" style="color:black;" onclick="confirmAce('♣')">♣</button>
+                <button class="suit-btn" style="color:black;" onclick="confirmAce('♠')">♠</button>
+            </div>
+        </div>
+
+        <div id="scoreboard" onclick="toggleScoreboard()"><table id="score-table"></table></div>
+        <button id="chat-toggle" onclick="toggleChat()">💬</button>
+        <div id="chat-box"><div id="chat-messages"></div><div id="chat-input-area"><input type="text" id="chat-input" placeholder="Πες κάτι..." onkeypress="if(event.key==='Enter') sendChat()"></div></div>
+
         <div id="direction-indicator"></div>
-        <div id="turn-indicator"></div>
-        
+        <div id="turn-indicator">ΣΥΝΔΕΣΗ...</div>
+        <div id="active-suit-display"></div>
+
         <div id="slot-top" class="player-slot"></div>
         <div id="slot-left" class="player-slot"></div>
+        <div id="game-center">
+            <div id="draw-pile" onclick="socket.emit('drawCard')">
+                <div style="font-size:14px; color:#ccc;">ΤΡΑΒΑ</div>
+                <div id="deck-count">52</div>
+            </div>
+            <div id="pile-container"><div id="msg-overlay"></div></div>
+            <button class="game-btn" onclick="socket.emit('passTurn')">ΠΑΣΟ</button>
+        </div>
         <div id="slot-right" class="player-slot"></div>
-
-        <div id="game-center" style="grid-area:center; display:flex; align-items:center; justify-content:center; gap:30px;">
-            <div id="draw-pile" onclick="socket.emit('drawCard')" style="width:100px; height:145px; background:maroon; border:2px solid white; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:30px; cursor:pointer;">🂠</div>
-            <div id="pile-container" style="width:110px; height:160px; position:relative;"></div>
-            <button onclick="socket.emit('passTurn')" style="padding:10px 20px; cursor:pointer;">ΠΑΣΟ</button>
-        </div>
-
         <div id="slot-bottom" class="player-slot">
+            <div id="my-info-container" style="margin-bottom: 5px;"></div>
             <div id="my-hand-container"></div>
-        </div>
-        
-        <div id="msg-overlay"></div>
-    </div>
-
-    <div id="ace-modal">
-        <h2 style="color:var(--gold)">Διάλεξε Σχήμα</h2>
-        <div>
-            <button class="suit-btn" onclick="confirmAce('♠')">♠</button>
-            <button class="suit-btn" onclick="confirmAce('♣')">♣</button>
-            <button class="suit-btn" style="color:red" onclick="confirmAce('♥')">♥</button>
-            <button class="suit-btn" style="color:red" onclick="confirmAce('♦')">♦</button>
         </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        let myId, selectedAceIndex = null, lastTopCard = null;
-        let lastClickTime = 0;
+        let myId, lastTopCardId = null, selectedAceIndex = null;
+        let fullScoreHistory = [], isScoreboardExpanded = false;
+        let lastClickTime = 0, isAnimating = false;
+        window.currentActiveSuit = null;
+
+        socket.on('connect', () => { myId = socket.id; });
 
         function joinGame() {
             const name = document.getElementById('username').value;
-            if(!name) return;
-            let sid = sessionStorage.getItem('mv_session') || 'sess_'+Math.random();
-            sessionStorage.setItem('mv_session', sid);
-            socket.emit('joinGame', { username: name, sessionId: sid });
-            document.getElementById('username').style.display = 'none';
-            document.getElementById('waiting-msg').style.display = 'block';
+            if (name.trim() === "") return;
+            let sessionId = sessionStorage.getItem('mv_session') || 'sess_' + Math.random().toString(36).substr(2, 9);
+            sessionStorage.setItem('mv_session', sessionId);
+            socket.emit('joinGame', { username: name, sessionId: sessionId });
+            document.getElementById('login-area').style.display = 'none';
+            document.getElementById('waiting-area').style.display = 'block';
         }
 
-        socket.on('playerCountUpdate', c => {
-            document.getElementById('waiting-msg').innerText = `Παίκτες: ${c}`;
-            document.getElementById('start-btn').style.display = c >= 2 ? 'block' : 'none';
+        socket.on('rejoinSuccess', (data) => {
+            document.getElementById('start-screen').style.display = 'none';
+            if (data.gameStarted) document.getElementById('scoreboard').style.display = 'block';
+            if (data.history) { fullScoreHistory = data.history; renderScoreboard(); }
         });
 
-        socket.on('gameReady', () => { document.getElementById('start-screen').style.display = 'none'; });
+        socket.on('updateUI', (data) => {
+            window.currentScoreData = data;
+            document.getElementById('deck-count').innerText = data.deckCount;
+            window.currentActiveSuit = data.activeSuit;
 
-        socket.on('updateUI', data => {
-            const ind = document.getElementById('turn-indicator');
-            ind.innerText = data.isMyTurn ? (data.penalty > 0 ? `ΦΑΕ ${data.penalty}!` : "ΣΕΙΡΑ ΣΟΥ") : `ΠΑΙΖΕΙ: ${data.currentPlayerName}`;
-            ind.style.borderColor = data.isMyTurn ? "#4f4" : "red";
-
-            if(JSON.stringify(data.topCard) !== JSON.stringify(lastTopCard)) {
-                updatePile(data.topCard);
-                lastTopCard = data.topCard;
+            if (data.topCard) {
+                const cardId = data.topCard.value + data.topCard.suit;
+                if (cardId !== lastTopCardId) { addCardToPile(data.topCard); lastTopCardId = cardId; }
             }
 
-            renderHand(data.myHand);
-            renderOthers(data.players, data.direction);
+            const suitDisplay = document.getElementById('active-suit-display');
+            if (data.activeSuit) {
+                suitDisplay.innerText = data.activeSuit;
+                suitDisplay.style.color = (data.activeSuit === '♥' || data.activeSuit === '♦') ? '#ff4444' : '#111';
+                suitDisplay.style.display = 'block';
+            } else { suitDisplay.style.display = 'none'; }
+
+            const ind = document.getElementById('turn-indicator');
+            ind.innerText = data.isMyTurn ? (data.penalty > 0 ? `⚠️ ΦΑΕ ${data.penalty}!` : "ΔΙΚΗ ΣΟΥ ΣΕΙΡΑ") : `ΠΑΙΖΕΙ: ${data.currentPlayerName}`;
+            ind.style.borderColor = data.isMyTurn ? "#4f4" : "#ff4444";
+
+            renderHand(data.myHand || []);
+            distributePlayers(data.players);
+            updateDirectionIndicator(data.players, data.direction);
+        });
+
+        function playLogic(index, value, suit) {
+            if (Date.now() - lastClickTime < 450 || isAnimating) return;
+            lastClickTime = Date.now();
+
+            // ΚΑΝΟΝΑΣ: "Σαν φύλλο" - αν το suit ταιριάζει με το ενεργό, παίζει αυτόματα
+            if (value === 'A' && window.currentActiveSuit && suit === window.currentActiveSuit) {
+                animateThrow(document.querySelector(`.card-${index}`));
+                socket.emit('chatMessage', 'Σαν φύλλο! 🃏');
+                socket.emit('playCard', { index: index, declaredSuit: suit });
+                return;
+            }
+
+            if (value === 'A' && !window.currentActiveSuit) {
+                selectedAceIndex = index;
+                document.getElementById('ace-modal').style.display = 'flex';
+                return;
+            }
+            
+            animateThrow(document.querySelector(`.card-${index}`));
+            socket.emit('playCard', { index: index, declaredSuit: null });
+        }
+
+        function confirmAce(suit) {
+            document.getElementById('ace-modal').style.display = 'none';
+            animateThrow(document.querySelector(`.card-${selectedAceIndex}`));
+            socket.emit('playCard', { index: selectedAceIndex, declaredSuit: suit });
+        }
+
+        function animateThrow(elem) {
+            if (!elem) return;
+            isAnimating = true;
+            const rect = elem.getBoundingClientRect();
+            const clone = elem.cloneNode(true);
+            clone.classList.add('flying-card');
+            clone.style.left = rect.left + 'px'; clone.style.top = rect.top + 'px';
+            document.body.appendChild(clone);
+
+            const pileRect = document.getElementById('pile-container').getBoundingClientRect();
+            setTimeout(() => {
+                clone.style.left = pileRect.left + 'px'; clone.style.top = pileRect.top + 'px';
+                clone.style.transform = `scale(0.8) rotate(${Math.random() * 20 - 10}deg)`;
+                clone.style.opacity = '0';
+            }, 10);
+            setTimeout(() => { clone.remove(); isAnimating = false; }, 400);
+        }
+
+        socket.on('revealHands', (playersData) => {
+            const others = playersData.filter(p => p.id !== myId);
+            const slots = ['slot-left', 'slot-top', 'slot-right'];
+            others.forEach((p, i) => {
+                if(!slots[i]) return;
+                let cardsHtml = (p.hand || []).map((c, idx) => `
+                    <div style="background:white; color:${c.color==='red'?'#d00':'black'}; width:35px; height:50px; border-radius:4px; border:1px solid #ccc; margin-left:${idx===0?0:'-15'}px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:bold; font-size:16px; box-shadow:2px 2px 5px black;">
+                        ${c.value}<div style="font-size:14px;">${c.suit}</div>
+                    </div>`).join('');
+                document.getElementById(slots[i]).innerHTML = `<div class="player-info"><div class="player-name">${p.name}</div></div><div class="opp-hand">${cardsHtml}</div>`;
+            });
+        });
+
+        socket.on('gameOver', (data) => {
+            const o = document.getElementById('msg-overlay');
+            let roast = data.isRoasting ? `<br><small style="font-size:20px;">Μπα, με τόσα καπέλα και ο παππούς μου κέρδιζε 😂</small>` : "";
+            o.innerHTML = `
+                <div style="background:rgba(0,0,0,0.95); padding:30px; border-radius:20px; border:3px solid var(--gold); position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:600px; white-space:normal; pointer-events:auto;">
+                    <div style="font-size:30px; margin-bottom:20px;">🏆 Νικητής: ${data.winnerName}! ${roast}</div>
+                    <button class="game-btn" onclick="location.reload()" style="margin:5px;">Άντε πάμε άλλο ένα</button>
+                    <button class="game-btn" onclick="location.reload()" style="margin:5px;">Ένα τελευταίο 😂</button>
+                    <button class="game-btn" onclick="location.reload()" style="margin:5px;">Θα πάρω το αίμα μου πίσω, πάμε 💪🏻</button>
+                </div>`;
+            o.style.display = 'flex';
         });
 
         function renderHand(hand) {
             const container = document.getElementById('my-hand-container');
-            container.innerHTML = hand.map((c, i) => {
-                const color = (c.suit==='♥'||c.suit==='♦') ? 'red' : '';
-                return `<div class="card hand-card ${color}" onclick="handlePlay(${i}, '${c.value}', '${c.suit}')"><div class="card-corner">${c.value}<br>${c.suit}</div><div class="card-center">${c.suit}</div></div>`;
-            }).join('');
+            container.innerHTML = hand.map((c, i) => `
+                <div class="card hand-card ${c.suit==='♥'||c.suit==='♦'?'red':''} card-${i}" onclick="playLogic(${i}, '${c.value}', '${c.suit}')">
+                    <div class="card-corner">${c.value}<div>${c.suit}</div></div>
+                    <div class="card-center">${c.suit}</div>
+                    <div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>
+                </div>`).join('');
         }
 
-        // Fix Ghost Clicks: throttle clicks
-        function handlePlay(idx, val, suit) {
-            let now = Date.now();
-            if(now - lastClickTime < 500) return;
-            lastClickTime = now;
-
-            // "Σαν φύλλο" check: αν το σχήμα είναι ίδιο με το κάτω, μην ανοίγεις modal
-            if(val === 'A' && lastTopCard && suit !== lastTopCard.suit) {
-                selectedAceIndex = idx;
-                document.getElementById('ace-modal').style.display = 'flex';
-            } else {
-                socket.emit('playCard', { index: idx });
-            }
+        function updateDirectionIndicator(players, dir) {
+            const initials = players.map(p => p.name.charAt(0).toUpperCase());
+            document.getElementById('direction-indicator').innerText = initials.join(dir === 1 ? ' ➔ ' : ' ⬅ ');
         }
 
-        function confirmAce(s) {
-            socket.emit('playCard', { index: selectedAceIndex, declaredSuit: s });
-            document.getElementById('ace-modal').style.display = 'none';
-        }
-
-        function renderOthers(players, dir) {
-            // Απλοποιημένη απόδοση για το παράδειγμα
-            const dirText = dir === 1 ? "Δεξιόστροφα ↻" : "Αριστερόστροφα ↺";
-            document.getElementById('direction-indicator').innerText = dirText;
-        }
-
-        function updatePile(card) {
-            const p = document.getElementById('pile-container');
-            const color = (card.suit==='♥'||card.suit==='♦') ? 'red' : '';
-            p.innerHTML = `<div class="card ${color}" style="position:absolute; transform:rotate(${Math.random()*20-10}deg)"><div class="card-corner">${card.value}<br>${card.suit}</div><div class="card-center">${card.suit}</div></div>`;
-        }
-
-        socket.on('revealHands', players => {
-            // Εδώ εμφανίζονται τα φύλλα των άλλων στο τέλος του γύρου
-            const msg = document.getElementById('msg-overlay');
-            msg.innerHTML = "<h2 style='background:black;padding:20px'>Τέλος Γύρου! Αποκάλυψη...</h2>";
-            msg.style.display = 'flex';
-            setTimeout(() => msg.style.display = 'none', 3000);
-        });
-
-        socket.on('gameOver', data => {
-            document.getElementById('final-screen').style.display = 'flex';
-            document.getElementById('win-text').innerText = `ΝΙΚΗΤΗΣ: ${data.winner}! 🏆`;
-        });
-
-        socket.on('notification', m => {
-            const o = document.getElementById('msg-overlay');
-            o.innerHTML = `<div style="background:rgba(0,0,0,0.8);padding:10px">${m}</div>`;
-            o.style.display = 'flex';
-            setTimeout(() => o.style.display='none', 2000);
-        });
-
-        socket.on('updateScoreboard', data => {
-            const t = document.getElementById('score-table');
-            if(!data.history.length) return;
-            let keys = Object.keys(data.history[0]);
-            let html = `<tr>${keys.map(k=>`<th>${k}</th>`).join('')}</tr>`;
-            data.history.forEach(row => {
-                html += `<tr>${keys.map(k=>`<td>${row[k]}</td>`).join('')}</tr>`;
+        function distributePlayers(players) {
+            const myIndex = players.findIndex(p => p.id === myId);
+            const ordered = players.slice(myIndex).concat(players.slice(0, myIndex)).slice(1);
+            ['slot-left', 'slot-top', 'slot-right'].forEach((id, i) => {
+                const p = ordered[i];
+                if (!p) { document.getElementById(id).innerHTML = ''; return; }
+                let hats = p.hats > 0 ? `<div style="font-size:20px;">${"🎩".repeat(p.hats)}</div>` : "";
+                let cards = Array(p.handCount).fill('<div class="mini-card"></div>').join('');
+                document.getElementById(id).innerHTML = `<div class="player-info" style="opacity:${p.connected?1:0.4}"><div class="player-name">${p.name}</div>${hats}</div><div class="opp-hand">${cards}</div>`;
             });
+        }
+
+        function renderScoreboard() {
+            const t = document.getElementById('score-table');
+            if (!fullScoreHistory.length) return;
+            const names = Object.keys(fullScoreHistory[0]);
+            let html = `<tr>${names.map(n => `<th>${n}</th>`).join('')}</tr>`;
+            fullScoreHistory.slice(-5).forEach(r => { html += `<tr>${names.map(n => `<td>${r[n]==='WC'?'<span class="wc-text">WC</span>':r[n]}</td>`).join('')}</tr>`; });
             t.innerHTML = html;
-        });
+        }
+
+        function addCardToPile(c) {
+            const div = document.createElement('div');
+            div.className = `pile-card ${c.suit==='♥'||c.suit==='♦'?'red':''}`;
+            div.style.transform = `rotate(${Math.random()*20-10}deg)`;
+            div.innerHTML = `<div class="card-corner">${c.value}<div>${c.suit}</div></div><div class="card-center">${c.suit}</div><div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>`;
+            const container = document.getElementById('pile-container');
+            container.appendChild(div);
+            if(container.children.length > 7) container.removeChild(container.children[1]);
+        }
+
+        function toggleScoreboard() { isScoreboardExpanded = !isScoreboardExpanded; document.getElementById('scoreboard').style.maxHeight = isScoreboardExpanded ? '600px' : '300px'; }
+        function toggleChat() { const c = document.getElementById('chat-box'); c.style.display = c.style.display === 'flex' ? 'none' : 'flex'; }
+        socket.on('notification', (msg) => { const o = document.getElementById('msg-overlay'); o.innerText = msg; o.style.display = 'flex'; setTimeout(() => o.style.display = 'none', 3000); });
+        socket.on('playerCountUpdate', (c) => { document.getElementById('waiting-msg').innerText = `Παίκτες: ${c}`; document.getElementById('start-btn').style.display = c >= 2 ? 'inline-block' : 'none'; });
     </script>
 </body>
 </html>
