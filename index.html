@@ -128,7 +128,7 @@
         .card { 
             width: 110px; height: 160px; background: white; color: black; 
             border-radius: 10px; border: 1px solid #ccc; position: relative;
-            box-shadow: 5px 5px 15px rgba(0,0,0,0.4); cursor: pointer; transition: transform 0.1s; flex-shrink: 0; 
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.4); cursor: pointer; flex-shrink: 0; 
             will-change: transform; backface-visibility: hidden;
         }
         .card.red { color: #d00; }
@@ -150,12 +150,19 @@
             border-radius: 10px; padding: 10px; z-index: 1000; font-size: 14px; 
             max-height: 300px; overflow-y: auto; display: none; color: white; cursor: pointer; 
         }
+
+        #my-hand-container { width: 95%; display: flex; justify-content: center; align-items: center; height: 180px; margin: 0 auto; }
+        .hand-normal { flex-wrap: nowrap; }
+        .hand-normal .hand-card:hover { transform: translateY(-30px) scale(1.05); z-index: 100; }
         
-        #my-hand-container { width: 90%; display: flex; justify-content: center; align-items: center; height: 180px; margin: 0 auto; }
-        .hand-card { margin-left: -55px; box-shadow: -2px 0 5px rgba(0,0,0,0.3); }
-        .hand-card:first-child { margin-left: 0; }
-        .hand-card:hover { transform: translateY(-30px) scale(1.05); z-index: 100; }
+        .hand-compact { flex-wrap: wrap; align-content: flex-start; height: 240px !important; overflow-y: auto; overflow-x: hidden; padding-top: 10px; }
+        .hand-compact .hand-card { width: 77px !important; height: 112px !important; margin-bottom: -35px; }
+        .hand-compact .hand-card:hover { transform: translateY(-20px) scale(1.15); z-index: 200; }
+        .hand-compact .card-center { font-size: 40px; }
+        .hand-compact .card-corner { font-size: 16px; }
         
+        .hand-card { box-shadow: -2px 0 5px rgba(0,0,0,0.4); transition: transform 0.1s; }
+
         #ace-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9000; flex-direction: column; align-items: center; justify-content: center; }
         .suit-btn { width: 90px; height: 90px; font-size: 55px; background: white; border-radius: 15px; margin: 15px; cursor: pointer; border: 4px solid var(--gold); }
         
@@ -237,7 +244,6 @@
         let lastClickTime = 0, isAnimating = false;
         window.currentActiveSuit = null;
 
-        // ΣΥΝΑΡΤΗΣΗ ΠΡΟΣΑΡΜΟΓΗΣ ΜΕΓΕΘΟΥΣ ΣΕ ΚΙΝΗΤΑ (Scale)
         let gameScale = 1;
         function resizeGame() {
             const wrapper = document.getElementById('game-wrapper');
@@ -259,7 +265,6 @@
             document.getElementById('waiting-area').style.display = 'block';
         }
 
-        // --- ΕΔΩ ΕΙΧΕ ΓΙΝΕΙ ΤΟ ΛΑΘΟΣ, ΠΡΟΣΤΕΘΗΚΕ ΤΟ gameReady ---
         socket.on('gameReady', () => {
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('scoreboard').style.display = 'block';
@@ -371,8 +376,17 @@
 
         function renderHand(hand) {
             const container = document.getElementById('my-hand-container');
+            const isCompact = hand.length > 12;
+            container.className = isCompact ? 'hand-compact' : 'hand-normal';
+
+            let overlap = -55;
+            if (isCompact) overlap = -30; 
+            else if (hand.length > 8) overlap = -75; 
+
             container.innerHTML = hand.map((c, i) => `
-                <div class="card hand-card ${c.suit==='♥'||c.suit==='♦'?'red':''} card-${i}" onclick="playLogic(${i}, '${c.value}', '${c.suit}')">
+                <div class="card hand-card ${c.suit==='♥'||c.suit==='♦'?'red':''} card-${i}" 
+                     style="margin-left: ${i === 0 ? 0 : overlap}px" 
+                     onclick="playLogic(${i}, '${c.value}', '${c.suit}')">
                     <div class="card-corner">${c.value}<div>${c.suit}</div></div>
                     <div class="card-center">${c.suit}</div>
                     <div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>
