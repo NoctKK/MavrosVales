@@ -13,7 +13,6 @@ let deck = [], discardPile = [], players = {}, playerOrder = [], turnIndex = 0;
 let direction = 1, penaltyStack = 0, penaltyType = null, activeSuit = null;
 let gameStarted = false, roundHistory = [], roundStarterIndex = 0, consecutiveTwos = 0;
 
-// Χρονόμετρο Reset
 let emptyRoomTimer = null;
 
 app.get('/ping', (req, res) => res.send('pong'));
@@ -99,7 +98,6 @@ io.on('connection', (socket) => {
         let effectiveSuit = activeSuit || topCard.suit, isValid = false;
         let turnMsgs = [];
 
-        // ΕΔΩ ΗΤΑΝ ΤΟ ΛΑΘΟΣ ΜΟΥ - ΕΠΑΝΗΛΘΕ Ο ΣΩΣΤΟΣ ΚΑΝΟΝΑΣ ΤΟΥ ΑΣΣΟΥ ΠΟΥ ΜΟΥ ΕΙΧΕΣ ΔΩΣΕΙ!
         if (penaltyStack > 0) {
             if (penaltyType === '7' && card.value === '7') isValid = true;
             if (penaltyType === 'J' && card.value === 'J') isValid = true;
@@ -128,13 +126,17 @@ io.on('connection', (socket) => {
                 }
             }
 
+            // ΝΕΟ ΜΗΝΥΜΑ ΓΙΑ ΤΟΝ ΑΣΣΟ "ΣΑΝ ΦΥΛΛΟ"
+            if (card.value === 'A' && data.asRegularCard) {
+                turnMsgs.push('Σαν φύλλο! 🃏');
+            }
+
             p.hand.splice(data.index, 1); 
             discardPile.push(card);
             
             let victimId = playerOrder[(turnIndex + direction + playerOrder.length) % playerOrder.length];
             let prevVictimId = playerOrder[(turnIndex - direction + playerOrder.length) % playerOrder.length];
 
-            // ΛΟΓΙΚΗ ΟΤΑΝ ΤΕΛΕΙΩΝΟΥΝ ΤΑ ΦΥΛΛΑ
             if (p.hand.length === 0) {
                 let isPenalty = false;
 
@@ -361,7 +363,7 @@ function handleRoundEnd(winnerId, closedWithAce) {
         let finalMsg = msgs[Math.floor(Math.random() * msgs.length)];
         
         if (ultimateWinner.hats >= 2) {
-            finalMsg = `Μπα, με τόσα καπέλα και ο παππούς μου κέρδιζε 😂`;
+            finalMsg = `Μπα, με τόσα καπέλα και ο παππούς μου κέρδιζε ${ultimateWinner.name} 😂`;
         }
 
         roundHistory.push(historyEntry);
