@@ -48,7 +48,6 @@
             white-space: nowrap; justify-content: center; align-items: center;
         }
 
-        /* Η ΝΕΑ ΜΟΝΙΜΗ ΟΘΟΝΗ ΝΙΚΗΣ */
         #victory-screen {
             display: none; position: fixed; inset: 0; z-index: 10000;
             background: rgba(0,0,0,0.92); flex-direction: column;
@@ -89,7 +88,6 @@
         }
         .game-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #111; }
         
-        /* ΔΙΟΡΘΩΣΗ: Πιο κάτω τα βελάκια για να μην καλύπτονται στο κινητό! */
         #direction-indicator {
             position: absolute; top: 65px; right: 20px;
             padding: 10px 20px; background: rgba(0,0,0,0.8);
@@ -434,7 +432,6 @@
             });
         });
 
-        // Η ΟΘΟΝΗ ΝΙΚΗΣ ΠΟΥ ΜΕΝΕΙ ΜΟΝΙΜΑ
         socket.on('gameOver', (finalMsg) => {
             document.getElementById('game-wrapper').style.filter = "blur(8px)";
             
@@ -564,6 +561,7 @@
             setTimeout(() => { clone.remove(); }, 400);
         }
 
+        // Η ΛΟΓΙΚΗ ΓΙΑ ΤΟ "ΣΑΝ ΦΥΛΛΟ" ΤΟΥ ΑΣΣΟΥ ΕΙΝΑΙ ΕΔΩ!
         function playLogic(index, value, suit) {
             let now = Date.now();
             if (now - lastClickTime < 400) return; 
@@ -571,12 +569,19 @@
 
             const cardElement = document.querySelector(`.card-${index}`);
             
-            // ΔΙΟΡΘΩΣΗ: Το modal επιλογής χρώματος ανοίγει ΠΑΝΤΑ όταν παίζεις Άσσο!
             if (value === 'A') {
-                if (cardElement) animateThrow(cardElement);
-                selectedAceIndex = index;
-                document.getElementById('ace-modal').style.display = 'flex';
-                return;
+                let effectiveSuit = window.currentActiveSuit || (window.currentTopCard ? window.currentTopCard.suit : null);
+                
+                if (suit === effectiveSuit) {
+                    if (cardElement) animateThrow(cardElement);
+                    socket.emit('playCard', { index: index, declaredSuit: suit, asRegularCard: true });
+                    return;
+                } else {
+                    if (cardElement) animateThrow(cardElement);
+                    selectedAceIndex = index;
+                    document.getElementById('ace-modal').style.display = 'flex';
+                    return;
+                }
             }
             
             if (cardElement) animateThrow(cardElement);
@@ -628,19 +633,20 @@
 
         socket.on('roundResultMsg', (t) => {
             const o = document.getElementById('msg-overlay');
-            o.innerHTML = t; o.style.display = 'flex';
+            o.innerText = t; o.style.display = 'flex';
             setTimeout(() => o.style.display = 'none', 1500);
         });
         
         socket.on('notification', (msg) => {
             const o = document.getElementById('msg-overlay');
-            o.innerHTML = msg; o.style.display = 'flex';
+            o.innerHTML = msg; 
+            o.style.display = 'flex';
             setTimeout(() => o.style.display = 'none', 3000); 
         });
 
         socket.on('invalidMove', () => {
             const o = document.getElementById('msg-overlay');
-            o.innerHTML = "Ακυρη Κίνηση!"; 
+            o.innerText = "Ακυρη Κίνηση!"; 
             o.style.display = 'flex';
             o.style.color = "red";
             setTimeout(() => { o.style.display = 'none'; o.style.color = "#d4af37"; }, 1000);
