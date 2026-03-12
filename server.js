@@ -80,7 +80,7 @@ io.on('connection', (socket) => {
             let cleanName = (username && typeof username === 'string') ? username.trim() : "Παίκτης " + (Object.keys(players).length + 1);
             if (["δήμητρα", "δημητρα", "δημητρούλα", "δημητρουλα"].includes(cleanName.toLowerCase())) cleanName += " ❤️";
             
-            players[socket.id] = { id: socket.id, sessionId: sessionId, hand: [], name: cleanName, totalScore: 0, hats: 0, hasDrawn: false, connected: true };
+            players[socket.id] = { id: socket.id, sessionId: sessionId, hand: [], name: cleanName, totalScore: 0, hats: 0, hasDrawn: false, hasAtePenalty: false, connected: true };
             if (!playerOrder.includes(socket.id)) playerOrder.push(socket.id);
             
             io.emit('playerCountUpdate', Object.keys(players).length);
@@ -123,13 +123,17 @@ io.on('connection', (socket) => {
         }
 
         if (isValid) {
-            if (card.value === 'A' && !activeSuit && card.suit === topCard.suit && !data.declaredSuit) {
-                socket.emit('notification', 'Σαν φύλλο! 🃏');
+            // Ο σωστός έλεγχος για το "Σαν φύλλο" ΜΟΝΟ αν το κάτω είναι Άσσος
+            if (card.value === 'A' && topCard.value === 'A' && !data.declaredSuit) {
+                let effectiveTopSuit = activeSuit || topCard.suit;
+                if (card.suit === effectiveTopSuit) {
+                    socket.emit('notification', 'Σαν φύλλο! 🃏');
+                }
             }
 
             let top1 = discardPile[discardPile.length - 1];
             let top2 = discardPile.length >= 2 ? discardPile[discardPile.length - 2] : null;
-            let isSpecial = ['7', '8', 'J'].includes(card.value);
+            let isSpecial = ['7', '8', 'J', 'A'].includes(card.value);
             if (!isSpecial && top1) {
                 if (card.value === top1.value && card.suit === top1.suit) {
                     io.emit('notification', 'Copy paste! 👯');
@@ -169,8 +173,10 @@ io.on('connection', (socket) => {
                     isPenaltyHandled = true;
                 }
 
-                if (card.value === 'A') activeSuit = data.declaredSuit || card.suit;
-                else activeSuit = null;
+                if (card.value === 'A') {
+                    if (!data.declaredSuit && topCard.value === 'A') activeSuit = activeSuit || card.suit;
+                    else activeSuit = data.declaredSuit || card.suit;
+                } else activeSuit = null;
 
                 broadcastUpdate();
                 setTimeout(() => { handleRoundEnd(socket.id, card.value === 'A'); }, isPenaltyHandled ? 3000 : 1000);
@@ -178,9 +184,14 @@ io.on('connection', (socket) => {
             }
 
             if (card.value === 'A') {
-                if (!activeSuit && card.suit === topCard.suit) activeSuit = null; 
-                else activeSuit = data.declaredSuit || card.suit;
-            } else { activeSuit = null; }
+                if (!data.declaredSuit && topCard.value === 'A') {
+                    activeSuit = activeSuit || card.suit; 
+                } else {
+                    activeSuit = data.declaredSuit || card.suit; 
+                }
+            } else { 
+                activeSuit = null; 
+            }
 
             processCardLogic(card, p);
             broadcastUpdate();
@@ -197,8 +208,7 @@ io.on('connection', (socket) => {
                 if(deck.length > 0) p.hand.push(deck.pop());
             }
             penaltyStack = 0; penaltyType = null;
-            // Έφαγε την ποινή. Το p.hasDrawn μένει false, οπότε για να πάει πάσο,
-            // θα πρέπει να ξαναπατήσει "ΤΡΑΒΑ" για το κανονικό του φύλλο.
+            p.hasAtePenalty = true;
             broadcastUpdate(); 
             return;
         }
@@ -223,8 +233,6 @@ io.on('connection', (socket) => {
             return;
         }
         
-        // ΔΙΟΡΘΩΣΗ: Αφαίρεσα το hasAtePenalty. Τώρα, για να πας πάσο, 
-        // ΠΡΕΠΕΙ υποχρεωτικά το p.hasDrawn να είναι true (δηλαδή να έχεις τραβήξει 1 κανονικό φύλλο).
         if (!p.hasDrawn) {
             socket.emit('notification', 'Δεν μπορείς να πας πάσο αν δεν τραβήξεις φύλλο!');
             return;
@@ -280,9 +288,10 @@ function startNewRound(reset = false) {
     } else {
         roundStarterIndex++; turnIndex = roundStarterIndex % playerOrder.length;
     }
+    // Εδώ εξασφαλίζουμε ότι Η ΦΟΡΑ ΞΕΚΙΝΑΕΙ ΠΑΝΤΑ ΔΕΞΙΟΣΤΡΟΦΑ (direction = 1)
     direction = 1; penaltyStack = 0; activeSuit = null; consecutiveTwos = 0;
     
-    playerOrder.forEach(id => { players[id].hand = []; players[id].hasDrawn = false; });
+    playerOrder.forEach(id => { players[id].hand = []; players[id].hasDrawn = false; players[id].hasAtePenalty = false; });
     
     let dealCount = 0;
     let interval = setInterval(() => {
@@ -334,6 +343,7 @@ function advanceTurn(steps) {
     playerOrder.forEach(id => { 
         if(players[id]) {
             players[id].hasDrawn = false; 
+            players[id].hasAtePenalty = false;
         }
     });
 }
