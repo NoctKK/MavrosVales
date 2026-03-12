@@ -123,12 +123,10 @@ io.on('connection', (socket) => {
         }
 
         if (isValid) {
-            // "Σαν φύλλο" check
             if (card.value === 'A' && !activeSuit && card.suit === topCard.suit && !data.declaredSuit) {
                 socket.emit('notification', 'Σαν φύλλο! 🃏');
             }
 
-            // Copy paste messages
             let top1 = discardPile[discardPile.length - 1];
             let top2 = discardPile.length >= 2 ? discardPile[discardPile.length - 2] : null;
             let isSpecial = ['7', '8', 'J'].includes(card.value);
@@ -199,22 +197,41 @@ io.on('connection', (socket) => {
                 if(deck.length > 0) p.hand.push(deck.pop());
             }
             penaltyStack = 0; penaltyType = null;
-            // ΔΙΟΡΘΩΣΗ: Δεν του αλλάζουμε τη σειρά, απλά σημειώνουμε ότι τράβηξε
-            // Οπότε μπορεί πλέον είτε να παίξει ένα από τα φύλλα, είτε να πατήσει ΠΑΣΟ.
-            p.hasDrawn = true; 
+            // Έφαγε την ποινή. Το p.hasDrawn μένει false, οπότε για να πάει πάσο,
+            // θα πρέπει να ξαναπατήσει "ΤΡΑΒΑ" για το κανονικό του φύλλο.
             broadcastUpdate(); 
             return;
         }
 
-        if (p.hasDrawn) return;
+        if (p.hasDrawn) {
+            socket.emit('notification', 'Έχεις ήδη τραβήξει φύλλο!');
+            return;
+        }
+
         if(deck.length === 0) refillDeck();
         if(deck.length > 0) p.hand.push(deck.pop());
-        p.hasDrawn = true; broadcastUpdate();
+        p.hasDrawn = true; 
+        broadcastUpdate();
     });
 
     socket.on('passTurn', () => {
-        if (!gameStarted || playerOrder[turnIndex] !== socket.id || penaltyStack > 0 || !players[socket.id].hasDrawn) return;
-        advanceTurn(1); broadcastUpdate();
+        if (!gameStarted || playerOrder[turnIndex] !== socket.id) return;
+        let p = players[socket.id];
+        
+        if (penaltyStack > 0) {
+            socket.emit('notification', 'Πρέπει να τραβήξεις τις κάρτες ποινής πρώτα!');
+            return;
+        }
+        
+        // ΔΙΟΡΘΩΣΗ: Αφαίρεσα το hasAtePenalty. Τώρα, για να πας πάσο, 
+        // ΠΡΕΠΕΙ υποχρεωτικά το p.hasDrawn να είναι true (δηλαδή να έχεις τραβήξει 1 κανονικό φύλλο).
+        if (!p.hasDrawn) {
+            socket.emit('notification', 'Δεν μπορείς να πας πάσο αν δεν τραβήξεις φύλλο!');
+            return;
+        }
+
+        advanceTurn(1); 
+        broadcastUpdate();
     });
 
     socket.on('disconnect', () => {
@@ -264,6 +281,7 @@ function startNewRound(reset = false) {
         roundStarterIndex++; turnIndex = roundStarterIndex % playerOrder.length;
     }
     direction = 1; penaltyStack = 0; activeSuit = null; consecutiveTwos = 0;
+    
     playerOrder.forEach(id => { players[id].hand = []; players[id].hasDrawn = false; });
     
     let dealCount = 0;
@@ -312,7 +330,12 @@ function handleRoundEnd(winnerId, closedWithAce) {
 function advanceTurn(steps) {
     turnIndex = (turnIndex + (direction * steps)) % playerOrder.length;
     if (turnIndex < 0) turnIndex += playerOrder.length;
-    playerOrder.forEach(id => { if(players[id]) players[id].hasDrawn = false; });
+    
+    playerOrder.forEach(id => { 
+        if(players[id]) {
+            players[id].hasDrawn = false; 
+        }
+    });
 }
 
 function refillDeck() {
