@@ -56,7 +56,6 @@
         
         #chat-toggle { position: absolute; bottom: 20px; left: 20px; width: 60px; height: 60px; background: var(--gold); border-radius: 50%; border: none; font-size: 30px; cursor: pointer; z-index: 7000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         
-        /* ΝΕΟ ΚΟΥΜΠΙ RECONNECT (ΑΡΧΙΚΑ ΚΡΥΜΜΕΝΟ) */
         #reconnect-btn { position: absolute; bottom: 20px; left: 90px; height: 60px; padding: 0 20px; background: #b30000; border-radius: 30px; border: 2px solid var(--gold); font-size: 20px; font-weight: bold; cursor: pointer; z-index: 7000; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; }
         
         #chat-box { position: absolute; bottom: 90px; left: 20px; width: 300px; height: 350px; background: var(--panel-bg); border: 2px solid var(--gold); border-radius: 10px; display: none; flex-direction: column; z-index: 7000; }
@@ -312,12 +311,10 @@
         setInterval(() => { fetch('/ping').catch(() => {}); }, 60000);
 
         socket.on('disconnect', () => {
-            // Εμφανίζουμε το κουμπί reconnect αν πέσει η σύνδεση
             document.getElementById('reconnect-btn').style.display = 'flex';
         });
 
         socket.on('connect', () => {
-            // Κρύβουμε το κουμπί αν συνδεθεί ξανά επιτυχώς
             document.getElementById('reconnect-btn').style.display = 'none';
             myId = socket.id;
             const savedName = sessionStorage.getItem('mv_username');
@@ -325,7 +322,6 @@
             
             if (savedName) document.getElementById('username').value = savedName; 
             
-            // Αυτόματη επανασύνδεση στο παρασκήνιο αν το παιχνίδι έχει ξεκινήσει 
             if (savedName && savedSession && document.getElementById('start-screen').style.display === 'none') {
                 socket.emit('joinGame', { username: savedName, sessionId: savedSession });
             }
@@ -609,13 +605,18 @@
 
             const cardElement = document.querySelector(`.card-${index}`);
             
-            if (value === 'A' && !window.currentActiveSuit) {
-                if (window.currentTopCard && window.currentTopCard.suit === suit) {
+            if (value === 'A') {
+                // "Σαν φύλλο" check: Το πάνω φύλλο πρέπει να είναι ΑΣΣΟΣ και να ταιριάζει το χρώμα
+                let isTopAce = window.currentTopCard && window.currentTopCard.value === 'A';
+                let effectiveSuit = window.currentActiveSuit || (window.currentTopCard ? window.currentTopCard.suit : null);
+                
+                if (isTopAce && suit === effectiveSuit) {
                     if (cardElement) animateThrow(cardElement);
                     socket.emit('playCard', { index: index, declaredSuit: null });
                     return;
                 }
 
+                // Ειδάλλως, αν έριξες Άσσο σε οτιδήποτε άλλο (ή σε λάθος χρώμα), βγάλε το Modal
                 if (cardElement) animateThrow(cardElement);
                 selectedAceIndex = index;
                 document.getElementById('ace-modal').style.display = 'flex';
