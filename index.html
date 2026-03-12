@@ -47,6 +47,13 @@
             text-shadow: 2px 2px 10px black; pointer-events: none; text-align: center; width: 500px;
             white-space: nowrap; justify-content: center; align-items: center;
         }
+
+        /* --- ΝΕΑ ΟΘΟΝΗ ΝΙΚΗΣ ΠΟΥ ΜΕΝΕΙ ΜΟΝΙΜΑ --- */
+        #victory-screen {
+            display: none; position: fixed; inset: 0; z-index: 10000;
+            background: rgba(0,0,0,0.92); flex-direction: column;
+            align-items: center; justify-content: center; text-align: center; padding: 20px;
+        }
         
         #chat-toggle { position: absolute; bottom: 20px; left: 20px; width: 60px; height: 60px; background: var(--gold); border-radius: 50%; border: none; font-size: 30px; cursor: pointer; z-index: 7000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         #chat-box { position: absolute; bottom: 90px; left: 20px; width: 300px; height: 350px; background: var(--panel-bg); border: 2px solid var(--gold); border-radius: 10px; display: none; flex-direction: column; z-index: 7000; }
@@ -79,15 +86,18 @@
             border: 2px solid #666; border-radius: 10px; 
             color: white; padding: 15px 35px; font-size: 20px; 
             font-weight: bold; cursor: pointer; box-shadow: 0 5px 0 #111; 
+            transition: transform 0.1s;
         }
         .game-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #111; }
         
+        /* Διορθώθηκε η θέση για να μην καλύπτεται στο κινητό */
         #direction-indicator {
             position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
-            padding: 8px 20px; background: rgba(0,0,0,0.85);
+            padding: 10px 20px; background: rgba(0,0,0,0.8);
             border: 2px solid var(--gold); border-radius: 15px;
-            font-weight: bold; font-size: 18px; color: var(--gold);
-            z-index: 2000; letter-spacing: 2px; min-width: 200px; text-align: center;
+            font-weight: bold; font-size: 20px; color: var(--gold);
+            z-index: 1000; letter-spacing: 2px;
+            white-space: nowrap;
         }
 
         #active-suit-display {
@@ -107,6 +117,7 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.5); margin-bottom: 10px;
         }
         .player-name { font-weight: bold; color: var(--gold); font-size: 16px; }
+        .hats-container { font-size: 20px; margin-top: 3px; }
 
         .opp-hand { display: flex; justify-content: center; }
         .mini-card { width: 30px; height: 45px; background: linear-gradient(135deg, #a00, #500); border: 1.5px solid white; border-radius: 4px; margin-left: -20px; box-shadow: 2px 2px 5px black; }
@@ -121,14 +132,14 @@
             width: 110px; height: 160px; background: white; color: black;
             border-radius: 10px; border: 1px solid #ccc; position: absolute; top: 0; left: 0;
             box-shadow: 3px 3px 8px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; padding: 8px; box-sizing: border-box;
-            transition: transform 0.2s; will-change: transform; pointer-events: none;
+            transition: transform 0.2s; will-change: transform;
         }
         .pile-card.red { color: #d00; }
         
         .card { 
             width: 110px; height: 160px; background: white; color: black; 
             border-radius: 10px; border: 1px solid #ccc; position: relative;
-            box-shadow: 5px 5px 15px rgba(0,0,0,0.4); cursor: pointer; flex-shrink: 0; 
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.4); cursor: pointer; transition: transform 0.1s; flex-shrink: 0; 
             will-change: transform; backface-visibility: hidden;
         }
         .card.red { color: #d00; }
@@ -142,7 +153,8 @@
             box-shadow: 10px 10px 30px rgba(0,0,0,0.5); transform-origin: top left;
         }
 
-        #turn-indicator { position: absolute; top: 70px; right: 20px; padding: 10px 20px; background: #1a472a; border: 3px solid #4f4; border-radius: 15px; font-weight: bold; z-index: 1000; font-size: 16px; color: white; box-shadow: 0 4px 10px black;}
+        /* Μετακινήθηκε καθαρά δεξιά για να μην επικαλύπτει */
+        #turn-indicator { position: absolute; top: 15px; right: 20px; padding: 10px 25px; background: #1a472a; border: 3px solid #4f4; border-radius: 15px; font-weight: bold; z-index: 1000; font-size: 18px; color: white;}
         
         #scoreboard { 
             position: absolute; top: 20px; left: 20px; 
@@ -150,46 +162,56 @@
             border-radius: 10px; padding: 10px; z-index: 1000; font-size: 14px; 
             max-height: 300px; overflow-y: auto; display: none; color: white; cursor: pointer; 
         }
-
-        #my-hand-container { width: 95%; display: flex; justify-content: center; align-items: center; height: 180px; margin: 0 auto; }
-        .hand-normal { flex-wrap: nowrap; }
-        .hand-normal .hand-card:hover { transform: translateY(-30px) scale(1.05); z-index: 100; }
+        #scoreboard:hover { background: rgba(0,0,0,0.95); }
         
-        .hand-compact { flex-wrap: wrap; align-content: flex-start; height: 240px !important; overflow-y: auto; overflow-x: hidden; padding-top: 10px; }
-        .hand-compact .hand-card { width: 77px !important; height: 112px !important; margin-bottom: -35px; }
-        .hand-compact .hand-card:hover { transform: translateY(-20px) scale(1.15); z-index: 200; }
+        #my-hand-container { width: 90%; display: flex; justify-content: center; align-items: center; height: 180px; margin: 0 auto; }
+        .hand-normal { flex-wrap: nowrap; }
+        .hand-compact { flex-wrap: wrap; align-content: center; height: 220px !important; }
+        
+        .hand-card { margin-left: -55px; box-shadow: -2px 0 5px rgba(0,0,0,0.3); }
+        .hand-card:first-child { margin-left: 0; }
+        
+        .hand-compact .hand-card { width: 77px; height: 112px; margin-left: -25px; margin-bottom: -40px; }
         .hand-compact .card-center { font-size: 40px; }
         .hand-compact .card-corner { font-size: 16px; }
-        
-        .hand-card { box-shadow: -2px 0 5px rgba(0,0,0,0.4); transition: transform 0.1s; }
 
-        #ace-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9000; flex-direction: column; align-items: center; justify-content: center; }
+        /* Λύση για Ghost Clicks: Το hover effect ισχύει ΜΟΝΟ σε συσκευές με ποντίκι */
+        @media (hover: hover) {
+            .hand-card:hover { transform: translateY(-50px) scale(1.1); z-index: 100; }
+            .hand-compact .hand-card:hover { transform: translateY(-20px) scale(1.2); z-index: 200; }
+        }
+
+        #ace-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9000; flex-direction: column; align-items: center; justify-content: center; }
+        #ace-backdrop { position: absolute; inset: 0; }
+        #ace-content { position: relative; z-index: 1; text-align: center; }
+
         .suit-btn { width: 90px; height: 90px; font-size: 55px; background: white; border-radius: 15px; margin: 15px; cursor: pointer; border: 4px solid var(--gold); }
         
-        #error-overlay { display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(150, 0, 0, 0.9); flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+        #error-overlay {
+            display: none; position: fixed; inset: 0; z-index: 99999;
+            background: rgba(150, 0, 0, 0.9); flex-direction: column; 
+            align-items: center; justify-content: center; padding: 20px; text-align: center;
+        }
+        
         .shake { animation: shake 0.2s; border-color: red !important; }
         @keyframes shake { 0%, 100% {transform:translateX(0);} 25% {transform:translateX(-5px);} 75% {transform:translateX(5px);} }
-
-        .wc-text { color: #4f4; font-weight: bold; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #444; padding: 5px 10px; text-align: center; }
     </style>
 </head>
 <body>
 
     <div id="error-overlay">
-        <h2>ΠΡΟΕΚΥΨΕ ΣΦΑΛΜΑ!</h2>
-        <p id="error-text" style="font-family: monospace;"></p>
-        <button onclick="window.location.reload()" class="game-btn">ΕΠΑΝΑΦΟΡΤΩΣΗ</button>
+        <h2>ΠΡΟΕΚΥΨΕ ΣΦΑΛΜΑ ΚΩΔΙΚΑ!</h2>
+        <p id="error-text" style="font-family: monospace; background: black; padding: 10px;"></p>
+        <button onclick="window.location.reload()" style="padding:10px 20px; font-size:20px; cursor:pointer;">ΕΠΑΝΑΦΟΡΤΩΣΗ ΣΕΛΙΔΑΣ</button>
     </div>
 
     <div id="rotate-msg">
         <div style="font-size: 50px;">🔄</div>
-        <h2>Γυρίστε τη συσκευή οριζόντια</h2>
+        <h2>Παρακαλώ γυρίστε τη συσκευή οριζόντια</h2>
     </div>
 
     <div id="start-screen">
-        <h1 style="color:var(--gold); font-size:80px; margin-bottom:10px; text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);">Μαύρος Βαλές ♠️</h1>
+        <h1 style="color:var(--gold); font-size:80px; margin-bottom:10px; text-shadow: 0 0 20px rgba(212, 175, 55, 0.5); text-align:center;">Μαύρος Βαλές ♠️</h1>
         <div id="login-area" style="display:flex; flex-direction:column; align-items:center;">
             <input type="text" id="username" class="name-input" placeholder="Το όνομά σου..." maxlength="12">
             <button class="game-btn" onclick="joinGame()">ΕΙΣΟΔΟΣ</button>
@@ -200,20 +222,35 @@
         </div>
     </div>
 
+    <div id="victory-screen">
+        <div style="font-size: 80px; margin-bottom: 20px;">🏆</div>
+        <h1 id="victory-msg" style="color: white; font-size: 50px; text-shadow: 0 0 20px #4f4; line-height: 1.2; max-width: 80%; margin-bottom: 40px;"></h1>
+        <button id="victory-btn" class="game-btn" style="font-size: 26px; padding: 20px 40px; border: 3px solid #4f4; color: #4f4; box-shadow: 0 0 15px rgba(79, 255, 68, 0.5);" onclick="location.reload()"></button>
+    </div>
+
     <div id="game-wrapper">
         <div id="ace-modal">
-            <h2 style="color:var(--gold); font-size: 40px; margin-bottom:20px;">Διάλεξε Χρώμα</h2>
-            <div>
-                <button class="suit-btn" style="color:red;" onclick="confirmAce('♥')">♥</button>
-                <button class="suit-btn" style="color:red;" onclick="confirmAce('♦')">♦</button>
-                <button class="suit-btn" style="color:black;" onclick="confirmAce('♣')">♣</button>
-                <button class="suit-btn" style="color:black;" onclick="confirmAce('♠')">♠</button>
+            <div id="ace-backdrop" onclick="cancelAce()"></div>
+            <div id="ace-content">
+                <h2 style="color:var(--gold); font-size: 40px; margin-bottom:20px;">Διάλεξε Χρώμα</h2>
+                <div>
+                    <button class="suit-btn" style="color:red;" onclick="confirmAce('♥')">♥</button>
+                    <button class="suit-btn" style="color:red;" onclick="confirmAce('♦')">♦</button>
+                    <button class="suit-btn" style="color:black;" onclick="confirmAce('♣')">♣</button>
+                    <button class="suit-btn" style="color:black;" onclick="confirmAce('♠')">♠</button>
+                </div>
             </div>
         </div>
 
         <div id="scoreboard" onclick="toggleScoreboard()"><table id="score-table"></table></div>
+
         <button id="chat-toggle" onclick="toggleChat()">💬</button>
-        <div id="chat-box"><div id="chat-messages"></div><div id="chat-input-area"><input type="text" id="chat-input" placeholder="Πες κάτι..." onkeypress="if(event.key==='Enter') sendChat()"></div></div>
+        <div id="chat-box">
+            <div id="chat-messages"></div>
+            <div id="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Πες κάτι..." onkeypress="if(event.key==='Enter') sendChat()">
+            </div>
+        </div>
 
         <div id="direction-indicator"></div>
         <div id="turn-indicator">ΣΥΝΔΕΣΗ...</div>
@@ -221,14 +258,18 @@
 
         <div id="slot-top" class="player-slot"></div>
         <div id="slot-left" class="player-slot"></div>
+
         <div id="game-center">
             <div id="draw-pile" onclick="socket.emit('drawCard')">
                 <div style="font-size:14px; color:#ccc;">ΤΡΑΒΑ</div>
                 <div id="deck-count">52</div>
             </div>
-            <div id="pile-container"><div id="msg-overlay"></div></div>
+            <div id="pile-container">
+                <div id="msg-overlay"></div>
+            </div>
             <button class="game-btn" onclick="socket.emit('passTurn')">ΠΑΣΟ</button>
         </div>
+
         <div id="slot-right" class="player-slot"></div>
         <div id="slot-bottom" class="player-slot">
             <div id="my-info-container" style="margin-bottom: 5px;"></div>
@@ -238,202 +279,407 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            document.getElementById('error-overlay').style.display = 'flex';
+            document.getElementById('error-text').innerText = message + " \nΓραμμή: " + lineno;
+        };
+
         const socket = io();
         let myId, lastTopCardId = null, selectedAceIndex = null;
         let fullScoreHistory = [], isScoreboardExpanded = false;
-        let lastClickTime = 0, isAnimating = false;
-        window.currentActiveSuit = null;
-
         let gameScale = 1;
+        let lastClickTime = 0; 
+        window.currentActiveSuit = null; 
+        window.currentTopCard = null;
+
+        let lastWidth = window.innerWidth;
+        let lastHeight = window.innerHeight;
         function resizeGame() {
+            if (Math.abs(window.innerHeight - lastHeight) < 100 && window.innerWidth === lastWidth && gameScale !== 1) return;
             const wrapper = document.getElementById('game-wrapper');
             gameScale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
             wrapper.style.transform = `scale(${gameScale})`;
+            lastWidth = window.innerWidth;
+            lastHeight = window.innerHeight;
         }
         window.addEventListener('resize', resizeGame);
         window.addEventListener('load', resizeGame);
 
-        socket.on('connect', () => { myId = socket.id; });
+        setInterval(() => { fetch('/ping').catch(() => {}); }, 60000);
+
+        socket.on('connect', () => {
+            myId = socket.id;
+            const savedName = sessionStorage.getItem('mv_username');
+            if (savedName) document.getElementById('username').value = savedName; 
+        });
+
+        socket.on('chatUpdate', (data) => {
+            const m = document.getElementById('chat-messages');
+            m.innerHTML += `<div><b style="color:var(--gold)">${data.name}:</b> ${data.text}</div>`;
+            m.scrollTop = m.scrollHeight;
+        });
+
+        function sendChat() {
+            const i = document.getElementById('chat-input');
+            if(i.value) { socket.emit('chatMessage', i.value); i.value=''; }
+        }
+
+        function toggleChat() {
+            const b = document.getElementById('chat-box');
+            b.style.display = b.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        socket.on('joinedLobby', () => {
+            document.getElementById('start-screen').style.display = 'flex';
+            document.getElementById('login-area').style.display = 'flex'; 
+            document.getElementById('waiting-area').style.display = 'none';
+            document.getElementById('scoreboard').style.display = 'none';
+        });
+
+        socket.on('rejoinSuccess', (data) => {
+            document.getElementById('login-area').style.display = 'none';
+            document.getElementById('start-screen').style.display = 'none';
+            if (data.gameStarted) {
+                document.getElementById('scoreboard').style.display = 'block';
+                // Ανάκτηση scoreboard στο refresh
+                if (data.history && data.history.length > 0) {
+                    fullScoreHistory = data.history;
+                    renderScoreboard();
+                }
+            } else {
+                 document.getElementById('start-screen').style.display = 'flex';
+                 document.getElementById('waiting-area').style.display = 'block';
+            }
+        });
 
         function joinGame() {
             const name = document.getElementById('username').value;
-            if (name.trim() === "") return;
-            let sessionId = sessionStorage.getItem('mv_session') || 'sess_' + Math.random().toString(36).substr(2, 9);
-            sessionStorage.setItem('mv_session', sessionId);
+            if (name.trim() === "") return alert("Παρακαλώ βάλε ένα όνομα!");
+            
+            let sessionId = sessionStorage.getItem('mv_session');
+            if (!sessionId) {
+                sessionId = 'sess_' + Math.random().toString(36).substr(2, 9);
+                sessionStorage.setItem('mv_session', sessionId);
+            }
+            sessionStorage.setItem('mv_username', name);
+
             socket.emit('joinGame', { username: name, sessionId: sessionId });
+            
             document.getElementById('login-area').style.display = 'none';
             document.getElementById('waiting-area').style.display = 'block';
         }
+
+        socket.on('playerCountUpdate', (count) => {
+            document.getElementById('waiting-msg').innerText = `Συνδεδεμένοι παίκτες: ${count}`;
+            const btn = document.getElementById('start-btn');
+            if(count >= 2) btn.style.display = "inline-block"; else btn.style.display = "none";
+        });
 
         socket.on('gameReady', () => {
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('scoreboard').style.display = 'block';
         });
 
-        socket.on('rejoinSuccess', (data) => {
-            document.getElementById('start-screen').style.display = 'none';
-            if (data.gameStarted) document.getElementById('scoreboard').style.display = 'block';
-            if (data.history) { fullScoreHistory = data.history; renderScoreboard(); }
+        socket.on('updateUI', (data) => {
+            try {
+                window.currentScoreData = data; 
+                document.getElementById('deck-count').innerText = data.deckCount;
+                window.currentTopCard = data.topCard; 
+                window.currentActiveSuit = data.activeSuit; 
+
+                if (data.topCard) {
+                    const cardId = data.topCard.value + data.topCard.suit;
+                    if (cardId !== lastTopCardId) {
+                        addCardToPile(data.topCard);
+                        lastTopCardId = cardId;
+                    }
+                }
+
+                const suitDisplay = document.getElementById('active-suit-display');
+                if (data.activeSuit) {
+                    suitDisplay.innerText = data.activeSuit;
+                    suitDisplay.style.color = (data.activeSuit === '♥' || data.activeSuit === '♦') ? '#ff4444' : '#222';
+                    suitDisplay.style.display = 'block';
+                    suitDisplay.style.textShadow = "0 0 10px white, 0 0 20px white";
+                } else { suitDisplay.style.display = 'none'; }
+
+                const ind = document.getElementById('turn-indicator');
+                if (data.isMyTurn) {
+                    ind.innerText = data.penalty > 0 ? `⚠️ ΦΑΕ ${data.penalty}!` : "ΔΙΚΗ ΣΟΥ ΣΕΙΡΑ";
+                    ind.style.borderColor = "#4f4"; ind.style.color = "#4f4";
+                } else {
+                    ind.innerText = `ΠΑΙΖΕΙ: ${data.currentPlayerName}`;
+                    ind.style.borderColor = "#ff4444"; ind.style.color = "#ffdddd";
+                }
+
+                if (data.myHand && Array.isArray(data.myHand)) {
+                    renderHand(data.myHand);
+                }
+                
+                distributePlayers(data.players);
+                updateDirectionIndicator(data.players, data.direction);
+            } catch(e) {
+                document.getElementById('error-overlay').style.display = 'flex';
+                document.getElementById('error-text').innerText = e.message;
+            }
         });
 
-        socket.on('updateUI', (data) => {
-            window.currentScoreData = data;
-            document.getElementById('deck-count').innerText = data.deckCount;
-            window.currentActiveSuit = data.activeSuit;
+        socket.on('revealHands', (playersData) => {
+            const others = playersData.filter(p => p.id !== myId);
+            const slots = ['slot-left', 'slot-top', 'slot-right'];
+            
+            others.forEach((p, i) => {
+                if(slots[i] && p.hand) {
+                    let cardsHtml = '';
+                    p.hand.forEach((c, idx) => {
+                        if(!c) return;
+                        const color = (c.color === 'red') ? '#d00' : 'black';
+                        cardsHtml += `<div style="background:white; color:${color}; width:35px; height:50px; border-radius:4px; border:1px solid #ccc; margin-left:${idx===0?0:'-15'}px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:bold; font-size:16px; box-shadow:2px 2px 5px black; z-index:${idx};">${c.value}<div style="font-size:18px; line-height:1;">${c.suit}</div></div>`;
+                    });
+                    
+                    document.getElementById(slots[i]).innerHTML = `
+                        <div class="player-info" style="opacity: 1">
+                            <div class="player-name">${p.name}</div>
+                            <div style="font-size:12px; color:#4f4; margin-top:3px;">Σκορ: ${p.totalScore}</div>
+                        </div>
+                        <div class="opp-hand" style="display:flex; justify-content:center; align-items:center;">${cardsHtml}</div>`;
+                }
+            });
+        });
 
-            if (data.topCard) {
-                const cardId = data.topCard.value + data.topCard.suit;
-                if (cardId !== lastTopCardId) { addCardToPile(data.topCard); lastTopCardId = cardId; }
+        // Η ΝΕΑ ΛΟΓΙΚΗ ΓΙΑ ΤΗ ΜΟΝΙΜΗ ΟΘΟΝΗ ΝΙΚΗΣ ΜΕ ΤΙΣ ΖΗΤΟΥΜΕΝΕΣ ΑΤΑΚΕΣ
+        socket.on('gameOver', (finalMsg) => {
+            document.getElementById('game-wrapper').style.filter = "blur(10px)";
+            
+            const btnPhrases = [
+                "Άντε πάμε άλλο ένα 🃏",
+                "Ένα τελευταίο 😂",
+                "Θα πάρω το αίμα μου πίσω, πάμε 💪🏻"
+            ];
+            const randomBtnText = btnPhrases[Math.floor(Math.random() * btnPhrases.length)];
+            
+            document.getElementById('victory-msg').innerText = finalMsg;
+            document.getElementById('victory-btn').innerText = randomBtnText;
+            
+            // Την εμφανίζουμε για πάντα μέχρι να πατηθεί το κουμπί
+            document.getElementById('victory-screen').style.display = 'flex';
+        });
+
+        function updateDirectionIndicator(playersArray, dir) {
+            if(!playersArray || playersArray.length === 0) return;
+            let names = playersArray.map(p => (p.name || "").replace('❤️','').trim());
+            let initials = names.map(n => n.charAt(0) ? n.charAt(0).toUpperCase() : "?");
+            
+            for(let i=0; i<initials.length; i++) {
+                for(let j=i+1; j<initials.length; j++) {
+                    if(initials[i] === initials[j] && initials[i] !== "?") {
+                        initials[i] = names[i].substring(0,2).toUpperCase();
+                        initials[j] = names[j].substring(0,2).toUpperCase();
+                    }
+                }
+            }
+            
+            const indicator = document.getElementById('direction-indicator');
+            if (dir === 1) {
+                indicator.innerText = initials.join(' ➔ ');
+            } else {
+                indicator.innerText = initials.join(' ⬅ ');
+            }
+        }
+
+        function distributePlayers(players) {
+            if (!players || !Array.isArray(players)) return;
+            
+            const myIndex = players.findIndex(p => p.id === myId);
+            if(myIndex === -1) return;
+            
+            const me = players[myIndex];
+            const myInfo = document.getElementById('my-info-container');
+            if(me.hats > 0) {
+                myInfo.innerHTML = `<div class="hats-container" style="color:white; font-size:24px;">${"🎩".repeat(me.hats)}</div>`;
+            } else {
+                myInfo.innerHTML = '';
             }
 
-            const suitDisplay = document.getElementById('active-suit-display');
-            if (data.activeSuit) {
-                suitDisplay.innerText = data.activeSuit;
-                suitDisplay.style.color = (data.activeSuit === '♥' || data.activeSuit === '♦') ? '#ff4444' : '#111';
-                suitDisplay.style.display = 'block';
-            } else { suitDisplay.style.display = 'none'; }
+            const ordered = players.slice(myIndex).concat(players.slice(0, myIndex));
+            const others = ordered.slice(1); 
+            
+            document.getElementById('slot-top').innerHTML = '';
+            document.getElementById('slot-left').innerHTML = '';
+            document.getElementById('slot-right').innerHTML = '';
 
-            const ind = document.getElementById('turn-indicator');
-            ind.innerText = data.isMyTurn ? (data.penalty > 0 ? `⚠️ ΦΑΕ ${data.penalty}!` : "ΔΙΚΗ ΣΟΥ ΣΕΙΡΑ") : `ΠΑΙΖΕΙ: ${data.currentPlayerName}`;
-            ind.style.borderColor = data.isMyTurn ? "#4f4" : "#ff4444";
+            if (others.length === 1) {
+                renderOpponent(others[0], 'slot-top');
+            } else if (others.length === 2) {
+                renderOpponent(others[0], 'slot-left');
+                renderOpponent(others[1], 'slot-right');
+            } else if (others.length === 3) {
+                renderOpponent(others[0], 'slot-left');
+                renderOpponent(others[1], 'slot-top');
+                renderOpponent(others[2], 'slot-right');
+            }
+        }
 
-            renderHand(data.myHand || []);
-            distributePlayers(data.players);
-            updateDirectionIndicator(data.players, data.direction);
-        });
+        function renderOpponent(p, slotId) {
+            if (!p) return;
+            const opacity = p.connected ? 1 : 0.4;
+            const name = p.connected ? p.name : (p.name || "Unknown") + " (Αποσ.)";
+            let cards = '';
+            let handCount = p.handCount || 0;
+            for(let k=0; k<handCount; k++) cards += '<div class="mini-card"></div>';
+            let hatsHTML = p.hats > 0 ? `<div class="hats-container">${"🎩".repeat(p.hats)}</div>` : "";
+            
+            document.getElementById(slotId).innerHTML = `
+                <div class="player-info" style="opacity: ${opacity}">
+                    <div class="player-name">${name}</div>
+                    <div style="font-size:12px; color:#aaa; margin-top:3px;">Φύλλα: ${handCount}</div>
+                    ${hatsHTML}
+                </div>
+                <div class="opp-hand" style="opacity: ${opacity}">${cards}</div>`;
+        }
+
+        function renderHand(hand) {
+            const container = document.getElementById('my-hand-container');
+            if (hand.length > 15) { container.className = 'hand-compact'; } 
+            else { container.className = 'hand-normal'; }
+
+            let overlap = -55;
+            if (hand.length > 15) overlap = -25;
+            else if (hand.length > 8) overlap = -60;
+
+            container.innerHTML = hand.map((c, i) => {
+                if(!c) return ''; 
+                const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : '';
+                return `<div class="card hand-card ${color} card-${i}" style="margin-left: ${i === 0 ? 0 : overlap}px" onclick="playLogic(${i}, '${c.value}', '${c.suit}')"><div class="card-corner">${c.value}<div>${c.suit}</div></div><div class="card-center">${c.suit}</div><div class="card-corner bottom">${c.value}<div>${c.suit}</div></div></div>`;
+            }).join('');
+        }
+
+        function animateThrow(elem) {
+            if (!elem) return;
+            const rect = elem.getBoundingClientRect();
+            const clone = elem.cloneNode(true);
+            clone.classList.add('flying-card');
+            clone.style.left = rect.left + 'px';
+            clone.style.top = rect.top + 'px';
+            clone.style.margin = '0';
+            clone.style.transform = `scale(${gameScale})`; 
+            document.body.appendChild(clone);
+
+            const pile = document.getElementById('pile-container');
+            const pileRect = pile.getBoundingClientRect();
+
+            setTimeout(() => {
+                clone.style.left = pileRect.left + 'px';
+                clone.style.top = pileRect.top + 'px';
+                clone.style.transform = `scale(${gameScale}) rotate(${Math.random() * 20 - 10}deg)`;
+                clone.style.opacity = '0.8';
+            }, 10);
+
+            setTimeout(() => { clone.remove(); }, 400);
+        }
 
         function playLogic(index, value, suit) {
-            if (Date.now() - lastClickTime < 450 || isAnimating) return;
-            lastClickTime = Date.now();
+            let now = Date.now();
+            if (now - lastClickTime < 400) return; 
+            lastClickTime = now;
 
-            if (value === 'A' && window.currentActiveSuit && suit === window.currentActiveSuit) {
-                animateThrow(document.querySelector(`.card-${index}`));
-                socket.emit('chatMessage', 'Σαν φύλλο! 🃏');
-                socket.emit('playCard', { index: index, declaredSuit: suit });
-                return;
-            }
-
+            const cardElement = document.querySelector(`.card-${index}`);
+            
             if (value === 'A' && !window.currentActiveSuit) {
+                // Έλεγχος αν παίζεται "Σαν φύλλο" πάνω στο ίδιο σχήμα
+                if (window.currentTopCard && window.currentTopCard.suit === suit) {
+                    if (cardElement) animateThrow(cardElement);
+                    socket.emit('playCard', { index: index, declaredSuit: null });
+                    return;
+                }
+
+                if (cardElement) animateThrow(cardElement);
                 selectedAceIndex = index;
                 document.getElementById('ace-modal').style.display = 'flex';
                 return;
             }
             
-            animateThrow(document.querySelector(`.card-${index}`));
+            if (cardElement) animateThrow(cardElement);
             socket.emit('playCard', { index: index, declaredSuit: null });
         }
 
         function confirmAce(suit) {
+            const cardElement = document.querySelector(`.card-${selectedAceIndex}`);
+            if (cardElement) animateThrow(cardElement);
             document.getElementById('ace-modal').style.display = 'none';
-            animateThrow(document.querySelector(`.card-${selectedAceIndex}`));
             socket.emit('playCard', { index: selectedAceIndex, declaredSuit: suit });
         }
-
-        function animateThrow(elem) {
-            if (!elem) return;
-            isAnimating = true;
-            const rect = elem.getBoundingClientRect();
-            const clone = elem.cloneNode(true);
-            clone.classList.add('flying-card');
-            clone.style.left = rect.left + 'px'; clone.style.top = rect.top + 'px';
-            clone.style.transform = `scale(${gameScale})`;
-            document.body.appendChild(clone);
-
-            const pileRect = document.getElementById('pile-container').getBoundingClientRect();
-            setTimeout(() => {
-                clone.style.left = pileRect.left + 'px'; clone.style.top = pileRect.top + 'px';
-                clone.style.transform = `scale(${gameScale * 0.8}) rotate(${Math.random() * 20 - 10}deg)`;
-                clone.style.opacity = '0';
-            }, 10);
-            setTimeout(() => { clone.remove(); isAnimating = false; }, 400);
+        
+        function cancelAce() {
+            document.getElementById('ace-modal').style.display = 'none';
+            selectedAceIndex = null;
         }
 
-        socket.on('revealHands', (playersData) => {
-            const others = playersData.filter(p => p.id !== myId);
-            const slots = ['slot-left', 'slot-top', 'slot-right'];
-            others.forEach((p, i) => {
-                if(!slots[i]) return;
-                let cardsHtml = (p.hand || []).map((c, idx) => `
-                    <div style="background:white; color:${c.color==='red'?'#d00':'black'}; width:35px; height:50px; border-radius:4px; border:1px solid #ccc; margin-left:${idx===0?0:'-15'}px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:bold; font-size:16px; box-shadow:2px 2px 5px black;">
-                        ${c.value}<div style="font-size:14px;">${c.suit}</div>
-                    </div>`).join('');
-                document.getElementById(slots[i]).innerHTML = `<div class="player-info"><div class="player-name">${p.name}</div></div><div class="opp-hand">${cardsHtml}</div>`;
-            });
+        socket.on('updateScoreboard', (data) => {
+            fullScoreHistory = data.history;
+            renderScoreboard();
         });
-
-        socket.on('gameOver', (data) => {
-            const o = document.getElementById('msg-overlay');
-            let roast = data.isRoasting ? `<br><small style="font-size:20px; color:#ddd;">Μπα, με τόσα καπέλα και ο παππούς μου κέρδιζε 😂</small>` : "";
-            o.innerHTML = `
-                <div style="background:rgba(0,0,0,0.95); padding:30px; border-radius:20px; border:3px solid var(--gold); position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:600px; white-space:normal; pointer-events:auto; z-index:9999;">
-                    <div style="font-size:30px; margin-bottom:20px;">🏆 Νικητής: ${data.winnerName}! ${roast}</div>
-                    <button class="game-btn" onclick="location.reload()" style="margin:5px;">Άντε πάμε άλλο ένα</button>
-                    <button class="game-btn" onclick="location.reload()" style="margin:5px;">Ένα τελευταίο 😂</button>
-                    <button class="game-btn" onclick="location.reload()" style="margin:5px;">Θα πάρω το αίμα μου πίσω, πάμε 💪🏻</button>
-                </div>`;
-            o.style.display = 'flex';
-        });
-
-        function renderHand(hand) {
-            const container = document.getElementById('my-hand-container');
-            const isCompact = hand.length > 12;
-            container.className = isCompact ? 'hand-compact' : 'hand-normal';
-
-            let overlap = -55;
-            if (isCompact) overlap = -30; 
-            else if (hand.length > 8) overlap = -75; 
-
-            container.innerHTML = hand.map((c, i) => `
-                <div class="card hand-card ${c.suit==='♥'||c.suit==='♦'?'red':''} card-${i}" 
-                     style="margin-left: ${i === 0 ? 0 : overlap}px" 
-                     onclick="playLogic(${i}, '${c.value}', '${c.suit}')">
-                    <div class="card-corner">${c.value}<div>${c.suit}</div></div>
-                    <div class="card-center">${c.suit}</div>
-                    <div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>
-                </div>`).join('');
-        }
-
-        function updateDirectionIndicator(players, dir) {
-            const initials = players.map(p => p.name.charAt(0).toUpperCase());
-            document.getElementById('direction-indicator').innerText = initials.join(dir === 1 ? ' ➔ ' : ' ⬅ ');
-        }
-
-        function distributePlayers(players) {
-            const myIndex = players.findIndex(p => p.id === myId);
-            const ordered = players.slice(myIndex).concat(players.slice(0, myIndex)).slice(1);
-            ['slot-left', 'slot-top', 'slot-right'].forEach((id, i) => {
-                const p = ordered[i];
-                if (!p) { document.getElementById(id).innerHTML = ''; return; }
-                let hats = p.hats > 0 ? `<div style="font-size:20px;">${"🎩".repeat(p.hats)}</div>` : "";
-                let cards = Array(p.handCount).fill('<div class="mini-card"></div>').join('');
-                document.getElementById(id).innerHTML = `<div class="player-info" style="opacity:${p.connected?1:0.4}"><div class="player-name">${p.name}</div>${hats}</div><div class="opp-hand">${cards}</div>`;
-            });
-        }
 
         function renderScoreboard() {
             const t = document.getElementById('score-table');
-            if (!fullScoreHistory.length) return;
+            if (!fullScoreHistory || fullScoreHistory.length === 0) {
+                t.innerHTML = "";
+                return;
+            }
             const names = Object.keys(fullScoreHistory[0]);
-            let html = `<tr>${names.map(n => `<th>${n}</th>`).join('')}</tr>`;
-            fullScoreHistory.slice(-5).forEach(r => { html += `<tr>${names.map(n => `<td>${r[n]==='WC'?'<span class="wc-text">WC</span>':r[n]}</td>`).join('')}</tr>`; });
+            
+            const hatsMap = {};
+            if(window.currentScoreData && window.currentScoreData.players) {
+                window.currentScoreData.players.forEach(p => { hatsMap[p.name] = p.hats; });
+            }
+
+            let html = `<tr>${names.map(n => `<th>${n} ${"🎩".repeat(hatsMap[n] || 0)}</th>`).join('')}</tr>`;
+            let dataToShow = isScoreboardExpanded ? fullScoreHistory : fullScoreHistory.slice(-5);
+            dataToShow.forEach(r => { 
+                html += '<tr>' + names.map(n => `<td>${r[n] === "WC" ? '<span style="color:#d4af37; font-weight:bold;">WC</span>' : r[n]}</td>`).join('') + '</tr>'; 
+            });
             t.innerHTML = html;
         }
 
+        function toggleScoreboard() {
+            isScoreboardExpanded = !isScoreboardExpanded;
+            renderScoreboard();
+        }
+        
+        socket.on('notification', (msg) => {
+            const o = document.getElementById('msg-overlay');
+            o.innerText = msg; o.style.display = 'flex';
+            setTimeout(() => o.style.display = 'none', 3000); 
+        });
+
+        socket.on('invalidMove', () => {
+            const o = document.getElementById('msg-overlay');
+            o.innerText = "Ακυρη Κίνηση!"; 
+            o.style.display = 'flex';
+            o.style.color = "red";
+            setTimeout(() => { o.style.display = 'none'; o.style.color = "#d4af37"; }, 1000);
+            shakeCards();
+        });
+
         function addCardToPile(c) {
-            const div = document.createElement('div');
-            div.className = `pile-card ${c.suit==='♥'||c.suit==='♦'?'red':''}`;
-            div.style.transform = `rotate(${Math.random()*20-10}deg)`;
-            div.innerHTML = `<div class="card-corner">${c.value}<div>${c.suit}</div></div><div class="card-center">${c.suit}</div><div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>`;
             const container = document.getElementById('pile-container');
+            if(!container) return;
+            const div = document.createElement('div');
+            const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : '';
+            div.className = `pile-card ${color}`;
+            const rotation = (Math.random() * 20) - 10; 
+            div.style.transform = `rotate(${rotation}deg)`;
+            div.innerHTML = `<div class="card-corner">${c.value}<div>${c.suit}</div></div><div class="card-center">${c.suit}</div><div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>`;
             container.appendChild(div);
-            if(container.children.length > 7) container.removeChild(container.children[1]);
+            if (container.children.length > 6) {
+                container.removeChild(container.children[1]);
+            }
         }
 
-        function toggleScoreboard() { isScoreboardExpanded = !isScoreboardExpanded; document.getElementById('scoreboard').style.maxHeight = isScoreboardExpanded ? '600px' : '300px'; }
-        function toggleChat() { const c = document.getElementById('chat-box'); c.style.display = c.style.display === 'flex' ? 'none' : 'flex'; }
-        
-        socket.on('notification', (msg) => { const o = document.getElementById('msg-overlay'); o.innerHTML = msg; o.style.display = 'flex'; setTimeout(() => o.style.display = 'none', 3000); });
-        socket.on('playerCountUpdate', (c) => { document.getElementById('waiting-msg').innerText = `Παίκτες: ${c}`; document.getElementById('start-btn').style.display = c >= 2 ? 'inline-block' : 'none'; });
+        function shakeCards() { 
+            document.querySelectorAll('.hand-card').forEach(c => c.classList.add('shake')); 
+            setTimeout(() => document.querySelectorAll('.hand-card').forEach(c => c.classList.remove('shake')), 200); 
+        }
     </script>
 </body>
 </html>
