@@ -123,7 +123,6 @@ io.on('connection', (socket) => {
         }
 
         if (isValid) {
-            // Ο σωστός έλεγχος για το "Σαν φύλλο" ΜΟΝΟ αν το κάτω είναι Άσσος
             if (card.value === 'A' && topCard.value === 'A' && !data.declaredSuit) {
                 let effectiveTopSuit = activeSuit || topCard.suit;
                 if (card.suit === effectiveTopSuit) {
@@ -145,6 +144,11 @@ io.on('connection', (socket) => {
             p.hand.splice(data.index, 1);
             discardPile.push(card);
             
+            // ΠΡΟΣΘΗΚΗ: Μήνυμα όταν μένει 1 κάρτα!
+            if (p.hand.length === 1) {
+                io.emit('notification', `${p.name}: Μία μία μία μία! ⚠️`);
+            }
+
             if (p.hand.length === 0) {
                 let isPenaltyHandled = false;
                 let nextVictim = playerOrder[(turnIndex + direction + playerOrder.length) % playerOrder.length];
@@ -288,7 +292,6 @@ function startNewRound(reset = false) {
     } else {
         roundStarterIndex++; turnIndex = roundStarterIndex % playerOrder.length;
     }
-    // Εδώ εξασφαλίζουμε ότι Η ΦΟΡΑ ΞΕΚΙΝΑΕΙ ΠΑΝΤΑ ΔΕΞΙΟΣΤΡΟΦΑ (direction = 1)
     direction = 1; penaltyStack = 0; activeSuit = null; consecutiveTwos = 0;
     
     playerOrder.forEach(id => { players[id].hand = []; players[id].hasDrawn = false; players[id].hasAtePenalty = false; });
