@@ -1,7 +1,6 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const fs = require('fs');
 const path = require('path');
 
 const app = express();
@@ -9,15 +8,6 @@ const server = http.createServer(app);
 
 // === ΣΤΑΤΙΚΑ ΑΡΧΕΙΑ & PATHS ===
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-
-// ΔΙΟΡΘΩΣΗ: Έλεγχος αν υπάρχει ο φάκελος sounds για να μην "κρεμάει" ο server
-const soundsPath = path.join(__dirname, 'sounds');
-if (fs.existsSync(soundsPath)) {
-    app.use('/sounds', express.static(soundsPath));
-} else {
-    console.log("Προσοχή: Ο φάκελος /sounds δεν βρέθηκε. Το παιχνίδι θα συνεχίσει χωρίς ήχους.");
-}
-
 app.get('/ping', (req, res) => res.send('pong')); 
 
 // Global Error Handlers (Αποτροπή Crash)
@@ -113,7 +103,7 @@ class Game {
 
         this.turnTimer = setTimeout(() => {
             this.autoPlayTurn();
-        }, 60000); // 60 ΔΕΥΤΕΡΟΛΕΠΤΑ
+        }, 60000); 
     }
 
     autoPlayTurn() {
@@ -174,7 +164,19 @@ class Game {
 
             if (["δήμητρα", "δημητρα", "δημητρούλα", "δημητρουλα"].includes(cleanName.toLowerCase())) cleanName += " ❤️";
             
-            this.players[socket.id] = { id: socket.id, sessionId: sessionId, hand: [], name: cleanName, totalScore: 0, hats: 0, hasDrawn: false, hasAtePenalty: false, connected: true, lastChat: 0 };
+            this.players[socket.id] = { 
+                id: socket.id, 
+                sessionId: sessionId, 
+                hand: [], 
+                name: cleanName, 
+                totalScore: 0, 
+                hats: 0, 
+                hasDrawn: false, 
+                hasAtePenalty: false, 
+                connected: true, 
+                lastChat: 0 
+            };
+            
             if (!this.playerOrder.includes(socket.id)) this.playerOrder.push(socket.id);
             
             io.emit('playerCountUpdate', this.playerOrder.length);
@@ -201,8 +203,11 @@ class Game {
             if (this.penaltyType === 'J' && card.value === 'J') isValid = true;
         } else {
             if (card.value === 'A') {
-                if (this.activeSuit) { if (card.suit === this.activeSuit) isValid = true; } 
-                else { isValid = true; }
+                if (this.activeSuit) { 
+                    if (card.suit === this.activeSuit) isValid = true; 
+                } else { 
+                    isValid = true; 
+                }
             }
             else if (card.value === topCard.value || card.suit === effectiveSuit) isValid = true;
             else if (card.value === 'J' && card.color === 'red' && topCard.value === 'J') isValid = true;
@@ -219,6 +224,7 @@ class Game {
             let top1 = this.discardPile[this.discardPile.length - 1];
             let top2 = this.discardPile.length >= 2 ? this.discardPile[this.discardPile.length - 2] : null;
             let isSpecial = ['7', '8', 'J', 'A'].includes(card.value);
+            
             if (!isSpecial && top1) {
                 if (card.value === top1.value && card.suit === top1.suit) {
                     io.emit('notification', 'Copy paste! 👯');
@@ -298,7 +304,8 @@ class Game {
             for(let i=0; i<this.penaltyStack; i++) {
                 if (!this.safeDraw(p)) break;
             }
-            this.penaltyStack = 0; this.penaltyType = null;
+            this.penaltyStack = 0; 
+            this.penaltyType = null;
             p.hasAtePenalty = true;
             this.resetTurnTimer(); 
             this.broadcastUpdate(); 
@@ -382,7 +389,10 @@ class Game {
             this.roundHistory = []; 
             this.roundStarterIndex = 0; 
             this.turnIndex = 0;
-            this.playerOrder.forEach(id => { this.players[id].totalScore = 0; this.players[id].hats = 0; });
+            this.playerOrder.forEach(id => { 
+                this.players[id].totalScore = 0; 
+                this.players[id].hats = 0; 
+            });
         } else {
             this.roundStarterIndex++; 
             this.turnIndex = this.roundStarterIndex % this.playerOrder.length;
@@ -390,16 +400,21 @@ class Game {
         
         this.direction = 1; this.penaltyStack = 0; this.activeSuit = null; this.consecutiveTwos = 0;
         
-        this.playerOrder.forEach(id => { this.players[id].hand = []; this.players[id].hasDrawn = false; this.players[id].hasAtePenalty = false; });
+        this.playerOrder.forEach(id => { 
+            this.players[id].hand = []; 
+            this.players[id].hasDrawn = false; 
+            this.players[id].hasAtePenalty = false; 
+        });
         
         let dealCount = 0;
         if (this.dealInterval) {
             clearInterval(this.dealInterval);
-            this.dealInterval = null;
         }
 
         this.dealInterval = setInterval(() => {
-            this.playerOrder.forEach(id => { if(this.deck.length > 0) this.players[id].hand.push(this.deck.pop()); });
+            this.playerOrder.forEach(id => { 
+                if(this.deck.length > 0) this.players[id].hand.push(this.deck.pop()); 
+            });
             if (++dealCount === 11) {
                 clearInterval(this.dealInterval);
                 this.dealInterval = null;
@@ -421,6 +436,7 @@ class Game {
         if (this.turnTimer) { clearTimeout(this.turnTimer); this.turnTimer = null; }
 
         let historyEntry = {};
+        
         this.playerOrder.forEach(id => {
             if (id === winnerId) {
                 historyEntry[id] = "WC";
@@ -437,17 +453,28 @@ class Game {
         if (safePlayers.length === 1 && this.playerOrder.length > 1) {
             let winner = this.players[safePlayers[0]];
             this.roundHistory.push(historyEntry);
-            io.emit('updateScoreboard', { history: this.roundHistory, players: this.playerOrder.map(id => this.players[id]) });
+            io.emit('updateScoreboard', { 
+                history: this.roundHistory, 
+                players: this.playerOrder.map(id => this.players[id]) 
+            });
             this.gameStarted = false;
             io.emit('gameOver', `Ο/Η ${winner.name} κέρδισε το παιχνίδι!`);
             return;
         }
 
         let target = safePlayers.length > 0 ? Math.max(...safePlayers.map(id => this.players[id].totalScore)) : 0;
-        this.playerOrder.forEach(id => { if (this.players[id].totalScore >= 500) { this.players[id].hats++; this.players[id].totalScore = target; } });
+        this.playerOrder.forEach(id => { 
+            if (this.players[id].totalScore >= 500) { 
+                this.players[id].hats++; 
+                this.players[id].totalScore = target; 
+            } 
+        });
         this.roundHistory.push(historyEntry);
         
-        io.emit('updateScoreboard', { history: this.roundHistory, players: this.playerOrder.map(id => this.players[id]) });
+        io.emit('updateScoreboard', { 
+            history: this.roundHistory, 
+            players: this.playerOrder.map(id => this.players[id]) 
+        });
         setTimeout(() => this.startNewRound(false), 3000);
     }
 
@@ -462,6 +489,7 @@ class Game {
                 this.players[id].hasAtePenalty = false;
             }
         });
+
         this.resetTurnTimer(); 
     }
 
@@ -476,10 +504,18 @@ class Game {
 
     broadcastUpdate() {
         let cp = this.playerOrder.length ? this.players[this.playerOrder[this.turnIndex]] : null;
+        
         let publicPlayers = this.playerOrder.map(pid => {
             let p = this.players[pid];
             if (!p) return null;
-            return { id: pid, name: p.name, handCount: p.hand.length, hats: p.hats, totalScore: p.totalScore, connected: p.connected };
+            return { 
+                id: pid, 
+                name: p.name, 
+                handCount: p.hand.length, 
+                hats: p.hats, 
+                totalScore: p.totalScore, 
+                connected: p.connected 
+            };
         }).filter(Boolean);
 
         let publicState = {
@@ -516,13 +552,13 @@ class Game {
                     this.advanceTurn(1);
                     this.broadcastUpdate();
                 }
+                
                 if (this.playerOrder.every(id => !this.players[id] || !this.players[id].connected)) {
                     this.gameStarted = false;
                     if (this.turnTimer) {
                         clearTimeout(this.turnTimer);
                         this.turnTimer = null;
                     }
-                    this.startLobbyTimer(); 
                 }
             }
         }
@@ -532,8 +568,6 @@ class Game {
 const game = new Game();
 
 io.on('connection', (socket) => {
-    if (!game.gameStarted) game.startLobbyTimer();
-
     socket.on('joinGame', (data) => game.joinGame(socket, data));
     
     socket.on('chatMessage', (msg) => {
@@ -551,10 +585,6 @@ io.on('connection', (socket) => {
         if (game.gameStarted || game.starting) return;
         if (game.playerOrder.length >= 2) {
             game.starting = true;
-            if (game.lobbyTimer) {
-                clearTimeout(game.lobbyTimer);
-                game.lobbyTimer = null;
-            }
             game.startNewRound(true); 
         }
     });
