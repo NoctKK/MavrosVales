@@ -5,27 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Μαύρος Βαλές ♠️</title>
     <style>
+        /* === CSS CONSTANTS & RESET === */
         :root { 
             --gold: #d4af37; 
             --panel-bg: rgba(0, 0, 0, 0.85);
+            --felt-green: radial-gradient(circle at center, #0b6b38 0%, #05351c 80%);
         }
         
         body { 
-            background: radial-gradient(circle at center, #0b6b38 0%, #05351c 80%);
+            background: var(--felt-green);
             box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
             border: 15px solid #2b1d12;
             box-sizing: border-box;
             color: white; 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            margin: 0; overflow: hidden; height: 100vh; width: 100vw;
-            user-select: none; -webkit-user-select: none;
-            display: flex; align-items: center; justify-content: center;
+            margin: 0; 
+            overflow: hidden; 
+            height: 100vh; 
+            width: 100vw;
+            user-select: none; 
+            -webkit-user-select: none;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* === 3D VIEWPORT === */
         #game-wrapper {
-            width: 1280px; height: 720px;
+            width: 1280px; 
+            height: 720px;
             position: relative;
             background: transparent;
             display: grid;
@@ -42,116 +52,256 @@
         }
 
         #game-wrapper::before {
-            content: ""; position: absolute; inset: -40px; border-radius: 50%;
-            box-shadow: 0 0 200px rgba(0,0,0,.9) inset; pointer-events: none; z-index: 1; 
+            content: "";
+            position: absolute;
+            inset: -40px;
+            border-radius: 50%;
+            box-shadow: 0 0 200px rgba(0,0,0,.9) inset;
+            pointer-events: none;
+            z-index: 1; 
         }
 
+        /* === UI COMPONENTS === */
         .panel {
-            background: var(--panel-bg); border: 2px solid var(--gold); 
-            border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 10;
+            background: var(--panel-bg); 
+            border: 2px solid var(--gold); 
+            border-radius: 10px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            z-index: 10;
+            padding: 10px;
+            box-sizing: border-box;
         }
         
         .card-base {
-            width: 110px; height: 160px; background: white; border-radius: 10px; 
-            border: 1px solid #ccc; box-sizing: border-box; color: black;
+            width: 110px; 
+            height: 160px; 
+            background: white; 
+            border-radius: 10px; 
+            border: 1px solid #ccc; 
+            box-sizing: border-box; 
+            color: black;
+            position: relative;
         }
 
         #msg-overlay { 
-            display: none; position: absolute; top: -75px; left: 50%; transform: translateX(-50%); 
-            z-index: 6000; font-size: 30px; color: var(--gold); font-weight: bold; 
-            text-shadow: 2px 2px 10px black; pointer-events: none; text-align: center; width: 600px;
-            white-space: pre-line; line-height: 1.3; justify-content: center; align-items: center;
+            display: none; 
+            position: absolute; 
+            top: -75px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            z-index: 6000; 
+            font-size: 30px; 
+            color: var(--gold); 
+            font-weight: bold; 
+            text-shadow: 2px 2px 10px black; 
+            pointer-events: none; 
+            text-align: center; 
+            width: 600px;
+            white-space: pre-line; 
+            line-height: 1.3;
         }
 
         #victory-screen {
-            display: none; position: fixed; inset: 0; z-index: 10000;
-            background: rgba(0,0,0,0.92); flex-direction: column;
-            align-items: center; justify-content: center; text-align: center; padding: 20px;
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            z-index: 10000;
+            background: rgba(0,0,0,0.92); 
+            flex-direction: column;
+            align-items: center; 
+            justify-content: center; 
+            text-align: center; 
+            padding: 20px;
             animation: fadeVictory .5s ease;
         }
+        
         @keyframes fadeVictory {
             from { opacity: 0; transform: scale(.8); }
             to { opacity: 1; transform: scale(1); }
         }
         
-        #chat-toggle { position: absolute; bottom: 20px; left: 20px; width: 60px; height: 60px; background: var(--gold); border-radius: 50%; border: none; font-size: 30px; cursor: pointer; z-index: 7000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        #reconnect-btn { position: absolute; bottom: 20px; left: 90px; height: 60px; padding: 0 20px; background: #b30000; border-radius: 30px; border: 2px solid var(--gold); font-size: 20px; font-weight: bold; cursor: pointer; z-index: 7000; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; }
-        
-        #chat-box { position: absolute; bottom: 90px; left: 20px; width: 300px; height: 350px; display: none; flex-direction: column; z-index: 7000; }
-        #chat-messages { flex: 1; overflow-y: auto; padding: 10px; font-size: 14px; color: #eee; text-align: left; }
-        #chat-input-area { display: flex; padding: 10px; border-top: 1px solid #444; }
-        #chat-input { flex: 1; background: #222; border: 1px solid var(--gold); color: white; padding: 8px; border-radius: 5px; outline: none; }
-
-        #rotate-msg {
-            display: none; position: fixed; inset: 0; z-index: 9999;
-            background: black; color: white; flex-direction: column;
-            align-items: center; justify-content: center; text-align: center;
+        /* === CHAT & RECONNECT === */
+        #chat-toggle { 
+            position: absolute; 
+            bottom: 20px; 
+            left: 20px; 
+            width: 60px; 
+            height: 60px; 
+            background: var(--gold); 
+            border-radius: 50%; 
+            border: none; 
+            font-size: 30px; 
+            cursor: pointer; 
+            z-index: 7000; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
         }
-        @media screen and (orientation: portrait) { #rotate-msg { display: flex; } }
+        
+        #reconnect-btn { 
+            position: absolute; 
+            bottom: 20px; 
+            left: 90px; 
+            height: 60px; 
+            padding: 0 20px; 
+            background: #b30000; 
+            border-radius: 30px; 
+            border: 2px solid var(--gold); 
+            font-size: 20px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            z-index: 7000; 
+            color: white; 
+            display: none; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        
+        #chat-box { 
+            position: absolute; 
+            bottom: 90px; 
+            left: 20px; 
+            width: 300px; 
+            height: 350px; 
+            display: none; 
+            flex-direction: column; 
+            z-index: 7000; 
+        }
+        
+        #chat-messages { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 10px; 
+            font-size: 14px; 
+            color: #eee; 
+            text-align: left; 
+        }
+        
+        #chat-input-area { 
+            display: flex; 
+            padding: 10px; 
+            border-top: 1px solid #444; 
+        }
+        
+        #chat-input { 
+            flex: 1; 
+            background: #222; 
+            border: 1px solid var(--gold); 
+            color: white; 
+            padding: 8px; 
+            border-radius: 5px; 
+            outline: none; 
+        }
 
+        /* === LOGIN SCREEN === */
         #start-screen { 
-            position: fixed; inset: 0; z-index: 8000; 
+            position: fixed; 
+            inset: 0; 
+            z-index: 8000; 
             background: radial-gradient(circle, #222 0%, #000 100%); 
-            display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
         }
         
         .name-input {
-            background: transparent; border: none; border-bottom: 3px solid var(--gold);
-            color: white; font-size: 30px; text-align: center; padding: 10px;
-            margin-bottom: 30px; outline: none; width: 300px;
+            background: transparent; 
+            border: none; 
+            border-bottom: 3px solid var(--gold);
+            color: white; 
+            font-size: 30px; 
+            text-align: center; 
+            padding: 10px;
+            margin-bottom: 30px; 
+            outline: none; 
+            width: 300px;
         }
 
         .game-btn { 
-            background: linear-gradient(to bottom, #4a4a4a, #2a2a2a); border: 2px solid #666; border-radius: 10px; 
-            color: white; padding: 15px 35px; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: 0 5px 0 #111; 
+            background: linear-gradient(to bottom, #4a4a4a, #2a2a2a); 
+            border: 2px solid #666; 
+            border-radius: 10px; 
+            color: white; 
+            padding: 15px 35px; 
+            font-size: 20px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            box-shadow: 0 5px 0 #111; 
             transition: transform 0.1s;
         }
-        .game-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #111; }
         
-        #direction-indicator {
-            position: absolute; bottom: 20px; right: 20px; padding: 10px 20px; background: rgba(0,0,0,0.8);
-            border: 2px solid var(--gold); border-radius: 15px; font-weight: bold; font-size: 20px; color: var(--gold);
-            z-index: 1000; letter-spacing: 2px; white-space: nowrap;
-        }
+        .game-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #111; }
 
+        /* === TOP UI === */
         #top-right-ui {
-            position: absolute; top: 15px; right: 20px; z-index: 1000;
-            display: flex; align-items: center; gap: 15px; 
+            position: absolute; 
+            top: 15px; 
+            right: 20px; 
+            z-index: 1000;
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
         }
-        #turn-timer { position: relative; width: 52px; height: 52px; display: none; }
+        
+        #turn-timer { 
+            position: relative; 
+            width: 52px; 
+            height: 52px; 
+            display: none; 
+        }
+        
         .timer-bg { stroke: #444; fill: rgba(0,0,0,0.5); }
         .timer-bar {
-            stroke: #00ff9c; fill: none; stroke-dasharray: 139; stroke-dashoffset: 0;
-            transform: rotate(-90deg); transform-origin: center;
+            stroke: #00ff9c; 
+            fill: none;
+            stroke-dasharray: 139; 
+            stroke-dashoffset: 0;
+            transform: rotate(-90deg); 
+            transform-origin: center;
         }
+        
         #timer-text {
-            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-            font-size: 18px; font-weight: bold; color: white; text-shadow: 1px 1px 3px black;
+            position: absolute; 
+            inset: 0; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            font-size: 18px; 
+            font-weight: bold; 
+            color: white;
         }
+        
         #turn-indicator { 
-            padding: 10px 25px; background: #1a472a; border: 3px solid #4f4; border-radius: 15px; 
-            font-weight: bold; font-size: 18px; color: white; white-space: nowrap;
+            padding: 10px 25px; 
+            font-weight: bold; 
+            font-size: 18px; 
+            white-space: nowrap;
         }
 
-        #active-suit-display {
-            position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 120px; z-index: 100; text-shadow: 0 0 20px black; display: none; pointer-events: none; opacity: 0.6;
+        /* === PLAYER SLOTS === */
+        .player-slot { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            position: relative; 
+            z-index: 10; 
         }
-
-        .player-slot { display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 10; }
-        #slot-top { grid-area: top; }
-        #slot-left { grid-area: left; }
-        #slot-right { grid-area: right; }
-        #slot-bottom { grid-area: bottom; align-self: center; width: 100%; }
-
+        
         .player-info {
-            position: relative; padding: 5px 15px; text-align: center; min-width: 140px;
-            margin-bottom: 10px; transition: all 0.3s ease;
+            position: relative; 
+            padding: 5px 15px; 
+            text-align: center; 
+            min-width: 140px;
+            margin-bottom: 10px; 
+            transition: all 0.3s ease;
         }
+        
         .player-info.active {
-            animation: pulse 1.2s infinite; border-color: #4f4; background: rgba(0, 40, 0, 0.9);
+            animation: pulse 1.2s infinite;
+            border-color: #4f4;
+            background: rgba(0, 40, 0, 0.9);
         }
+        
         @keyframes pulse {
             0% { box-shadow:0 0 0 0 rgba(0,255,150,.6); }
             70% { box-shadow:0 0 0 12px rgba(0,255,150,0); }
@@ -159,137 +309,210 @@
         }
 
         .turn-indicator-dot {
-            position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%;
-            background: #00ff9c; box-shadow: 0 0 8px #00ff9c; animation: blink 1s infinite; z-index: 50;
+            position: absolute;
+            top: -6px; right: -6px;
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            background: #00ff9c;
+            box-shadow: 0 0 8px #00ff9c;
+            animation: blink 1s infinite;
+            z-index: 50;
         }
-        @keyframes blink { 0% { opacity: .2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.1); } 100% { opacity: .2; transform: scale(0.8); } }
-
-        .player-name { font-weight: bold; color: var(--gold); font-size: 16px; }
-        .hats-container { font-size: 20px; margin-top: 3px; }
-
-        .opp-hand { position: relative; height: 45px; margin: 0 auto; transition: width 0.3s; display: flex; justify-content: center; }
-        .mini-card { width: 30px; height: 45px; background: linear-gradient(135deg, #a00, #500); border: 1.5px solid white; border-radius: 4px; position: absolute; top: 0; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
-        .card-count-text { font-size: 15px; font-weight: bold; color: #fff; margin-top: 8px; text-shadow: 1px 1px 3px black; text-align: center; width: 100%; }
-
-        #game-center { grid-area: center; display: flex; align-items: center; justify-content: center; gap: 40px; z-index: 20; position: relative; }
         
+        @keyframes blink {
+            0% { opacity: .2; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.1); }
+            100% { opacity: .2; transform: scale(0.8); }
+        }
+
+        .opp-hand { 
+            position: relative; 
+            height: 45px; 
+            margin: 0 auto; 
+            display: flex; 
+            justify-content: center; 
+        }
+        
+        .mini-card { 
+            width: 30px; 
+            height: 45px; 
+            background: linear-gradient(135deg, #a00, #500); 
+            border: 1.5px solid white; 
+            border-radius: 4px; 
+            position: absolute; 
+            top: 0; 
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5); 
+        }
+
+        /* === CENTER AREA === */
         #draw-pile { 
-            position: relative; width: 100px; height: 145px; background: linear-gradient(135deg, #8e2424, #4d0000); 
-            border: 3px solid white; border-radius: 10px; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; cursor: pointer; 
-            box-shadow: 10px 10px 20px rgba(0,0,0,0.6); transition: transform 0.2s ease;
-            transform-style: preserve-3d; transform: translateZ(20px);
+            position: relative;
+            width: 100px; height: 145px; 
+            background: linear-gradient(135deg, #8e2424, #4d0000); 
+            border: 3px solid white; 
+            border-radius: 10px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            cursor: pointer; 
+            box-shadow: 10px 10px 20px rgba(0,0,0,0.6); 
+            transition: transform 0.2s ease;
+            transform-style: preserve-3d;
+            transform: translateZ(20px);
         }
-        #draw-pile::before, #draw-pile::after {
+        
+        #draw-pile::before {
             content: ""; position: absolute; width: 100%; height: 100%;
-            background: inherit; border-radius: 10px; border: 3px solid white; z-index: -1; box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            background: inherit; border-radius: 10px; border: 3px solid white; z-index: -1;
+            transform: translate(4px, 4px) translateZ(-1px);
         }
-        #draw-pile::before { transform: translate(4px, 4px) translateZ(-1px); }
-        #draw-pile::after { transform: translate(8px, 8px) translateZ(-2px); }
+        
         #draw-pile:hover { transform: translateZ(20px) scale(1.08); }
-        
-        #deck-count { font-size: 28px; font-weight: bold; color: var(--gold); margin-top: 5px; }
+        #deck-count { font-size: 28px; font-weight: bold; color: var(--gold); }
 
-        #pile-container { width: 110px; height: 160px; position: relative; transform: translateZ(30px); transform-style: preserve-3d; }
-        
         .pile-card {
-            position: absolute; top: 0; left: 0; box-shadow: 3px 3px 8px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; padding: 8px; transition: transform 0.2s;
+            position: absolute; 
+            top: 0; left: 0;
+            box-shadow: 3px 3px 8px rgba(0,0,0,0.3); 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            padding: 8px; 
+            transition: transform 0.2s;
         }
         
         .played-card { animation: cardThrow .35s cubic-bezier(.25,.8,.25,1) forwards; }
         @keyframes cardThrow {
             0% { transform: translateY(60px) scale(.9) rotate(-5deg); opacity: .4; }
-            60% { transform: translateY(-10px) scale(1.05) rotate(2deg); }
             100% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
         }
 
-        .card { position: relative; box-shadow: 5px 5px 15px rgba(0,0,0,0.4); cursor: pointer; transition: transform 0.1s; flex-shrink: 0; backface-visibility: hidden; }
+        /* === MY HAND === */
+        #my-hand-container { 
+            width: 90%; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 180px; 
+            margin: 0 auto; 
+        }
+        
+        .not-my-turn .hand-card { pointer-events: none; opacity: 0.8; }
+        
+        .hand-card { 
+            box-shadow: -2px 0 5px rgba(0,0,0,0.3); 
+            cursor: pointer; 
+            transition: transform 0.2s, margin 0.2s;
+        }
+        
+        .hand-card:hover { 
+            transform: translateY(-40px) scale(1.1); 
+            z-index: 100; 
+        }
+
+        .hand-compact .hand-card { width: 77px; height: 112px; margin-bottom: -40px; }
+        
         .red { color: #d00 !important; }
         .card-corner { position: absolute; top: 5px; left: 5px; font-size: 24px; font-weight: bold; line-height: 1; display: flex; flex-direction: column; align-items: center; }
         .card-corner.bottom { top: auto; bottom: 5px; left: auto; right: 5px; transform: rotate(180deg); }
         .card-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 70px; }
 
-        .flying-card { position: fixed; z-index: 9999; pointer-events: none; transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); box-shadow: 10px 10px 30px rgba(0,0,0,0.5); transform-origin: top left; }
+        /* === ANIMATIONS & MODALS === */
+        .flying-card {
+            position: fixed; 
+            z-index: 9999; 
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 10px 10px 30px rgba(0,0,0,0.5);
+        }
         
-        #scoreboard { position: absolute; top: 20px; left: 20px; padding: 10px; z-index: 1000; font-size: 14px; max-height: 300px; overflow-y: auto; display: none; color: white; cursor: pointer; }
-        #scoreboard:hover { background: rgba(0,0,0,0.95); }
+        #ace-modal { 
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            background: rgba(0,0,0,0.7); 
+            z-index: 9000; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+        }
         
-        #my-hand-container { width: 90%; display: flex; justify-content: center; align-items: center; height: 180px; margin: 0 auto; transition: opacity 0.3s; }
-        
-        .not-my-turn .hand-card { pointer-events: none; }
-
-        .hand-normal { flex-wrap: nowrap; }
-        .hand-compact { flex-wrap: wrap; align-content: center; height: 220px !important; }
-        .hand-card { box-shadow: -2px 0 5px rgba(0,0,0,0.3); }
-        .hand-compact .hand-card { width: 77px; height: 112px; margin-bottom: -40px; }
-        .hand-compact .card-center { font-size: 40px; }
-        .hand-compact .card-corner { font-size: 16px; }
-
-        @media (hover: hover) and (pointer: fine) {
-            .hand-card:hover { transform: translateY(-50px) scale(1.1); z-index: 100; will-change: transform; }
-            .hand-compact .hand-card:hover { transform: translateY(-20px) scale(1.2); z-index: 200; will-change: transform; }
+        #ace-content { 
+            background: var(--panel-bg); 
+            padding: 30px; 
+            border-radius: 20px; 
+            border: 3px solid var(--gold);
+            text-align: center;
         }
 
-        #ace-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9000; flex-direction: column; align-items: center; justify-content: center; }
-        #ace-backdrop { position: absolute; inset: 0; }
-        #ace-content { position: relative; z-index: 1; text-align: center; }
-        .suit-btn { width: 90px; height: 90px; font-size: 55px; background: white; border-radius: 15px; margin: 15px; cursor: pointer; border: 4px solid var(--gold); }
+        .suit-btn { 
+            width: 90px; height: 90px; 
+            font-size: 55px; 
+            background: white; 
+            border-radius: 15px; 
+            margin: 15px; 
+            cursor: pointer; 
+            border: 4px solid var(--gold); 
+        }
         
-        #error-overlay { display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(150, 0, 0, 0.9); flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+        #direction-indicator {
+            position: absolute; bottom: 20px; right: 20px;
+            padding: 10px 20px; background: rgba(0,0,0,0.8);
+            border: 2px solid var(--gold); border-radius: 15px;
+            font-weight: bold; font-size: 20px; color: var(--gold);
+            z-index: 1000;
+        }
+
         .shake { animation: shake 0.2s; border-color: red !important; }
         @keyframes shake { 0%, 100% {transform:translateX(0);} 25% {transform:translateX(-5px);} 75% {transform:translateX(5px);} }
+        
+        #scoreboard { 
+            position: absolute; top: 20px; left: 20px; 
+            max-height: 400px; overflow-y: auto; display: none; 
+        }
+        table { border-collapse: collapse; width: 100%; color: white; }
+        th, td { border: 1px solid var(--gold); padding: 8px; text-align: center; }
     </style>
 </head>
 <body>
 
-    <div id="error-overlay">
-        <h2>ΠΡΟΕΚΥΨΕ ΣΦΑΛΜΑ ΚΩΔΙΚΑ!</h2>
-        <p id="error-text" style="font-family: monospace; background: black; padding: 10px;"></p>
-        <button onclick="window.location.reload()" style="padding:10px 20px; font-size:20px; cursor:pointer;">ΕΠΑΝΑΦΟΡΤΩΣΗ ΣΕΛΙΔΑΣ</button>
-    </div>
-
-    <div id="rotate-msg">
-        <div style="font-size: 50px;">🔄</div>
-        <h2>Παρακαλώ γυρίστε τη συσκευή οριζόντια</h2>
-    </div>
-
     <div id="start-screen">
-        <h1 style="color:var(--gold); font-size:80px; margin-bottom:10px; text-shadow: 0 0 20px rgba(212, 175, 55, 0.5); text-align:center;">Μαύρος Βαλές ♠️</h1>
+        <h1 style="color:var(--gold); font-size:60px; margin-bottom:10px;">Μαύρος Βαλές ♠️</h1>
         <div id="login-area" style="display:flex; flex-direction:column; align-items:center;">
             <input type="text" id="username" class="name-input" placeholder="Το όνομά σου..." maxlength="12">
-            <button class="game-btn" onclick="joinGame()">ΕΙΣΟΔΟΣ</button>
+            <button id="login-btn" class="game-btn" onclick="joinGame()">ΕΙΣΟΔΟΣ</button>
         </div>
         <div id="waiting-area" style="display:none; text-align:center;">
-            <p id="waiting-msg" style="font-size:24px; color:#aaa; margin-bottom:20px;">Περιμένοντας παίκτες...</p>
-            <button id="start-btn" class="game-btn" style="border-color:#4f4; color:#4f4; display:none;" onclick="socket.emit('startGameRequest')">ΕΚΚΙΝΗΣΗ</button>
+            <p id="waiting-msg" style="font-size:24px; color:#aaa; margin-bottom:20px;">Σύνδεση...</p>
+            <button id="start-btn" class="game-btn" style="display:none;" onclick="socket.emit('startGameRequest')">ΕΚΚΙΝΗΣΗ</button>
         </div>
     </div>
 
     <div id="victory-screen">
-        <div style="font-size: 80px; margin-bottom: 20px;">🏆</div>
-        <h1 id="victory-msg" style="color: white; font-size: 50px; text-shadow: 0 0 20px #4f4; line-height: 1.2; max-width: 80%; margin-bottom: 40px;"></h1>
-        <button id="victory-btn" class="game-btn" style="font-size: 26px; padding: 20px 40px; border: 3px solid #4f4; color: #4f4; box-shadow: 0 0 15px rgba(79, 255, 68, 0.5);" onclick="location.reload()"></button>
+        <h1 id="victory-msg" style="color: white; font-size: 50px; margin-bottom: 40px;">🏆</h1>
+        <button class="game-btn" onclick="location.reload()">ΝΕΟ ΠΑΙΧΝΙΔΙ</button>
     </div>
 
     <div id="game-wrapper">
+        
         <div id="ace-modal">
-            <div id="ace-backdrop" onclick="cancelAce()"></div>
             <div id="ace-content">
-                <h2 style="color:var(--gold); font-size: 40px; margin-bottom:20px;">Διάλεξε Χρώμα</h2>
-                <div>
-                    <button class="suit-btn" style="color:red;" onclick="confirmAce('♥')">♥</button>
-                    <button class="suit-btn" style="color:red;" onclick="confirmAce('♦')">♦</button>
-                    <button class="suit-btn" style="color:black;" onclick="confirmAce('♣')">♣</button>
-                    <button class="suit-btn" style="color:black;" onclick="confirmAce('♠')">♠</button>
-                </div>
+                <h2 style="color:var(--gold); margin-bottom:20px;">Διάλεξε Χρώμα</h2>
+                <button class="suit-btn" style="color:red;" onclick="confirmAce('♥')">♥</button>
+                <button class="suit-btn" style="color:red;" onclick="confirmAce('♦')">♦</button>
+                <button class="suit-btn" style="color:black;" onclick="confirmAce('♣')">♣</button>
+                <button class="suit-btn" style="color:black;" onclick="confirmAce('♠')">♠</button>
+                <br>
+                <button class="game-btn" style="margin-top:20px; font-size:14px;" onclick="cancelAce()">ΑΚΥΡΩΣΗ</button>
             </div>
         </div>
 
-        <div id="scoreboard" class="panel" onclick="toggleScoreboard()"><table id="score-table"></table></div>
+        <div id="scoreboard" class="panel" onclick="this.style.display='none'">
+            <table id="score-table"></table>
+        </div>
 
         <button id="chat-toggle" onclick="toggleChat()">💬</button>
-        <button id="reconnect-btn" onclick="forceReconnect()">🔄 Reconnect</button>
-        
         <div id="chat-box" class="panel">
             <div id="chat-messages"></div>
             <div id="chat-input-area">
@@ -301,28 +524,26 @@
         
         <div id="top-right-ui">
             <div id="turn-timer">
-                <svg width="52" height="52" style="position: absolute; top: 0; left: 0;">
+                <svg width="52" height="52">
                     <circle r="22" cx="26" cy="26" class="timer-bg" stroke-width="4"/>
                     <circle r="22" cx="26" cy="26" class="timer-bar" stroke-width="4"/>
                 </svg>
                 <div id="timer-text">60</div>
             </div>
-            <div id="turn-indicator">ΣΥΝΔΕΣΗ...</div>
+            <div id="turn-indicator" class="panel">ΣΥΝΔΕΣΗ...</div>
         </div>
         
-        <div id="active-suit-display"></div>
-
         <div id="slot-top" class="player-slot"></div>
         <div id="slot-left" class="player-slot"></div>
 
-        <div id="game-center">
+        <div id="game-center" style="grid-area: center; display: flex; align-items: center; justify-content: center; gap: 40px;">
             <div id="draw-pile" onclick="triggerDrawAnimation()">
-                <div style="font-size:14px; color:#ccc;">ΤΡΑΒΑ</div>
+                <div style="font-size:12px; color:#ccc;">ΤΡΑΒΑ</div>
                 <div id="deck-count">52</div>
             </div>
-            <div id="pile-container">
+            <div id="pile-container" style="width: 110px; height: 160px; position: relative;">
                 <div id="msg-overlay"></div>
-            </div>
+                </div>
             <button class="game-btn" onclick="socket.emit('passTurn')">ΠΑΣΟ</button>
         </div>
 
@@ -335,7 +556,6 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // === GLOBALS ===
         const socket = io();
         let myId = null;
         let lastClick = 0;
@@ -343,14 +563,9 @@
         let actionLocked = false;
         let gameScale = 1;
         let selectedAceIndex = null;
-
-        window.currentTopCard = null;
-        window.currentActiveSuit = null;
         let lastPlayerId = null;
         let timerEnd = 0;
         let animationFrameId = null;
-        let fullScoreHistory = [];
-        let isScoreboardExpanded = false;
 
         // === SOUNDS ===
         const sfx = {
@@ -364,557 +579,298 @@
             try { sfx[type].currentTime = 0; sfx[type].play().catch(()=>{}); } catch(e){}
         }
 
-        // === RESIZE HANDLING ===
-        function resizeGame() {
-            const wrapper = document.getElementById('game-wrapper');
-            if(!wrapper) return;
-            gameScale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
-            wrapper.style.transform = `scale(${gameScale})`;
-        }
-        window.addEventListener('resize', () => requestAnimationFrame(resizeGame));
-        window.addEventListener('load', () => {
-            resizeGame();
-            Object.values(sfx).forEach(a => { a.volume=0; a.play().catch(()=>{}); a.volume=1; });
-        });
-
-        // === TIMER ===
-        function startTimer(seconds=60) {
+        // === TIMER LOGIC ===
+        function startTimer(seconds = 60) {
             const bar = document.querySelector(".timer-bar");
             const text = document.getElementById("timer-text");
             const container = document.getElementById("turn-timer");
-            if(!bar || !text || !container) return;
+            if(!bar) return;
 
             container.style.display = "block";
-            timerEnd = Date.now() + seconds*1000;
+            timerEnd = Date.now() + seconds * 1000;
 
             if(animationFrameId) cancelAnimationFrame(animationFrameId);
 
             const update = () => {
                 const remaining = Math.max(0, timerEnd - Date.now());
-                const percent = remaining / (seconds*1000);
-                bar.style.strokeDashoffset = 139 * (1 - percent); 
+                const percent = remaining / (seconds * 1000);
+                bar.style.strokeDashoffset = 139 * (1 - percent);
                 text.innerText = Math.ceil(remaining / 1000);
-
-                if(remaining>0) animationFrameId = requestAnimationFrame(update);
+                if(remaining > 0) animationFrameId = requestAnimationFrame(update);
             }
             update();
         }
 
         // === SOCKET EVENTS ===
         socket.on('connect', () => {
-            document.getElementById('reconnect-btn').style.display = 'none';
             myId = socket.id;
             const name = sessionStorage.getItem('mv_username');
             const session = sessionStorage.getItem('mv_session');
-            if(name && session && document.getElementById('start-screen').style.display === 'none') {
-                socket.emit('joinGame', { username:name, sessionId:session });
-            }
+            if(name && session) socket.emit('joinGame', { username:name, sessionId:session });
         });
 
-        socket.on('disconnect', () => document.getElementById('reconnect-btn').style.display = 'flex');
-
-        socket.on('chatUpdate', data => addChatMessage(data.name, data.text));
-        socket.on('updateUI', updateGameUI);
-        socket.on('revealHands', renderAllHands);
-        socket.on('gameOver', showVictory);
-
-        socket.on('joinedLobby', () => {
-            document.getElementById('start-screen').style.display = 'flex';
-            document.getElementById('login-area').style.display = 'flex'; 
-            document.getElementById('waiting-area').style.display = 'none';
-            document.getElementById('scoreboard').style.display = 'none';
-        });
-
-        socket.on('rejoinSuccess', (data) => {
-            document.getElementById('login-area').style.display = 'none';
-            document.getElementById('start-screen').style.display = 'none';
-            if (data.gameStarted) {
-                document.getElementById('scoreboard').style.display = 'block';
-                if (data.history && data.history.length > 0) {
-                    fullScoreHistory = data.history;
-                    renderScoreboard();
-                }
-            } else {
-                 document.getElementById('start-screen').style.display = 'flex';
-                 document.getElementById('waiting-area').style.display = 'block';
-            }
-        });
-
-        socket.on('playerCountUpdate', (count) => {
-            document.getElementById('waiting-msg').innerText = `Συνδεδεμένοι παίκτες: ${count}`;
-            const btn = document.getElementById('start-btn');
-            if(count >= 2) btn.style.display = "inline-block"; else btn.style.display = "none";
-        });
-
-        socket.on('gameReady', () => {
-            document.getElementById('start-screen').style.display = 'none';
-            document.getElementById('scoreboard').style.display = 'block';
-        });
-
-        socket.on('updateScoreboard', (data) => {
-            fullScoreHistory = data.history;
-            renderScoreboard();
-        });
-
-        socket.on('notification', (msg) => {
-            if (msg.includes('Ανακάτεμα')) playSound('shuffle');
-            else if (msg.includes('+') || msg.includes('ΦΑΕ') || msg.includes('ποινή') || msg.includes('Auto-pass')) playSound('penalty');
-
-            const o = document.getElementById('msg-overlay');
-            o.innerText = msg; o.style.display = 'flex';
-            setTimeout(() => o.style.display = 'none', 3000); 
-        });
-
-        socket.on('invalidMove', () => {
-            actionLocked = false; 
-            const o = document.getElementById('msg-overlay');
-            o.innerText = "Ακυρη Κίνηση!"; 
-            o.style.display = 'flex';
-            o.style.color = "red";
-            setTimeout(() => { o.style.display = 'none'; o.style.color = "#d4af37"; }, 1000);
+        socket.on('updateUI', data => {
+            actionLocked = false;
+            window.currentTopCard = data.topCard;
+            window.currentActiveSuit = data.activeSuit;
             
-            document.querySelectorAll('.hand-card').forEach(c => c.classList.add('shake')); 
-            setTimeout(() => document.querySelectorAll('.hand-card').forEach(c => c.classList.remove('shake')), 200); 
-        });
-
-        // === CHAT ===
-        function addChatMessage(name, text) {
-            const m = document.getElementById('chat-messages');
-            if(!m) return;
-            const div = document.createElement('div');
-            const b = document.createElement('b');
-            b.style.color = 'var(--gold)';
-            b.textContent = name + ': ';
-            div.appendChild(b);
-            div.appendChild(document.createTextNode(text));
-            m.appendChild(div);
-            m.scrollTop = m.scrollHeight;
-        }
-
-        function sendChat() {
-            const input = document.getElementById('chat-input');
-            if(input && input.value) { socket.emit('chatMessage', input.value); input.value=''; }
-        }
-
-        function toggleChat() {
-            const box = document.getElementById('chat-box');
-            if(box) box.style.display = box.style.display==='flex'?'none':'flex';
-        }
-
-        // === LOGIN & UI UPDATES ===
-        function joinGame() {
-            const name = document.getElementById('username').value;
-            if (name.trim() === "") return alert("Παρακαλώ βάλε ένα όνομα!");
+            document.getElementById('deck-count').innerText = data.deckCount;
             
-            let sessionId = sessionStorage.getItem('mv_session');
-            if (!sessionId) {
-                sessionId = 'sess_' + Math.random().toString(36).substr(2, 9);
-                sessionStorage.setItem('mv_session', sessionId);
-            }
-            sessionStorage.setItem('mv_username', name);
-
-            socket.emit('joinGame', { username: name, sessionId: sessionId });
-            
-            document.getElementById('login-area').style.display = 'none';
-            document.getElementById('waiting-area').style.display = 'block';
-        }
-
-        function updateGameUI(data) {
-            actionLocked = false; 
-            window.currentScoreData = data; 
-            const deckCnt = document.getElementById('deck-count');
-            if(deckCnt) deckCnt.innerText = data.deckCount;
-            window.currentTopCard = data.topCard; 
-            window.currentActiveSuit = data.activeSuit; 
-
-            let currentIdToCheck = data.currentPlayerId || data.currentPlayerName;
-            if (currentIdToCheck && currentIdToCheck !== lastPlayerId) {
-                lastPlayerId = currentIdToCheck;
-                startTimer(60); 
+            // Διαχείριση Timer
+            if (data.currentPlayerId && data.currentPlayerId !== lastPlayerId) {
+                lastPlayerId = data.currentPlayerId;
+                startTimer(60);
             }
 
+            // Ενημέρωση Pile
             if (data.topCard) {
                 const cardId = data.topCard.value + data.topCard.suit;
-                if (cardId !== window.lastTopCardIdStr) {
+                if (cardId !== window.lastCardId) {
                     addCardToPile(data.topCard);
-                    window.lastTopCardIdStr = cardId;
+                    window.lastCardId = cardId;
                     playSound('card');
                 }
             }
 
-            const suitDisplay = document.getElementById('active-suit-display');
-            if (suitDisplay) {
-                if (data.activeSuit) {
-                    suitDisplay.innerText = data.activeSuit;
-                    suitDisplay.style.color = (data.activeSuit === '♥' || data.activeSuit === '♦') ? '#ff4444' : '#222';
-                    suitDisplay.style.display = 'block';
-                    suitDisplay.style.textShadow = "0 0 10px white, 0 0 20px white";
-                } else { suitDisplay.style.display = 'none'; }
-            }
-
+            // Turn Indicator
             const ind = document.getElementById('turn-indicator');
-            const myHandContainer = document.getElementById('my-hand-container');
-            
-            if (ind && myHandContainer) {
-                if (data.isMyTurn) {
-                    ind.innerText = data.penalty > 0 ? `⚠️ ΦΑΕ ${data.penalty}!` : "ΔΙΚΗ ΣΟΥ ΣΕΙΡΑ";
-                    ind.style.borderColor = "#4f4"; ind.style.color = "#4f4";
-                    myHandContainer.classList.remove('not-my-turn');
-                } else {
-                    ind.innerText = `ΠΑΙΖΕΙ: ${data.currentPlayerName}`;
-                    ind.style.borderColor = "#ff4444"; ind.style.color = "#ffdddd";
-                    myHandContainer.classList.add('not-my-turn'); 
-                }
+            const handCont = document.getElementById('my-hand-container');
+            if (data.isMyTurn) {
+                ind.innerText = data.penalty > 0 ? `⚠️ ΦΑΕ ${data.penalty}!` : "ΣΕΙΡΑ ΣΟΥ";
+                ind.style.borderColor = "#4f4"; ind.style.color = "#4f4";
+                handCont.classList.remove('not-my-turn');
+            } else {
+                ind.innerText = `ΠΑΙΖΕΙ: ${data.currentPlayerName}`;
+                ind.style.borderColor = "#ff4444"; ind.style.color = "#ffdddd";
+                handCont.classList.add('not-my-turn');
             }
 
-            if (data.myHand && Array.isArray(data.myHand)) {
-                renderHand(data.myHand);
-            }
-            
+            renderHand(data.myHand);
             distributePlayers(data.players, data.currentPlayerName, data.isMyTurn);
             updateDirectionIndicator(data.players, data.direction);
-        }
+        });
 
-        // === DRAW / PLAY ANIMATIONS ===
-        function triggerDrawAnimation() {
-            const handCont = document.getElementById('my-hand-container');
-            if (!handCont || handCont.classList.contains('not-my-turn')) return;
-            if(actionLocked || Date.now()-lastClick<CLICK_DELAY) return;
-            lockAction();
-            lastClick = Date.now();
+        socket.on('notification', msg => {
+            if (msg.includes('Ανακάτεμα')) playSound('shuffle');
+            else if (msg.includes('ΦΑΕ') || msg.includes('+')) playSound('penalty');
+            const o = document.getElementById('msg-overlay');
+            o.innerText = msg; o.style.display = 'block';
+            setTimeout(() => o.style.display = 'none', 3000);
+        });
 
-            animateCardDraw(document.getElementById('draw-pile'), handCont);
-            socket.emit('drawCard');
-        }
+        socket.on('updateScoreboard', data => {
+            renderScoreboard(data.history, data.players);
+            document.getElementById('scoreboard').style.display = 'block';
+        });
 
-        function animateCardDraw(deckEl, handEl) {
-            if(!deckEl || !handEl) return;
-            const clone = document.createElement('div');
-            clone.className = 'flying-card';
-            clone.style.width = '77px';
-            clone.style.height = '112px';
-            clone.style.background = 'linear-gradient(135deg, #a00, #500)';
-            clone.style.border = '2px solid white';
-            clone.style.borderRadius = '5px';
-            
-            const rectDeck = deckEl.getBoundingClientRect();
-            clone.style.left = rectDeck.left + 'px';
-            clone.style.top = rectDeck.top + 'px';
-            clone.style.transform = `scale(${gameScale})`;
-            document.body.appendChild(clone);
+        socket.on('gameOver', msg => {
+            playSound('win');
+            document.getElementById('victory-msg').innerText = msg;
+            document.getElementById('victory-screen').style.display = 'flex';
+        });
 
-            const rectHand = handEl.getBoundingClientRect();
-            requestAnimationFrame(() => {
-                clone.style.transition = 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)';
-                clone.style.left = (rectHand.left + rectHand.width/2 - 38)+'px';
-                clone.style.top = (rectHand.top-20)+'px';
-                clone.style.opacity = 0;
-                clone.style.transform = `scale(${gameScale}) rotate(180deg)`;
-            });
+        socket.on('playerCountUpdate', count => {
+            document.getElementById('waiting-msg').innerText = `Συνδεδεμένοι: ${count}`;
+            document.getElementById('start-btn').style.display = count >= 2 ? 'inline-block' : 'none';
+        });
 
-            setTimeout(() => clone.remove(), 300);
-        }
+        socket.on('joinedLobby', () => {
+            document.getElementById('login-area').style.display = 'none';
+            document.getElementById('waiting-area').style.display = 'block';
+        });
 
-        function animateThrow(elem) {
-            if(!elem) return;
-            const clone = elem.cloneNode(true);
-            clone.className='flying-card';
-            const rect = elem.getBoundingClientRect();
-            clone.style.left=rect.left+'px';
-            clone.style.top=rect.top+'px';
-            clone.style.margin = '0';
-            clone.style.transform = `scale(${gameScale})`;
-            document.body.appendChild(clone);
-
-            const pileContainer = document.getElementById('pile-container');
-            if(!pileContainer) return;
-            const pileRect = pileContainer.getBoundingClientRect();
-            requestAnimationFrame(() => {
-                clone.style.transition='all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-                clone.style.left = pileRect.left+'px';
-                clone.style.top = pileRect.top+'px';
-                clone.style.transform = `scale(${gameScale}) rotate(${Math.random()*20-10}deg)`;
-                clone.style.opacity = 0.8;
-            });
-            clone.addEventListener('transitionend', ()=>clone.remove(), { once:true });
-            setTimeout(()=>{ if(document.body.contains(clone)) clone.remove(); },500);
-        }
-
-        function addCardToPile(c) {
-            const container = document.getElementById('pile-container');
-            if(!container) return;
+        socket.on('chatUpdate', d => {
+            const m = document.getElementById('chat-messages');
             const div = document.createElement('div');
-            const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : '';
-            
-            div.className = `card-base pile-card played-card ${color}`; 
-            const x = Math.random() * 6 - 3;
-            const y = Math.random() * 6 - 3;
-            const r = Math.random() * 20 - 10; 
-            
-            div.style.transform = `translate(${x}px, ${y}px) rotate(${r}deg)`;
-            div.innerHTML = `<div class="card-corner">${c.value}<div>${c.suit}</div></div><div class="card-center">${c.suit}</div><div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>`;
-            
-            container.appendChild(div);
-            
-            const cards = container.querySelectorAll('.pile-card');
-            if (cards.length > 6) {
-                cards[0].remove();
-            }
+            div.innerHTML = `<b style="color:var(--gold)">${d.name}:</b> ${d.text}`;
+            m.appendChild(div); m.scrollTop = m.scrollHeight;
+        });
+
+        // === GAME FUNCTIONS ===
+        function joinGame() {
+            const name = document.getElementById('username').value.trim();
+            if(!name) return;
+            const session = sessionStorage.getItem('mv_session') || 'sess_' + Math.random().toString(36).substr(2, 9);
+            sessionStorage.setItem('mv_session', session);
+            sessionStorage.setItem('mv_username', name);
+            socket.emit('joinGame', { username: name, sessionId: session });
         }
 
         function renderHand(hand) {
             const container = document.getElementById('my-hand-container');
-            if(!container) return;
-            container.className = hand.length>15 ? 'hand-compact' : 'hand-normal';
+            container.className = hand.length > 15 ? 'hand-compact' : 'hand-normal';
+            const overlap = hand.length > 10 ? "-60px" : "-40px";
             
-            const frag = document.createDocumentFragment();
-            let overlap = (hand.length > 15) ? "-25px" : (hand.length > 8 ? "-60px" : "-55px");
-
-            hand.forEach((c,i)=>{
-                if(!c) return;
-                const div = document.createElement('div');
-                div.className = `card-base card hand-card card-${i}` + ((c.suit==='♥'||c.suit==='♦')?' red':'');
-                div.style.marginLeft = i===0?'0':overlap;
-                div.innerHTML = `
-                    <div class="card-corner">${c.value}<div>${c.suit}</div></div>
-                    <div class="card-center">${c.suit}</div>
-                    <div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>`;
-                div.onclick = ()=>playCardLogic(i,c.value,c.suit);
-                frag.appendChild(div);
-            });
             container.innerHTML = '';
-            container.appendChild(frag);
-        }
-
-        function updateDirectionIndicator(playersArray, dir) {
-            if(!playersArray || playersArray.length === 0) return;
-            
-            let names = playersArray.map(p => (p.name || "").replace('❤️','').trim());
-            let initials = names.map(n => n.charAt(0) ? n.charAt(0).toUpperCase() : "?");
-            
-            function makeUnique(initials, names) {
-                const used = {};
-                for(let i=0; i<initials.length; i++) {
-                    let init = initials[i];
-                    let name = names[i];
-                    let len = 1;
-                    while(Object.values(used).includes(init) && len < Math.min(name.length, 4)) {
-                        len++;
-                        init = name.substring(0, len).toUpperCase();
-                    }
-                    used[i] = init;
-                    initials[i] = init;
-                }
-                return initials;
-            }
-
-            initials = makeUnique(initials, names);
-            
-            const indicator = document.getElementById('direction-indicator');
-            if (indicator) {
-                indicator.innerText = (dir === 1) ? initials.join(' ➔ ') : initials.join(' ⬅ ');
-            }
-        }
-
-        function distributePlayers(players, currentPlayerName, isMyTurn) {
-            if (!players || !Array.isArray(players)) return;
-            const myIndex = players.findIndex(p => p.id === myId);
-            if(myIndex === -1) return;
-            
-            const me = players[myIndex];
-            const myInfo = document.getElementById('my-info-container');
-            if(myInfo) {
-                let hatsHTML = me.hats > 0 ? `<div class="hats-container" style="color:white; font-size:24px;">${"🎩".repeat(me.hats)}</div>` : '';
-                let myActiveClass = isMyTurn ? 'active' : '';
-                let myIndicator = isMyTurn ? '<div class="turn-indicator-dot"></div>' : '';
-                
-                myInfo.innerHTML = `
-                    <div class="panel player-info ${myActiveClass}">
-                        ${myIndicator}
-                        <div class="player-name">${me.name}</div>
-                        ${hatsHTML}
-                    </div>
+            hand.forEach((card, i) => {
+                const div = document.createElement('div');
+                const isRed = card.suit === '♥' || card.suit === '♦';
+                div.className = `card-base hand-card card-${i} ${isRed ? 'red' : ''}`;
+                div.style.marginLeft = i === 0 ? '0' : overlap;
+                div.innerHTML = `
+                    <div class="card-corner">${card.value}<div>${card.suit}</div></div>
+                    <div class="card-center">${card.suit}</div>
+                    <div class="card-corner bottom">${card.value}<div>${card.suit}</div></div>
                 `;
-            }
-
-            const ordered = players.slice(myIndex).concat(players.slice(0, myIndex));
-            const others = ordered.slice(1); 
-            
-            ['slot-top', 'slot-left', 'slot-right'].forEach(id => {
-                const el = document.getElementById(id);
-                if(el) el.innerHTML = '';
-            });
-
-            if (others.length === 1) {
-                renderOpponent(others[0], 'slot-top', currentPlayerName);
-            } else if (others.length === 2) {
-                renderOpponent(others[0], 'slot-left', currentPlayerName);
-                renderOpponent(others[1], 'slot-right', currentPlayerName);
-            } else if (others.length === 3) {
-                renderOpponent(others[0], 'slot-left', currentPlayerName);
-                renderOpponent(others[1], 'slot-top', currentPlayerName);
-                renderOpponent(others[2], 'slot-right', currentPlayerName);
-            }
-        }
-
-        function renderOpponent(p, slotId, currentPlayerName) {
-            const container = document.getElementById(slotId);
-            if (!p || !container) return;
-            const opacity = p.connected ? 1 : 0.4;
-            const name = p.connected ? p.name : (p.name || "Unknown") + " (Αποσ.)";
-            let handCount = p.handCount || 0;
-            
-            let maxDisplay = Math.min(handCount, 15);
-            let containerWidth = maxDisplay > 0 ? 30 + (maxDisplay - 1) * 8 : 30;
-            
-            let cards = `<div class="opp-hand" style="width: ${containerWidth}px; opacity: ${opacity}">`;
-            for(let k=0; k<maxDisplay; k++) {
-                cards += `<div class="mini-card" style="left: ${k * 8}px; z-index: ${k};"></div>`;
-            }
-            cards += `</div>`;
-            
-            let hatsHTML = p.hats > 0 ? `<div class="hats-container">${"🎩".repeat(p.hats)}</div>` : "";
-            let activeClass = (p.name === currentPlayerName) ? 'active' : '';
-            let indicator = (p.name === currentPlayerName) ? '<div class="turn-indicator-dot"></div>' : '';
-            
-            container.innerHTML = `
-                <div class="panel player-info ${activeClass}" style="opacity: ${opacity}">
-                    ${indicator}
-                    <div class="player-name">${name}</div>
-                    ${hatsHTML}
-                </div>
-                ${cards}
-                <div class="card-count-text" style="opacity: ${opacity}">${handCount} φύλλα</div>`;
-        }
-
-        function renderAllHands(playersData) {
-            const timerContainer = document.getElementById("turn-timer");
-            if(timerContainer) timerContainer.style.display = "none";
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
-            
-            const others = playersData.filter(p => p.id !== myId);
-            const slots = ['slot-left', 'slot-top', 'slot-right'];
-            
-            others.forEach((p, i) => {
-                const container = document.getElementById(slots[i]);
-                if(container && p.hand) {
-                    let cardsHtml = '';
-                    p.hand.forEach((c, idx) => {
-                        if(!c) return;
-                        const color = (c.color === 'red') ? '#d00' : 'black';
-                        cardsHtml += `<div style="background:white; color:${color}; width:35px; height:50px; border-radius:4px; border:1px solid #ccc; margin-left:-15px; margin-bottom:5px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:bold; font-size:16px; box-shadow:2px 2px 5px black; z-index:${idx};">${c.value}<div style="font-size:18px; line-height:1;">${c.suit}</div></div>`;
-                    });
-                    
-                    container.innerHTML = `
-                        <div class="panel player-info" style="opacity: 1">
-                            <div class="player-name">${p.name}</div>
-                            <div style="font-size:12px; color:#4f4; margin-top:3px;">Σκορ: ${p.totalScore}</div>
-                        </div>
-                        <div style="display:flex; flex-wrap:wrap; justify-content:center; padding-left: 15px; max-width: 200px; height: auto; margin: 0 auto;">${cardsHtml}</div>
-                        <div class="card-count-text" style="opacity: 1">${p.hand.length} φύλλα</div>`;
-                }
+                div.onclick = () => playCardLogic(i, card.value, card.suit);
+                container.appendChild(div);
             });
         }
 
-        // === CARD PLAY LOGIC ===
+        // === CARD LOGIC UPDATE (FULL) ===
         function playCardLogic(index, value, suit) {
             const handCont = document.getElementById('my-hand-container');
-            if (handCont && handCont.classList.contains('not-my-turn')) return;
-            if(actionLocked || Date.now()-lastClick < CLICK_DELAY) return;
-            lockAction();
-            lastClick = Date.now();
+            if (!handCont || handCont.classList.contains('not-my-turn')) return;
+            if (actionLocked || Date.now() - lastClick < CLICK_DELAY) return;
 
-            const cardElement = document.querySelector(`.card-${index}`);
-            
-            if(value === 'A') {
-                const topCard = window.currentTopCard;
-                const effectiveSuit = window.currentActiveSuit || (topCard ? topCard.suit : null);
-                const isTopAce = topCard && topCard.value === 'A';
+            const topCard = window.currentTopCard;
+            const effectiveSuit = window.currentActiveSuit || (topCard ? topCard.suit : null);
+            const isTopAce = topCard && topCard.value === 'A';
 
-                if(isTopAce && suit === effectiveSuit) {
-                    if(cardElement) animateThrow(cardElement);
-                    socket.emit('playCard', { index: index, declaredSuit: null });
-                    return;
-                }
-
-                if(cardElement) animateThrow(cardElement);
+            // Έλεγχος για Άσσο
+            if (value === 'A' && !(isTopAce && suit === effectiveSuit)) {
                 selectedAceIndex = index;
-                const modal = document.getElementById('ace-modal');
-                if(modal) modal.style.display = 'flex';
+                document.getElementById('ace-modal').style.display = 'flex';
                 return;
             }
 
-            if(cardElement) animateThrow(cardElement);
-            socket.emit('playCard', { index: index, declaredSuit: null });
+            executePlayCard(index, null);
         }
 
-        function confirmAce(chosenSuit) {
-            if(selectedAceIndex === null) return;
-            socket.emit('playCard', { index: selectedAceIndex, declaredSuit: chosenSuit });
-            const modal = document.getElementById('ace-modal');
-            if(modal) modal.style.display = 'none';
+        function confirmAce(suit) {
+            if (selectedAceIndex === null) return;
+            executePlayCard(selectedAceIndex, suit);
+            document.getElementById('ace-modal').style.display = 'none';
             selectedAceIndex = null;
         }
 
         function cancelAce() {
+            document.getElementById('ace-modal').style.display = 'none';
             selectedAceIndex = null;
-            const modal = document.getElementById('ace-modal');
-            if(modal) modal.style.display = 'none';
             actionLocked = false;
         }
 
-        // === HELPERS ===
-        function lockAction(){ actionLocked=true; }
-        
-        function showVictory(msg){
-            playSound('win');
-            const wrapper = document.getElementById('game-wrapper');
-            if(wrapper) wrapper.style.filter='blur(10px)';
-            const btn = document.getElementById('victory-btn');
-            if(btn) {
-                const btnPhrases = ["Άντε πάμε άλλο ένα 🃏", "Ένα τελευταίο 😂", "Θα πάρω το αίμα μου πίσω, πάμε 💪🏻"];
-                btn.innerText = btnPhrases[Math.floor(Math.random() * btnPhrases.length)];
-            }
-            const vicMsg = document.getElementById('victory-msg');
-            if(vicMsg) vicMsg.innerText=msg;
-            const vicScr = document.getElementById('victory-screen');
-            if(vicScr) vicScr.style.display='flex';
+        function executePlayCard(index, declaredSuit) {
+            const cardElement = document.querySelector(`.card-${index}`);
+            if (cardElement) animateThrow(cardElement);
+
+            actionLocked = true;
+            lastClick = Date.now();
+            socket.emit('playCard', { index: index, declaredSuit: declaredSuit });
         }
 
-        function renderScoreboard() {
-            const t = document.getElementById('score-table');
-            if (!t || !fullScoreHistory || fullScoreHistory.length === 0) { if(t) t.innerHTML = ""; return; }
-            
-            const pIds = Object.keys(fullScoreHistory[0]);
-            const pMap = {};
-            if(window.currentScoreData && window.currentScoreData.players) {
-                window.currentScoreData.players.forEach(p => { pMap[p.id] = { name: p.name, hats: p.hats }; });
-            }
+        // === ANIMATIONS ===
+        function animateThrow(el) {
+            const clone = el.cloneNode(true);
+            const rect = el.getBoundingClientRect();
+            clone.className = 'flying-card';
+            clone.style.left = rect.left + 'px';
+            clone.style.top = rect.top + 'px';
+            clone.style.width = rect.width + 'px';
+            clone.style.height = rect.height + 'px';
+            document.body.appendChild(clone);
 
-            let html = `<tr>${pIds.map(id => {
-                let p = pMap[id] || {name: "Παίκτης", hats: 0};
-                return `<th>${p.name} ${"🎩".repeat(p.hats)}</th>`;
-            }).join('')}</tr>`;
-
-            let dataToShow = isScoreboardExpanded ? fullScoreHistory : fullScoreHistory.slice(-5);
-            dataToShow.forEach(r => { 
-                html += '<tr>' + pIds.map(id => `<td>${r[id] === "WC" ? '<span style="color:#d4af37; font-weight:bold;">WC</span>' : r[id]}</td>`).join('') + '</tr>'; 
+            const target = document.getElementById('pile-container').getBoundingClientRect();
+            requestAnimationFrame(() => {
+                clone.style.left = target.left + 'px';
+                clone.style.top = target.top + 'px';
+                clone.style.transform = `rotate(${Math.random()*40-20}deg) scale(0.9)`;
+                clone.style.opacity = "0.5";
             });
-            t.innerHTML = html;
+            setTimeout(() => clone.remove(), 400);
         }
 
-        function toggleScoreboard() {
-            isScoreboardExpanded = !isScoreboardExpanded;
-            renderScoreboard();
+        function triggerDrawAnimation() {
+            if (actionLocked || document.getElementById('my-hand-container').classList.contains('not-my-turn')) return;
+            actionLocked = true;
+            const start = document.getElementById('draw-pile').getBoundingClientRect();
+            const clone = document.createElement('div');
+            clone.className = 'mini-card flying-card';
+            clone.style.left = start.left + 'px'; clone.style.top = start.top + 'px';
+            document.body.appendChild(clone);
+
+            const end = document.getElementById('my-hand-container').getBoundingClientRect();
+            requestAnimationFrame(() => {
+                clone.style.left = end.left + 'px'; clone.style.top = end.top + 'px';
+                clone.style.opacity = "0";
+            });
+            setTimeout(() => { clone.remove(); socket.emit('drawCard'); }, 400);
         }
 
-        function forceReconnect() {
-            if (socket.disconnected) {
-                socket.connect();
-            } else {
-                joinGame();
-            }
+        function addCardToPile(card) {
+            const container = document.getElementById('pile-container');
+            const div = document.createElement('div');
+            const isRed = card.suit === '♥' || card.suit === '♦';
+            div.className = `card-base pile-card played-card ${isRed ? 'red' : ''}`;
+            div.style.transform = `translate(${Math.random()*10-5}px, ${Math.random()*10-5}px) rotate(${Math.random()*20-10}deg)`;
+            div.innerHTML = `
+                <div class="card-corner">${card.value}<div>${card.suit}</div></div>
+                <div class="card-center">${card.suit}</div>
+                <div class="card-corner bottom">${card.value}<div>${card.suit}</div></div>
+            `;
+            container.appendChild(div);
+            if (container.children.length > 6) container.removeChild(container.children[1]); // keep msg-overlay
         }
+
+        // === HELPERS ===
+        function distributePlayers(players, curName, isMyTurn) {
+            const myIdx = players.findIndex(p => p.id === myId);
+            if (myIdx === -1) return;
+            
+            // My Info
+            document.getElementById('my-info-container').innerHTML = `
+                <div class="panel player-info ${isMyTurn ? 'active' : ''}">
+                    <b>${players[myIdx].name}</b> ${"🎩".repeat(players[myIdx].hats)}
+                </div>
+            `;
+
+            const others = players.slice(myIdx).concat(players.slice(0, myIdx)).slice(1);
+            const slots = ['slot-left', 'slot-top', 'slot-right'];
+            slots.forEach(s => document.getElementById(s).innerHTML = '');
+
+            others.forEach((p, i) => {
+                const active = p.name === curName;
+                document.getElementById(slots[i]).innerHTML = `
+                    <div class="panel player-info ${active ? 'active' : ''}" style="opacity:${p.connected ? 1 : 0.5}">
+                        ${active ? '<div class="turn-indicator-dot"></div>' : ''}
+                        ${p.name} ${"🎩".repeat(p.hats)}
+                    </div>
+                    <div class="opp-hand">
+                        ${Array(Math.min(p.handCount, 8)).fill('<div class="mini-card"></div>').map((c, idx) => `<div class="mini-card" style="left:${idx*7}px"></div>`).join('')}
+                    </div>
+                    <div style="font-size:12px; margin-top:5px;">${p.handCount} κάρτες</div>
+                `;
+            });
+        }
+
+        function renderScoreboard(history, players) {
+            const table = document.getElementById('score-table');
+            if (!history.length) return;
+            const pIds = Object.keys(history[0]);
+            let html = "<tr><th>Γύρος</th>" + pIds.map(id => `<th>${players.find(p=>p.id===id)?.name || 'Π'}</th>`).join('') + "</tr>";
+            history.forEach((row, i) => {
+                html += `<tr><td>${i+1}</td>` + pIds.map(id => `<td>${row[id]}</td>`).join('') + "</tr>";
+            });
+            table.innerHTML = html;
+        }
+
+        function updateDirectionIndicator(players, dir) {
+            const initials = players.map(p => p.name.charAt(0).toUpperCase());
+            document.getElementById('direction-indicator').innerText = dir === 1 ? initials.join(' → ') : initials.join(' ← ');
+        }
+
+        function toggleChat() {
+            const box = document.getElementById('chat-box');
+            box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function sendChat() {
+            const input = document.getElementById('chat-input');
+            if(input.value.trim()) { socket.emit('chatMessage', input.value); input.value = ''; }
+        }
+
+        window.addEventListener('resize', resizeGame);
+        resizeGame();
     </script>
 </body>
 </html>
