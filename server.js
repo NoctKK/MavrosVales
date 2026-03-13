@@ -5,6 +5,12 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
+// --- ΑΥΤΕΣ ΕΙΝΑΙ ΟΙ ΓΡΑΜΜΕΣ ΠΟΥ ΕΛΕΙΠΑΝ ---
+app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
+app.use('/sounds', express.static(__dirname + '/sounds')); // Επιτρέπει τη φόρτωση των ήχων
+app.get('/ping', (req, res) => res.send('pong')); // Anti-sleep ping
+// ------------------------------------------
+
 // Global Error Handlers (Αποτροπή Crash)
 process.on('uncaughtException', (err) => { console.error('Αποτράπηκε Crash (Exception):', err); });
 process.on('unhandledRejection', (err) => { console.error('Αποτράπηκε Crash (Rejection):', err); });
@@ -77,7 +83,7 @@ class Game {
             clearTimeout(this.lobbyTimer);
             this.lobbyTimer = null;
         }
-        this.lobbyTimer = setTimeout(() => this.resetLobby(), 120000); 
+        this.lobbyTimer = setTimeout(() => this.resetLobby(), 120000); // 2 λεπτά
     }
 
     safeDraw(player) {
@@ -400,7 +406,6 @@ class Game {
 
         let historyEntry = {};
         
-        // SCOREBOARD COLLISION FIX: Αποθηκεύουμε τα σκορ με το ID του παίκτη, όχι το όνομα.
         this.playerOrder.forEach(id => {
             if (id === winnerId) {
                 historyEntry[id] = "WC";
@@ -470,7 +475,7 @@ class Game {
             penalty: this.penaltyStack,
             direction: this.direction,
             currentPlayerName: cp ? cp.name : "...",
-            currentPlayerId: cp ? cp.id : null, // Το περνάμε στο UI για το Timer Sync
+            currentPlayerId: cp ? cp.id : null,
             activeSuit: this.activeSuit,
             deckCount: this.deck.length
         };
