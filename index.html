@@ -94,6 +94,38 @@
             will-change: transform;
         }
 
+        /* === ΟΙ ΔΙΟΡΘΩΣΕΙΣ ΠΟΥ ΖΗΤΗΣΕΣ ΓΙΑ ΤΑ ΦΥΛΛΑ === */
+        .player-cards {
+            display: flex;
+            flex-wrap: wrap; /* επιτρέπει νέες γραμμές όταν δημιουργούνται στοίβες */
+            gap: 5px; /* απόσταση μεταξύ των φύλλων */
+            justify-content: center;
+            position: relative;
+            padding-bottom: 10px; /* αφήνει χώρο κάτω από το όνομα του παίκτη */
+        }
+
+        .player-cards .card {
+            width: 50px; /* μέγεθος φύλλου */
+            height: 70px;
+            margin-left: -20px; /* overlap αν έχουμε πολλές κάρτες */
+            z-index: 1;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 2px 2px 5px black;
+            position: relative;
+        }
+
+        .player-cards .stacked .card {
+            margin-left: -35px; /* μεγαλύτερο overlap για στοίβες */
+        }
+
         /* === NOTIFICATIONS === */
         #msg-overlay { 
             display: none; 
@@ -241,8 +273,6 @@
         .opp-hand { position: relative; height: 45px; margin: 0 auto; display: flex; justify-content: center; }
         .mini-card { width: 30px; height: 45px; background: linear-gradient(135deg, #a00, #500); border: 1.5px solid white; border-radius: 4px; position: absolute; top: 0; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
         
-        .card-count-box { background: rgba(0, 0, 0, 0.8); border: 1px solid var(--gold); border-radius: 6px; padding: 4px 10px; font-size: 13px; font-weight: bold; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.5); margin-top: 15px; }
-
         /* === DECK & CENTER AREA === */
         #game-center { grid-area: center; display: flex; align-items: center; justify-content: center; gap: 40px; z-index: 20; position: relative; }
         #draw-pile { position: relative; width: 100px; height: 145px; background: linear-gradient(135deg, #8e2424, #4d0000); border: 3px solid white; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; box-shadow: 10px 10px 20px rgba(0,0,0,0.6); transition: transform 0.2s ease; transform-style: preserve-3d; transform: translateZ(20px); }
@@ -275,12 +305,6 @@
         .card-corner { position: absolute; top: 5px; left: 5px; font-size: 24px; font-weight: bold; line-height: 1; display: flex; flex-direction: column; align-items: center; }
         .card-corner.bottom { top: auto; bottom: 5px; left: auto; right: 5px; transform: rotate(180deg); }
         .card-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 70px; }
-
-        /* === MODALS & OVERLAYS === */
-        #ace-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9000; flex-direction: column; align-items: center; justify-content: center; }
-        #ace-backdrop { position: absolute; inset: 0; z-index: 1; }
-        #ace-content { background: var(--panel-bg); padding: 30px; border-radius: 20px; border: 3px solid var(--gold); text-align: center; position: relative; z-index: 10; }
-        .suit-btn { width: 90px; height: 90px; font-size: 55px; background: white; border-radius: 15px; margin: 15px; cursor: pointer; border: 4px solid var(--gold); }
 
         #scoreboard { position: absolute; top: 20px; left: 20px; padding: 10px; z-index: 1000; font-size: 14px; display: none; color: white; cursor: pointer; max-height: 400px; overflow-y: auto; }
         table { border-collapse: collapse; width: 100%; color: white; }
@@ -603,7 +627,8 @@
                     p.hand.forEach((c, idx) => {
                         if(!c) return;
                         const color = (c.color === 'red') ? '#d00' : 'black';
-                        cardsHtml += `<div style="background:white; color:${color}; width:35px; height:50px; border-radius:4px; border:1px solid #ccc; margin-left:-15px; margin-bottom:5px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:bold; font-size:16px; box-shadow:2px 2px 5px black; z-index:${idx};">${c.value}<div style="font-size:18px; line-height:1;">${c.suit}</div></div>`;
+                        // Χρήση της νέας κλάσης .card αντί για inline styles
+                        cardsHtml += `<div class="card" style="color:${color}; z-index:${idx};">${c.value}<div>${c.suit}</div></div>`;
                     });
                     
                     container.innerHTML = `
@@ -611,7 +636,7 @@
                             <div class="player-name">${p.name}</div>
                             <div style="font-size:12px; color:#4f4; margin-top:3px;">Σκορ: ${p.totalScore}</div>
                         </div>
-                        <div style="display:flex; flex-wrap:wrap; justify-content:center; padding-left: 15px; max-width: 200px; height: auto; margin: 0 auto;">${cardsHtml}</div>
+                        <div class="player-cards">${cardsHtml}</div>
                         <div class="card-count-box" style="opacity: 1">${p.hand.length} φύλλα</div>`;
                 }
             });
@@ -658,7 +683,6 @@
             document.getElementById('scoreboard').style.display = 'block';
         });
 
-        // Το νέο σύστημα ειδοποιήσεων μπαίνει στην ουρά
         socket.on('notification', m => {
             msgQueue.push(m);
             if (!isMsgShowing) {
@@ -725,7 +749,6 @@
             playCardLogic(index, value, suit);
         });
 
-        // === RENDER HAND (ME WRAP ΚΑΙ Z-INDEX) ===
         function renderHand(hand) {
             const container = document.getElementById('my-hand-container');
             if(!container) return;
@@ -758,7 +781,6 @@
             container.appendChild(frag);
         }
 
-        // === CARD PLAY LOGIC ===
         function playCardLogic(index, value, suit) {
             const handCont = document.getElementById('my-hand-container');
             if (handCont && handCont.classList.contains('not-my-turn')) return;
@@ -796,7 +818,6 @@
             socket.emit('playCard', { index: index, declaredSuit: declaredSuit });
         }
 
-        // === ANIMATIONS ===
         function triggerDrawAnimation() {
             const handCont = document.getElementById('my-hand-container');
             if (actionLocked || handCont.classList.contains('not-my-turn')) return;
@@ -879,7 +900,6 @@
             }
         }
 
-        // === UI HELPERS ===
         function distributePlayers(players, curName, isMyTurn) {
             const myIdx = players.findIndex(p => p.id === myId);
             if (myIdx === -1) return;
