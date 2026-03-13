@@ -99,6 +99,8 @@
             width: 600px;
             white-space: pre-line; 
             line-height: 1.3;
+            justify-content: center;
+            align-items: center;
         }
 
         #victory-screen {
@@ -568,11 +570,6 @@
         <button onclick="window.location.reload()" style="padding:10px 20px; font-size:20px; cursor:pointer;">ΕΠΑΝΑΦΟΡΤΩΣΗ ΣΕΛΙΔΑΣ</button>
     </div>
 
-    <div id="rotate-msg" style="display: none; position: fixed; inset: 0; z-index: 9999; background: black; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
-        <div style="font-size: 50px;">🔄</div>
-        <h2>Παρακαλώ γυρίστε τη συσκευή οριζόντια</h2>
-    </div>
-
     <div id="start-screen">
         <h1 style="color:var(--gold); font-size:80px; margin-bottom:10px; text-shadow: 0 0 20px rgba(212, 175, 55, 0.5); text-align:center;">Μαύρος Βαλές ♠️</h1>
         <div id="login-area" style="display:flex; flex-direction:column; align-items:center;">
@@ -586,7 +583,7 @@
     </div>
 
     <div id="victory-screen">
-        <h1 id="victory-msg" style="color: white; font-size: 50px; text-shadow: 0 0 20px #4f4; line-height: 1.2; max-width: 80%; margin-bottom: 40px;"></h1>
+        <h1 id="victory-msg" style="color: white; font-size: 50px; text-shadow: 0 0 20px #4f4; line-height: 1.2; max-width: 80%; margin-bottom: 40px;">🏆</h1>
         <button id="victory-btn" class="game-btn" style="font-size: 26px; padding: 20px 40px; border: 3px solid #4f4; color: #4f4; box-shadow: 0 0 15px rgba(79, 255, 68, 0.5);" onclick="location.reload()">ΝΕΟ ΠΑΙΧΝΙΔΙ</button>
     </div>
 
@@ -651,7 +648,6 @@
         </div>
 
         <div id="slot-right" class="player-slot"></div>
-        
         <div id="slot-bottom" class="player-slot">
             <div id="my-info-container" style="margin-bottom: 5px;"></div>
             <div id="my-hand-container"></div>
@@ -695,11 +691,6 @@
             if(!wrapper) return;
             gameScale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
             wrapper.style.transform = `scale(${gameScale})`;
-            
-            // Portrait check
-            const rotateMsg = document.getElementById('rotate-msg');
-            if(window.innerHeight > window.innerWidth) rotateMsg.style.display = 'flex';
-            else rotateMsg.style.display = 'none';
         }
         window.addEventListener('resize', () => requestAnimationFrame(resizeGame));
         window.onload = () => {
@@ -732,9 +723,11 @@
 
         // === SOCKET EVENTS ===
         socket.on('connect', () => {
-            console.log("Connected to Server");
+            console.log("Connected to Server:", socket.id);
             document.getElementById('reconnect-btn').style.display = 'none';
             myId = socket.id;
+            
+            // Re-join if we have session
             const name = sessionStorage.getItem('mv_username');
             const session = sessionStorage.getItem('mv_session');
             if(name && session && document.getElementById('start-screen').style.display === 'none') {
@@ -781,7 +774,7 @@
                 }
             }
 
-            // Suit Display
+            // Suit display
             const suitDisplay = document.getElementById('active-suit-display');
             if (data.activeSuit) {
                 suitDisplay.innerText = data.activeSuit;
@@ -794,7 +787,7 @@
             const ind = document.getElementById('turn-indicator');
             const handCont = document.getElementById('my-hand-container');
             if (data.isMyTurn) {
-                ind.innerText = data.penalty > 0 ? `⚠️ ΦΑΕ ${data.penalty}!` : "ΔΙΚΗ ΣΟΥ ΣΕΙΡΑ";
+                ind.innerText = data.penalty > 0 ? `⚠️ ΦΑΕ ${data.penalty}!` : "ΣΕΙΡΑ ΣΟΥ";
                 ind.style.borderColor = "#4f4"; ind.style.color = "#4f4";
                 handCont.classList.remove('not-my-turn');
             } else {
@@ -809,7 +802,8 @@
         });
 
         socket.on('revealHands', playersData => {
-            document.getElementById("turn-timer").style.display = "none";
+            const timerContainer = document.getElementById("turn-timer");
+            if(timerContainer) timerContainer.style.display = "none";
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
             
             const others = playersData.filter(p => p.id !== myId);
@@ -821,7 +815,7 @@
                     let cardsHtml = '';
                     p.hand.forEach((c, idx) => {
                         const color = (c.color === 'red') ? '#d00' : 'black';
-                        cardsHtml += `<div style="background:white; color:${color}; width:35px; height:50px; border-radius:4px; border:1px solid #ccc; margin-left:-15px; margin-bottom:5px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:bold; font-size:16px; box-shadow:2px 2px 5px black; z-index:${idx};">${c.value}<div style="font-size:18px; line-height:1;">${c.suit}</div></div>`;
+                        cardsHtml += `<div style="background:white; color:${color}; width:35px; height:50px; border-radius:4px; border:1px solid #ccc; margin-left:-15px; margin-bottom:5px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:bold; font-size:16px; box-shadow:2px 2px 5px black;">${c.value}<div style="font-size:18px; line-height:1;">${c.suit}</div></div>`;
                     });
                     
                     container.innerHTML = `
@@ -846,7 +840,10 @@
             const msg = document.getElementById('waiting-msg');
             const btn = document.getElementById('start-btn');
             if(msg) msg.innerText = `Συνδεδεμένοι παίκτες: ${count}`;
-            if(btn) btn.style.display = (count >= 2) ? 'inline-block' : 'none';
+            // Διορθωμένο: Πράσινο κουμπί αν παίκτες >= 2
+            if(btn) {
+                btn.style.display = (count >= 2) ? 'inline-block' : 'none';
+            }
         });
 
         socket.on('joinedLobby', () => {
@@ -856,6 +853,7 @@
         });
 
         socket.on('rejoinSuccess', data => {
+            document.getElementById('login-area').style.display = 'none';
             document.getElementById('start-screen').style.display = 'none';
             if (data.gameStarted && data.history) {
                 fullScoreHistory = data.history;
@@ -889,7 +887,7 @@
             setTimeout(() => document.querySelectorAll('.hand-card').forEach(c => c.classList.remove('shake')), 200); 
         });
 
-        // === CORE LOGIC ===
+        // === LOGIC ===
         function joinGame() {
             const input = document.getElementById('username');
             const btn = document.getElementById('login-btn');
@@ -897,6 +895,7 @@
             if (name === "") return alert("Παρακαλώ βάλε ένα όνομα!");
             
             if(!socket.connected) {
+                console.log("Retrying socket connection...");
                 socket.connect();
                 btn.innerText = "ΣΥΝΔΕΣΗ...";
                 btn.disabled = true;
@@ -904,7 +903,10 @@
                 return;
             }
 
+            btn.disabled = true;
             let sessionId = sessionStorage.getItem('mv_session') || 'sess_' + Math.random().toString(36).substr(2, 9);
+            
+            // Αποθήκευση ΑΜΕΣΩΣ
             sessionStorage.setItem('mv_session', sessionId);
             sessionStorage.setItem('mv_username', name);
 
@@ -912,6 +914,12 @@
         }
 
         function startGameRequest() {
+            console.log("Checking connection for start game:", socket.connected);
+            if(!socket.connected) {
+                alert("Αποσυνδεθήκατε! Προσπάθεια επανασύνδεσης...");
+                socket.connect();
+                return;
+            }
             socket.emit('startGameRequest');
         }
 
@@ -935,11 +943,11 @@
                 div.onclick = () => playCardLogic(i, c.value, c.suit);
                 frag.appendChild(div);
             });
-
             container.innerHTML = "";
             container.appendChild(frag);
         }
 
+        // === CARD LOGIC UPDATE ===
         function playCardLogic(index, value, suit) {
             const handCont = document.getElementById('my-hand-container');
             if (handCont && handCont.classList.contains('not-my-turn')) return;
@@ -973,6 +981,7 @@
         function executePlayCard(index, declaredSuit) {
             const cardElement = document.querySelector(`.card-${index}`);
             if (cardElement) animateThrow(cardElement);
+
             actionLocked = true;
             lastClick = Date.now();
             socket.emit('playCard', { index: index, declaredSuit: declaredSuit });
@@ -1054,12 +1063,11 @@
             const myIdx = players.findIndex(p => p.id === myId);
             if (myIdx === -1) return;
             
-            const me = players[myIdx];
             document.getElementById('my-info-container').innerHTML = `
                 <div class="panel player-info ${isMyTurn ? 'active' : ''}">
                     ${isMyTurn ? '<div class="turn-indicator-dot"></div>' : ''}
-                    <div class="player-name">${me.name}</div>
-                    ${me.hats > 0 ? `<div class="hats-container">${"🎩".repeat(me.hats)}</div>` : ''}
+                    <div class="player-name">${players[myIdx].name}</div>
+                    ${players[myIdx].hats > 0 ? `<div class="hats-container">${"🎩".repeat(players[myIdx].hats)}</div>` : ''}
                 </div>`;
 
             const others = players.slice(myIdx).concat(players.slice(0, myIdx)).slice(1);
@@ -1088,16 +1096,14 @@
             let names = playersArray.map(p => (p.name || "").replace('❤️','').trim());
             let initials = names.map(n => n.charAt(0).toUpperCase());
             
-            function makeUnique(initials, names) {
-                const used = {};
-                for(let i=0; i<initials.length; i++) {
-                    let init = initials[i]; let name = names[i]; let len = 1;
-                    while(Object.values(used).includes(init) && len < Math.min(name.length, 4)) { len++; init = name.substring(0, len).toUpperCase(); }
-                    used[i] = init; initials[i] = init;
+            const used = {};
+            initials = initials.map((init, i) => {
+                let len = 1;
+                while(Object.values(used).includes(init) && len < names[i].length && len < 4) {
+                    len++; init = names[i].substring(0, len).toUpperCase();
                 }
-                return initials;
-            }
-            initials = makeUnique(initials, names);
+                used[i] = init; return init;
+            });
             document.getElementById('direction-indicator').innerText = dir === 1 ? initials.join(' ➔ ') : initials.join(' ⬅ ');
         }
 
