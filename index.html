@@ -234,6 +234,7 @@
         .game-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #111; }
         .game-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+        /* Πράσινο περίγραμμα για την Εκκίνηση */
         #start-btn { 
             border: 3px solid #4f4; 
             color: #4f4; 
@@ -429,7 +430,7 @@
             100% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
         }
 
-        /* === MY HAND === */
+        /* === CARDS & HAND === */
         #my-hand-container { 
             width: 90%; 
             display: flex; 
@@ -440,7 +441,7 @@
             transition: opacity 0.3s; 
         }
         
-        .not-my-turn .hand-card { pointer-events: none; }
+        .not-my-turn .hand-card { pointer-events: none; opacity: 0.9; }
         
         .hand-card { 
             box-shadow: -2px 0 5px rgba(0,0,0,0.3); 
@@ -465,7 +466,7 @@
         .card-corner.bottom { top: auto; bottom: 5px; left: auto; right: 5px; transform: rotate(180deg); }
         .card-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 70px; }
 
-        /* === MISC MODALS === */
+        /* === MODALS & OVERLAYS === */
         #ace-modal { 
             display: none; 
             position: fixed; 
@@ -573,6 +574,11 @@
         <button onclick="window.location.reload()" style="padding:10px 20px; font-size:20px; cursor:pointer;">ΕΠΑΝΑΦΟΡΤΩΣΗ ΣΕΛΙΔΑΣ</button>
     </div>
 
+    <div id="rotate-msg" style="display: none; position: fixed; inset: 0; z-index: 9999; background: black; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+        <div style="font-size: 50px;">🔄</div>
+        <h2>Παρακαλώ γυρίστε τη συσκευή οριζόντια</h2>
+    </div>
+
     <div id="start-screen">
         <h1 style="color:var(--gold); font-size:80px; margin-bottom:10px; text-shadow: 0 0 20px rgba(212, 175, 55, 0.5); text-align:center;">Μαύρος Βαλές ♠️</h1>
         <div id="login-area" style="display:flex; flex-direction:column; align-items:center;">
@@ -586,7 +592,7 @@
     </div>
 
     <div id="victory-screen">
-        <h1 id="victory-msg" style="color: white; font-size: 50px; text-shadow: 0 0 20px #4f4; line-height: 1.2; max-width: 80%; margin-bottom: 40px;"></h1>
+        <h1 id="victory-msg" style="color: white; font-size: 50px; text-shadow: 0 0 20px #4f4; line-height: 1.2; max-width: 80%; margin-bottom: 40px;">🏆</h1>
         <button id="victory-btn" class="game-btn" style="font-size: 26px; padding: 20px 40px; border: 3px solid #4f4; color: #4f4; box-shadow: 0 0 15px rgba(79, 255, 68, 0.5);" onclick="location.reload()">ΝΕΟ ΠΑΙΧΝΙΔΙ</button>
     </div>
 
@@ -682,7 +688,9 @@
             wrapper.style.transform = `scale(${gameScale})`;
         }
         window.addEventListener('resize', () => requestAnimationFrame(resizeGame));
-        window.onload = () => { resizeGame(); };
+        window.onload = () => {
+            resizeGame();
+        };
 
         // === TIMER LOGIC ===
         function startTimer(seconds = 60) {
@@ -713,6 +721,7 @@
             document.getElementById('reconnect-btn').style.display = 'none';
             myId = socket.id;
             
+            // Auto rejoin
             const name = sessionStorage.getItem('mv_username');
             const session = sessionStorage.getItem('mv_session');
             if(name && session && document.getElementById('start-screen').style.display === 'none') {
@@ -721,6 +730,7 @@
         });
 
         socket.on('disconnect', () => {
+            console.log("Socket Disconnected");
             document.getElementById('reconnect-btn').style.display = 'flex';
         });
 
@@ -775,7 +785,7 @@
             const handCont = document.getElementById('my-hand-container');
             if (ind && handCont) {
                 if (data.isMyTurn) {
-                    ind.innerText = data.penalty > 0 ? `⚠️ ΦΑΕ ${data.penalty}!` : "ΣΕΙΡΑ ΣΟΥ";
+                    ind.innerText = data.penalty > 0 ? `⚠️ ΦΑΕ ${data.penalty}!` : "ΔΙΚΗ ΣΟΥ ΣΕΙΡΑ";
                     ind.style.borderColor = "#4f4"; ind.style.color = "#4f4";
                     handCont.classList.remove('not-my-turn');
                 } else {
@@ -826,10 +836,22 @@
         });
 
         socket.on('playerCountUpdate', count => {
+            console.log("Players connected:", count);
             const msg = document.getElementById('waiting-msg');
             const btn = document.getElementById('start-btn');
             if(msg) msg.innerText = `Συνδεδεμένοι παίκτες: ${count}`;
-            if(btn) btn.style.display = (count >= 2) ? 'inline-block' : 'none';
+            if(btn) {
+                if(count >= 2) {
+                    btn.style.display = 'inline-block';
+                } else {
+                    btn.style.display = 'none';
+                }
+            }
+        });
+
+        socket.on('gameReady', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('scoreboard').style.display = 'block';
         });
 
         socket.on('joinedLobby', () => {
@@ -877,10 +899,12 @@
             const input = document.getElementById('username');
             const btn = document.getElementById('login-btn');
             if(!input || !btn) return;
+            
             const name = input.value.trim();
             if (name === "") return alert("Παρακαλώ βάλε ένα όνομα!");
             
             if(!socket.connected) {
+                console.log("Trying to reconnect socket before join...");
                 socket.connect();
                 btn.innerText = "ΣΥΝΔΕΣΗ...";
                 btn.disabled = true;
@@ -889,18 +913,23 @@
             }
 
             btn.disabled = true;
-            let sessionId = sessionStorage.getItem('mv_session') || 'sess_' + Math.random().toString(36).substr(2, 9);
+            let sessionId = sessionStorage.getItem('mv_session');
+            if (!sessionId) {
+                sessionId = 'sess_' + Math.random().toString(36).substr(2, 9);
+            }
+            
+            // Save to Session Storage before emit
             sessionStorage.setItem('mv_session', sessionId);
             sessionStorage.setItem('mv_username', name);
 
-            console.log("Emitting joinGame", name, sessionId);
+            console.log("Emitting joinGame:", name, sessionId);
             socket.emit('joinGame', { username: name, sessionId: sessionId });
         }
 
         function startGameRequest() {
-            console.log("Start Request. Socket Connected:", socket.connected);
+            console.log("Start Request clicked. Socket state:", socket.connected);
             if(!socket.connected) {
-                alert("Αποσυνδέθηκε! Προσπάθεια επανασύνδεσης...");
+                alert("Το παιχνίδι αποσυνδέθηκε! Προσπάθεια επανασύνδεσης...");
                 socket.connect();
                 return;
             }
@@ -986,7 +1015,8 @@
             const deckEl = document.getElementById('draw-pile');
             const clone = document.createElement('div');
             clone.className = 'flying-card';
-            clone.style.width = '77px'; clone.style.height = '112px';
+            clone.style.width = '77px';
+            clone.style.height = '112px';
             clone.style.background = 'linear-gradient(135deg, #a00, #500)';
             clone.style.border = '2px solid white';
             clone.style.borderRadius = '5px';
@@ -1129,7 +1159,9 @@
             const i = document.getElementById('chat-input');
             if(i.value) { socket.emit('chatMessage', i.value); i.value = ''; }
         }
-        function forceReconnect() { socket.connected ? joinGame() : socket.connect(); }
+        function forceReconnect() { 
+            socket.connected ? joinGame() : socket.connect(); 
+        }
     </script>
 </body>
 </html>
