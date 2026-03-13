@@ -1,12 +1,23 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
 
-app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
-app.use('/sounds', express.static(__dirname + '/sounds')); 
+// === ΣΤΑΤΙΚΑ ΑΡΧΕΙΑ & PATHS ===
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+
+// ΔΙΟΡΘΩΣΗ: Έλεγχος αν υπάρχει ο φάκελος sounds για να μην "κρεμάει" ο server
+const soundsPath = path.join(__dirname, 'sounds');
+if (fs.existsSync(soundsPath)) {
+    app.use('/sounds', express.static(soundsPath));
+} else {
+    console.log("Προσοχή: Ο φάκελος /sounds δεν βρέθηκε. Το παιχνίδι θα συνεχίσει χωρίς ήχους.");
+}
+
 app.get('/ping', (req, res) => res.send('pong')); 
 
 // Global Error Handlers (Αποτροπή Crash)
@@ -102,7 +113,7 @@ class Game {
 
         this.turnTimer = setTimeout(() => {
             this.autoPlayTurn();
-        }, 60000); // 60 ΔΕΥΤΕΡΟΛΕΠΤΑ (1 λεπτό)
+        }, 60000); // 60 ΔΕΥΤΕΡΟΛΕΠΤΑ
     }
 
     autoPlayTurn() {
@@ -227,7 +238,6 @@ class Game {
                 if (card.value === '8') {
                     this.safeDraw(p);
                     io.emit('notification', `Ο/Η ${p.name} έκλεισε με 8 και τραβάει αναγκαστικά φύλλο! 🃏`);
-                    
                     this.processCardLogic(card, p); 
                     this.broadcastUpdate();
                     return; 
@@ -331,7 +341,6 @@ class Game {
         if (card.value === '2') {
             this.consecutiveTwos++;
             if (!isStart) {
-                // ΝΕΟ ΛΕΚΤΙΚΟ ΜΕ \n (Αλλαγή γραμμής)
                 let msg = 'Πάρε μία! 🃏';
                 if (this.consecutiveTwos >= 3) {
                     msg += '\nΞες πώς πάνε αυτά! 😂';
@@ -384,7 +393,6 @@ class Game {
         this.playerOrder.forEach(id => { this.players[id].hand = []; this.players[id].hasDrawn = false; this.players[id].hasAtePenalty = false; });
         
         let dealCount = 0;
-        
         if (this.dealInterval) {
             clearInterval(this.dealInterval);
             this.dealInterval = null;
@@ -413,7 +421,6 @@ class Game {
         if (this.turnTimer) { clearTimeout(this.turnTimer); this.turnTimer = null; }
 
         let historyEntry = {};
-        
         this.playerOrder.forEach(id => {
             if (id === winnerId) {
                 historyEntry[id] = "WC";
@@ -455,7 +462,6 @@ class Game {
                 this.players[id].hasAtePenalty = false;
             }
         });
-
         this.resetTurnTimer(); 
     }
 
@@ -470,7 +476,6 @@ class Game {
 
     broadcastUpdate() {
         let cp = this.playerOrder.length ? this.players[this.playerOrder[this.turnIndex]] : null;
-        
         let publicPlayers = this.playerOrder.map(pid => {
             let p = this.players[pid];
             if (!p) return null;
@@ -511,7 +516,6 @@ class Game {
                     this.advanceTurn(1);
                     this.broadcastUpdate();
                 }
-                
                 if (this.playerOrder.every(id => !this.players[id] || !this.players[id].connected)) {
                     this.gameStarted = false;
                     if (this.turnTimer) {
