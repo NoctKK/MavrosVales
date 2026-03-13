@@ -32,7 +32,7 @@ class Game {
         this.consecutiveTwos = 0;
         this.lobbyTimer = null;
         this.dealInterval = null;
-        this.turnTimer = null; // Χρονόμετρο για Auto-Pass
+        this.turnTimer = null; 
     }
 
     createDeck() {
@@ -77,20 +77,18 @@ class Game {
             clearTimeout(this.lobbyTimer);
             this.lobbyTimer = null;
         }
-        this.lobbyTimer = setTimeout(() => this.resetLobby(), 120000); // 2 λεπτά
+        this.lobbyTimer = setTimeout(() => this.resetLobby(), 120000); 
     }
 
-    // ΑΣΦΑΛΕΣ ΤΡΑΒΗΓΜΑ: Έλεγχος αν η τράπουλα άδειασε τελείως
     safeDraw(player) {
         if (this.deck.length === 0) {
             this.refillDeck();
-            if (this.deck.length === 0) return false; // Ακραίο σενάριο: Αδεια όλα τα φύλλα
+            if (this.deck.length === 0) return false; 
         }
         player.hand.push(this.deck.pop());
         return true;
     }
 
-    // ΕΠΑΝΑΦΟΡΑ/ΕΚΚΙΝΗΣΗ ΧΡΟΝΟΜΕΤΡΟΥ 45 ΔΕΥΤ.
     resetTurnTimer() {
         if (this.turnTimer) {
             clearTimeout(this.turnTimer);
@@ -103,7 +101,6 @@ class Game {
         }, 45000); // 45 seconds
     }
 
-    // AUTO-PASS ΛΟΓΙΚΗ ΑΝ ΚΑΠΟΙΟΣ ΛΕΙΠΕΙ (AFK)
     autoPlayTurn() {
         if (!this.gameStarted || this.playerOrder.length === 0) return;
         
@@ -155,7 +152,6 @@ class Game {
         } else {
             if (this.gameStarted) return socket.emit('notification', 'Το παιχνίδι τρέχει ήδη!');
             
-            // XSS / Καθαρισμός Ονόματος
             let cleanName = (username && typeof username === 'string') 
                 ? username.replace(/[<>]/g, '').trim() 
                 : "Παίκτης " + (this.playerOrder.length + 1);
@@ -173,11 +169,10 @@ class Game {
 
     playCard(socket, data) {
         if (!this.gameStarted || this.playerOrder[this.turnIndex] !== socket.id) return;
-        
         if (!data || typeof data.index !== "number") return;
         
         let p = this.players[socket.id];
-        if (!p) return; // Ασφάλεια ελέγχου
+        if (!p) return;
 
         if (data.index < 0 || data.index >= p.hand.length) return socket.emit('invalidMove');
         let card = p.hand[data.index];
@@ -259,7 +254,7 @@ class Game {
                     else this.activeSuit = data.declaredSuit || card.suit;
                 } else this.activeSuit = null;
 
-                if (this.turnTimer) clearTimeout(this.turnTimer); // Σταματάμε το timer αφού κλείνει
+                if (this.turnTimer) clearTimeout(this.turnTimer); 
                 this.broadcastUpdate();
                 setTimeout(() => { this.handleRoundEnd(socket.id, card.value === 'A'); }, isPenaltyHandled ? 3000 : 1000);
                 return;
@@ -291,8 +286,6 @@ class Game {
             }
             this.penaltyStack = 0; this.penaltyType = null;
             p.hasAtePenalty = true;
-            
-            // Το timer κάνει reset ώστε να έχει 45 δευτ. να παίξει ένα από τα φύλλα
             this.resetTurnTimer(); 
             this.broadcastUpdate(); 
             return;
@@ -351,7 +344,7 @@ class Game {
         }
         
         if (advance) this.advanceTurn(steps);
-        else this.resetTurnTimer(); // Reset αν ο παίκτης ξαναπαίζει (π.χ. 8άρι)
+        else this.resetTurnTimer(); 
     }
 
     startNewRound(reset = false) {
@@ -396,7 +389,7 @@ class Game {
                 this.discardPile = [first]; 
                 io.emit('gameReady');
                 this.processCardLogic(first, null); 
-                this.resetTurnTimer(); // Ξεκινάει το χρονόμετρο 45s για τον πρώτο παίκτη
+                this.resetTurnTimer(); 
                 this.broadcastUpdate();
             }
         }, 50);
@@ -406,14 +399,18 @@ class Game {
         if (this.turnTimer) { clearTimeout(this.turnTimer); this.turnTimer = null; }
 
         let historyEntry = {};
+        
+        // SCOREBOARD COLLISION FIX: Αποθηκεύουμε τα σκορ με το ID του παίκτη, όχι το όνομα.
         this.playerOrder.forEach(id => {
-            if (id === winnerId) historyEntry[this.players[id].name] = "WC";
-            else {
+            if (id === winnerId) {
+                historyEntry[id] = "WC";
+            } else {
                 let pts = this.calculateHandScore(this.players[id].hand) + (closedWithAce ? 50 : 0);
                 this.players[id].totalScore += pts; 
-                historyEntry[this.players[id].name] = this.players[id].totalScore;
+                historyEntry[id] = this.players[id].totalScore;
             }
         });
+
         io.emit('revealHands', this.playerOrder.map(id => this.players[id]));
         let safePlayers = this.playerOrder.filter(id => this.players[id].totalScore < 500);
         
@@ -429,6 +426,7 @@ class Game {
         let target = safePlayers.length > 0 ? Math.max(...safePlayers.map(id => this.players[id].totalScore)) : 0;
         this.playerOrder.forEach(id => { if (this.players[id].totalScore >= 500) { this.players[id].hats++; this.players[id].totalScore = target; } });
         this.roundHistory.push(historyEntry);
+        
         io.emit('updateScoreboard', { history: this.roundHistory, players: this.playerOrder.map(id => this.players[id]) });
         setTimeout(() => this.startNewRound(false), 3000);
     }
@@ -445,7 +443,7 @@ class Game {
             }
         });
 
-        this.resetTurnTimer(); // Reset 45s για τον επόμενο παίκτη
+        this.resetTurnTimer(); 
     }
 
     refillDeck() {
@@ -472,6 +470,7 @@ class Game {
             penalty: this.penaltyStack,
             direction: this.direction,
             currentPlayerName: cp ? cp.name : "...",
+            currentPlayerId: cp ? cp.id : null, // Το περνάμε στο UI για το Timer Sync
             activeSuit: this.activeSuit,
             deckCount: this.deck.length
         };
@@ -500,10 +499,12 @@ class Game {
                     this.broadcastUpdate();
                 }
                 
-                // Εάν ΟΛΟΙ οι παίκτες του παιχνιδιού πέσουν, κλείνουμε το δωμάτιο
                 if (this.playerOrder.every(id => !this.players[id] || !this.players[id].connected)) {
                     this.gameStarted = false;
-                    if (this.turnTimer) clearTimeout(this.turnTimer);
+                    if (this.turnTimer) {
+                        clearTimeout(this.turnTimer);
+                        this.turnTimer = null;
+                    }
                     this.startLobbyTimer(); 
                 }
             }
