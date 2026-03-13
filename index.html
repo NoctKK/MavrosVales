@@ -234,6 +234,7 @@
         .game-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #111; }
         .game-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+        /* Πράσινο περίγραμμα για την Εκκίνηση */
         #start-btn { 
             border: 3px solid #4f4; 
             color: #4f4; 
@@ -429,7 +430,7 @@
             100% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
         }
 
-        /* === CARDS & HAND === */
+        /* === MY HAND === */
         #my-hand-container { 
             width: 90%; 
             display: flex; 
@@ -465,36 +466,15 @@
         .card-corner.bottom { top: auto; bottom: 5px; left: auto; right: 5px; transform: rotate(180deg); }
         .card-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 70px; }
 
-        /* === MODALS & OVERLAYS === */
-        #ace-modal { 
-            display: none; 
+        /* === MISC === */
+        .flying-card {
             position: fixed; 
-            inset: 0; 
-            background: rgba(0,0,0,0.7); 
-            z-index: 9000; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
+            z-index: 9999; 
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 10px 10px 30px rgba(0,0,0,0.5);
         }
         
-        #ace-content { 
-            background: var(--panel-bg); 
-            padding: 30px; 
-            border-radius: 20px; 
-            border: 3px solid var(--gold);
-            text-align: center;
-        }
-
-        .suit-btn { 
-            width: 90px; height: 90px; 
-            font-size: 55px; 
-            background: white; 
-            border-radius: 15px; 
-            margin: 15px; 
-            cursor: pointer; 
-            border: 4px solid var(--gold); 
-        }
-
         #scoreboard { 
             position: absolute; 
             top: 20px; 
@@ -509,6 +489,9 @@
             overflow-y: auto; 
         }
         
+        table { border-collapse: collapse; width: 100%; color: white; }
+        th, td { border: 1px solid var(--gold); padding: 8px; text-align: center; }
+
         #active-suit-display {
             position: absolute; 
             top: 35%; 
@@ -535,14 +518,6 @@
             color: var(--gold);
             z-index: 1000; 
             letter-spacing: 2px;
-        }
-
-        .flying-card {
-            position: fixed; 
-            z-index: 9999; 
-            pointer-events: none;
-            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            box-shadow: 10px 10px 30px rgba(0,0,0,0.5);
         }
 
         .shake { animation: shake 0.2s; border-color: red !important; }
@@ -583,7 +558,7 @@
     </div>
 
     <div id="victory-screen">
-        <h1 id="victory-msg" style="color: white; font-size: 50px; text-shadow: 0 0 20px #4f4; line-height: 1.2; max-width: 80%; margin-bottom: 40px;">🏆</h1>
+        <h1 id="victory-msg" style="color: white; font-size: 50px; text-shadow: 0 0 20px #4f4; line-height: 1.2; max-width: 80%; margin-bottom: 40px;"></h1>
         <button id="victory-btn" class="game-btn" style="font-size: 26px; padding: 20px 40px; border: 3px solid #4f4; color: #4f4; box-shadow: 0 0 15px rgba(79, 255, 68, 0.5);" onclick="location.reload()">ΝΕΟ ΠΑΙΧΝΙΔΙ</button>
     </div>
 
@@ -648,6 +623,7 @@
         </div>
 
         <div id="slot-right" class="player-slot"></div>
+        
         <div id="slot-bottom" class="player-slot">
             <div id="my-info-container" style="margin-bottom: 5px;"></div>
             <div id="my-hand-container"></div>
@@ -695,7 +671,9 @@
         window.addEventListener('resize', () => requestAnimationFrame(resizeGame));
         window.onload = () => {
             resizeGame();
-            Object.values(sfx).forEach(a => { a.volume=0; a.play().catch(()=>{}); a.volume=1; a.load(); });
+            Object.values(sfx).forEach(a => { 
+                a.volume=0; a.play().catch(()=>{}); a.volume=1; a.load(); 
+            });
         };
 
         // === TIMER LOGIC ===
@@ -713,7 +691,7 @@
             const update = () => {
                 const remaining = Math.max(0, timerEnd - Date.now());
                 const percent = remaining / (seconds * 1000);
-                bar.style.strokeDashoffset = 139 * (1 - percent); // 2 * PI * 22
+                bar.style.strokeDashoffset = 139 * (1 - percent); 
                 text.innerText = Math.ceil(remaining / 1000);
 
                 if(remaining > 0) animationFrameId = requestAnimationFrame(update);
@@ -723,11 +701,10 @@
 
         // === SOCKET EVENTS ===
         socket.on('connect', () => {
-            console.log("Connected to Server:", socket.id);
+            console.log("Connected as:", socket.id);
             document.getElementById('reconnect-btn').style.display = 'none';
             myId = socket.id;
             
-            // Re-join if we have session
             const name = sessionStorage.getItem('mv_username');
             const session = sessionStorage.getItem('mv_session');
             if(name && session && document.getElementById('start-screen').style.display === 'none') {
@@ -758,23 +735,20 @@
             window.currentTopCard = data.topCard;
             window.currentActiveSuit = data.activeSuit;
 
-            // Timer management
             if (data.currentPlayerId && data.currentPlayerId !== lastPlayerId) {
                 lastPlayerId = data.currentPlayerId;
                 startTimer(60);
             }
 
-            // Pile update
             if (data.topCard) {
                 const cardId = data.topCard.value + data.topCard.suit;
-                if (cardId !== window.lastTopCardIdStr) {
+                if (cardId !== window.lastCardId) {
                     addCardToPile(data.topCard);
-                    window.lastTopCardIdStr = cardId;
+                    window.lastCardId = cardId;
                     playSound('card');
                 }
             }
 
-            // Suit display
             const suitDisplay = document.getElementById('active-suit-display');
             if (data.activeSuit) {
                 suitDisplay.innerText = data.activeSuit;
@@ -783,7 +757,6 @@
                 suitDisplay.style.textShadow = "0 0 10px white, 0 0 20px white";
             } else { suitDisplay.style.display = 'none'; }
 
-            // Turn info
             const ind = document.getElementById('turn-indicator');
             const handCont = document.getElementById('my-hand-container');
             if (data.isMyTurn) {
@@ -840,10 +813,7 @@
             const msg = document.getElementById('waiting-msg');
             const btn = document.getElementById('start-btn');
             if(msg) msg.innerText = `Συνδεδεμένοι παίκτες: ${count}`;
-            // Διορθωμένο: Πράσινο κουμπί αν παίκτες >= 2
-            if(btn) {
-                btn.style.display = (count >= 2) ? 'inline-block' : 'none';
-            }
+            if(btn) btn.style.display = (count >= 2) ? 'inline-block' : 'none';
         });
 
         socket.on('joinedLobby', () => {
@@ -879,9 +849,7 @@
         socket.on('invalidMove', () => {
             actionLocked = false; 
             const o = document.getElementById('msg-overlay');
-            o.innerText = "Άκυρη Κίνηση!"; 
-            o.style.display = 'flex';
-            o.style.color = "red";
+            o.innerText = "Άκυρη Κίνηση!"; o.style.display = 'flex'; o.style.color = "red";
             setTimeout(() => { o.style.display = 'none'; o.style.color = "var(--gold)"; }, 1000);
             document.querySelectorAll('.hand-card').forEach(c => c.classList.add('shake')); 
             setTimeout(() => document.querySelectorAll('.hand-card').forEach(c => c.classList.remove('shake')), 200); 
@@ -895,7 +863,6 @@
             if (name === "") return alert("Παρακαλώ βάλε ένα όνομα!");
             
             if(!socket.connected) {
-                console.log("Retrying socket connection...");
                 socket.connect();
                 btn.innerText = "ΣΥΝΔΕΣΗ...";
                 btn.disabled = true;
@@ -905,8 +872,6 @@
 
             btn.disabled = true;
             let sessionId = sessionStorage.getItem('mv_session') || 'sess_' + Math.random().toString(36).substr(2, 9);
-            
-            // Αποθήκευση ΑΜΕΣΩΣ
             sessionStorage.setItem('mv_session', sessionId);
             sessionStorage.setItem('mv_username', name);
 
@@ -914,9 +879,9 @@
         }
 
         function startGameRequest() {
-            console.log("Checking connection for start game:", socket.connected);
+            console.log("Emitting startGameRequest. Socket status:", socket.connected);
             if(!socket.connected) {
-                alert("Αποσυνδεθήκατε! Προσπάθεια επανασύνδεσης...");
+                alert("Σφάλμα σύνδεσης! Προσπάθεια επανασύνδεσης...");
                 socket.connect();
                 return;
             }
@@ -947,7 +912,6 @@
             container.appendChild(frag);
         }
 
-        // === CARD LOGIC UPDATE ===
         function playCardLogic(index, value, suit) {
             const handCont = document.getElementById('my-hand-container');
             if (handCont && handCont.classList.contains('not-my-turn')) return;
@@ -965,9 +929,9 @@
             executePlayCard(index, null);
         }
 
-        function confirmAce(chosenSuit) {
+        function confirmAce(suit) {
             if (selectedAceIndex === null) return;
-            executePlayCard(selectedAceIndex, chosenSuit);
+            executePlayCard(selectedAceIndex, suit);
             document.getElementById('ace-modal').style.display = 'none';
             selectedAceIndex = null;
         }
@@ -987,7 +951,6 @@
             socket.emit('playCard', { index: index, declaredSuit: declaredSuit });
         }
 
-        // === ANIMATIONS ===
         function triggerDrawAnimation() {
             const handCont = document.getElementById('my-hand-container');
             if (actionLocked || handCont.classList.contains('not-my-turn')) return;
@@ -1058,7 +1021,6 @@
             if (cards.length > 6) cards[0].remove();
         }
 
-        // === UI HELPERS ===
         function distributePlayers(players, curName, isMyTurn) {
             const myIdx = players.findIndex(p => p.id === myId);
             if (myIdx === -1) return;
