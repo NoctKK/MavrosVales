@@ -129,12 +129,11 @@
             white-space: nowrap;
         }
 
-        /* ΝΕΟ CONTAINER ΓΙΑ TIMER + INDICATOR ΟΜΟΡΦΑ ΣΤΟΙΧΙΣΜΕΝΑ ΔΙΠΛΑ-ΔΙΠΛΑ */
+        /* --- ΝΕΟ FLEX UI ΓΙΑ TIMER & TURN INDICATOR --- */
         #top-right-ui {
             position: absolute; top: 15px; right: 20px; z-index: 1000;
-            display: flex; align-items: center; gap: 10px;
+            display: flex; align-items: center; gap: 15px; 
         }
-
         #turn-timer { position: relative; width: 52px; height: 52px; display: none; }
         .timer-bg { stroke: #444; fill: rgba(0,0,0,0.5); }
         .timer-bar {
@@ -147,7 +146,6 @@
             position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
             font-size: 18px; font-weight: bold; color: white; text-shadow: 1px 1px 3px black;
         }
-
         #turn-indicator { 
             padding: 10px 25px; background: #1a472a; 
             border: 3px solid #4f4; border-radius: 15px; 
@@ -183,14 +181,10 @@
         }
 
         .turn-indicator-dot {
-            position: absolute;
-            top: -6px; right: -6px;
-            width: 16px; height: 16px;
-            border-radius: 50%;
-            background: #00ff9c;
-            box-shadow: 0 0 8px #00ff9c;
-            animation: blink 1s infinite;
-            z-index: 50;
+            position: absolute; top: -6px; right: -6px;
+            width: 16px; height: 16px; border-radius: 50%;
+            background: #00ff9c; box-shadow: 0 0 8px #00ff9c;
+            animation: blink 1s infinite; z-index: 50;
         }
         @keyframes blink {
             0% { opacity: .2; transform: scale(0.8); }
@@ -201,7 +195,7 @@
         .player-name { font-weight: bold; color: var(--gold); font-size: 16px; }
         .hats-container { font-size: 20px; margin-top: 3px; }
 
-        .opp-hand { position: relative; height: 45px; margin: 0 auto; transition: width 0.3s; }
+        .opp-hand { position: relative; height: 45px; margin: 0 auto; transition: width 0.3s; display: flex; justify-content: center; }
         .mini-card { width: 30px; height: 45px; background: linear-gradient(135deg, #a00, #500); border: 1.5px solid white; border-radius: 4px; position: absolute; top: 0; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
         .card-count-text { font-size: 15px; font-weight: bold; color: #fff; margin-top: 8px; text-shadow: 1px 1px 3px black; text-align: center; width: 100%; }
 
@@ -213,8 +207,7 @@
             border: 3px solid white; border-radius: 10px; display: flex; flex-direction: column; 
             align-items: center; justify-content: center; cursor: pointer; 
             box-shadow: 10px 10px 20px rgba(0,0,0,0.6); transition: transform 0.2s ease;
-            transform-style: preserve-3d;
-            transform: translateZ(20px);
+            transform-style: preserve-3d; transform: translateZ(20px);
         }
         #draw-pile::before, #draw-pile::after {
             content: ""; position: absolute; width: 100%; height: 100%;
@@ -227,10 +220,7 @@
         #draw-pile:hover { transform: translateZ(20px) scale(1.08); }
         #deck-count { font-size: 28px; font-weight: bold; color: var(--gold); margin-top: 5px; }
 
-        #pile-container { 
-            width: 110px; height: 160px; position: relative; 
-            transform: translateZ(30px); transform-style: preserve-3d;
-        }
+        #pile-container { width: 110px; height: 160px; position: relative; transform: translateZ(30px); transform-style: preserve-3d; }
         
         .pile-card {
             position: absolute; top: 0; left: 0;
@@ -271,7 +261,7 @@
         
         #my-hand-container { width: 90%; display: flex; justify-content: center; align-items: center; height: 180px; margin: 0 auto; transition: opacity 0.3s; }
         
-        /* ΜΟΝΟ BLOCK CLICKS - ΔΕΝ ΑΛΛΑΖΕΙ ΤΟ OPACITY ΠΛΕΟΝ */
+        /* ΤΕΛΟΣ Η ΔΙΑΦΑΝΕΙΑ - ΜΟΝΟ BLOCK CLICKS */
         .not-my-turn .hand-card {
             pointer-events: none;
         }
@@ -323,7 +313,7 @@
         <h1 style="color:var(--gold); font-size:80px; margin-bottom:10px; text-shadow: 0 0 20px rgba(212, 175, 55, 0.5); text-align:center;">Μαύρος Βαλές ♠️</h1>
         <div id="login-area" style="display:flex; flex-direction:column; align-items:center;">
             <input type="text" id="username" class="name-input" placeholder="Το όνομά σου..." maxlength="12">
-            <button class="game-btn" onclick="joinGame()">ΕΙΣΟΔΟΣ</button>
+            <button class="game-btn" onclick="socket.emit('connect') /* fallback */ ; joinGame()">ΕΙΣΟΔΟΣ</button>
         </div>
         <div id="waiting-area" style="display:none; text-align:center;">
             <p id="waiting-msg" style="font-size:24px; color:#aaa; margin-bottom:20px;">Περιμένοντας παίκτες...</p>
@@ -378,8 +368,8 @@
         
         <div id="active-suit-display"></div>
 
-        <div id="slot-top" class="player-slot"></div>
-        <div id="slot-left" class="player-slot"></div>
+        <div id="slot-top" class="player-slot" id="opponent2-hand"></div>
+        <div id="slot-left" class="player-slot" id="opponent1-hand"></div>
 
         <div id="game-center">
             <div id="draw-pile" onclick="triggerDrawAnimation()">
@@ -392,7 +382,7 @@
             <button class="game-btn" onclick="socket.emit('passTurn')">ΠΑΣΟ</button>
         </div>
 
-        <div id="slot-right" class="player-slot"></div>
+        <div id="slot-right" class="player-slot" id="opponent3-hand"></div>
         <div id="slot-bottom" class="player-slot">
             <div id="my-info-container" style="margin-bottom: 5px;"></div>
             <div id="my-hand-container"></div>
@@ -401,146 +391,86 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        window.onerror = function(message, source, lineno, colno, error) {
-            document.getElementById('error-overlay').style.display = 'flex';
-            document.getElementById('error-text').innerText = message + " \nΓραμμή: " + lineno;
-        };
-
+        // === GLOBALS ===
         const socket = io();
-        let myId, lastTopCardId = null, selectedAceIndex = null;
-        let fullScoreHistory = [], isScoreboardExpanded = false;
+        let myId = null;
+        let lastClick = 0;
+        const CLICK_DELAY = 300;
+        let actionLocked = false;
         let gameScale = 1;
-        
-        let lastClickTime = 0; 
-        const CLICK_DELAY = 300; 
-        let actionLocked = false; 
-        
-        window.currentActiveSuit = null; 
-        window.currentTopCard = null;
-        window.lastPlayerId = null;
 
+        let currentTopCard = null;
+        let currentActiveSuit = null;
+        let lastPlayerId = null;
+        let timerEnd = 0;
+        let animationFrameId = null;
+        let fullScoreHistory = [];
+        let isScoreboardExpanded = false;
+
+        // === SOUNDS ===
         const sfx = {
             card: new Audio('sounds/card.mp3'),
             shuffle: new Audio('sounds/shuffle.mp3'),
             penalty: new Audio('sounds/penalty.mp3'),
             win: new Audio('sounds/win.mp3')
         };
-        
+
         function playSound(type) {
-            try {
-                sfx[type].currentTime = 0;
-                sfx[type].play().catch(e => {}); 
-            } catch(e) {}
+            try { sfx[type].currentTime = 0; sfx[type].play().catch(()=>{}); } catch(e){}
         }
 
-        let lastWidth = window.innerWidth;
-        let lastHeight = window.innerHeight;
-        let resizeTicking = false;
-
+        // === RESIZE HANDLING ===
         function resizeGame() {
-            if (!resizeTicking) {
-                requestAnimationFrame(() => {
-                    if (window.innerWidth === lastWidth && window.innerHeight === lastHeight && gameScale !== 1) {
-                        resizeTicking = false;
-                        return;
-                    }
-                    const wrapper = document.getElementById('game-wrapper');
-                    gameScale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
-                    wrapper.style.transform = `scale(${gameScale})`;
-                    lastWidth = window.innerWidth;
-                    lastHeight = window.innerHeight;
-                    resizeTicking = false;
-                });
-                resizeTicking = true;
-            }
+            const wrapper = document.getElementById('game-wrapper');
+            gameScale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+            wrapper.style.transform = `scale(${gameScale})`;
         }
-        
         window.addEventListener('resize', resizeGame);
         window.addEventListener('load', () => {
             resizeGame();
-            Object.values(sfx).forEach(a => { a.volume = 0; a.play().catch(()=>{}); a.volume = 1; });
+            Object.values(sfx).forEach(a => { a.volume=0; a.play().catch(()=>{}); a.volume=1; });
         });
 
-        // ΑΝΑΝΕΩΜΕΝΟΣ TIMER ΜΕ ΑΡΙΘΜΗΤΙΚΗ ΕΝΔΕΙΞΗ
-        let timerEnd = 0;
-        let animationFrameId;
-
-        function startTimer(seconds = 60) {
+        // === TIMER ===
+        function startTimer(seconds=60) {
             const bar = document.querySelector(".timer-bar");
             const text = document.getElementById("timer-text");
-            const timerContainer = document.getElementById("turn-timer");
-            if(!bar || !timerContainer || !text) return;
-            
-            timerContainer.style.display = "block";
-            timerEnd = Date.now() + seconds * 1000;
-            
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
-            
-            function updateTimer() {
-                const remaining = Math.max(0, timerEnd - Date.now());
-                const percent = remaining / (seconds * 1000);
-                bar.style.strokeDashoffset = 139 * (1 - percent); // 2 * PI * 22
-                
-                text.innerText = Math.ceil(remaining / 1000); // Αναγραφή χρόνου
+            const container = document.getElementById("turn-timer");
+            if(!bar || !text || !container) return;
 
-                if (remaining > 0) {
-                    animationFrameId = requestAnimationFrame(updateTimer);
-                }
+            container.style.display = "block";
+            timerEnd = Date.now() + seconds*1000;
+
+            if(animationFrameId) cancelAnimationFrame(animationFrameId);
+
+            const update = () => {
+                const remaining = Math.max(0, timerEnd - Date.now());
+                const percent = remaining / (seconds*1000);
+                bar.style.strokeDashoffset = 139 * (1 - percent); // 2 * PI * 22
+                text.innerText = Math.ceil(remaining / 1000);
+
+                if(remaining>0) animationFrameId = requestAnimationFrame(update);
             }
-            updateTimer();
+            update();
         }
 
-        setInterval(() => { fetch('/ping').catch(() => {}); }, 60000);
-
-        socket.on('disconnect', () => {
-            document.getElementById('reconnect-btn').style.display = 'flex';
-        });
-
+        // === SOCKET EVENTS ===
         socket.on('connect', () => {
             document.getElementById('reconnect-btn').style.display = 'none';
             myId = socket.id;
-            const savedName = sessionStorage.getItem('mv_username');
-            const savedSession = sessionStorage.getItem('mv_session');
-            
-            if (savedName) document.getElementById('username').value = savedName; 
-            
-            if (savedName && savedSession && document.getElementById('start-screen').style.display === 'none') {
-                socket.emit('joinGame', { username: savedName, sessionId: savedSession });
+            const name = sessionStorage.getItem('mv_username');
+            const session = sessionStorage.getItem('mv_session');
+            if(name && session && document.getElementById('start-screen').style.display === 'none') {
+                socket.emit('joinGame', { username:name, sessionId:session });
             }
         });
 
-        function forceReconnect() {
-            if (socket.disconnected) {
-                socket.connect();
-            } else {
-                joinGame();
-            }
-        }
+        socket.on('disconnect', () => document.getElementById('reconnect-btn').style.display = 'flex');
 
-        socket.on('chatUpdate', (data) => {
-            const m = document.getElementById('chat-messages');
-            const div = document.createElement("div");
-            
-            const b = document.createElement("b");
-            b.style.color = "var(--gold)";
-            b.textContent = data.name + ": ";
-            
-            div.appendChild(b);
-            div.appendChild(document.createTextNode(data.text));
-            
-            m.appendChild(div);
-            m.scrollTop = m.scrollHeight;
-        });
-
-        function sendChat() {
-            const i = document.getElementById('chat-input');
-            if(i.value) { socket.emit('chatMessage', i.value); i.value=''; }
-        }
-
-        function toggleChat() {
-            const b = document.getElementById('chat-box');
-            b.style.display = b.style.display === 'flex' ? 'none' : 'flex';
-        }
+        socket.on('chatUpdate', data => addChatMessage(data.name, data.text));
+        socket.on('updateUI', updateGameUI);
+        socket.on('revealHands', renderAllHands);
+        socket.on('gameOver', showVictory);
 
         socket.on('joinedLobby', () => {
             document.getElementById('start-screen').style.display = 'flex';
@@ -564,6 +494,67 @@
             }
         });
 
+        socket.on('playerCountUpdate', (count) => {
+            document.getElementById('waiting-msg').innerText = `Συνδεδεμένοι παίκτες: ${count}`;
+            const btn = document.getElementById('start-btn');
+            if(count >= 2) btn.style.display = "inline-block"; else btn.style.display = "none";
+        });
+
+        socket.on('gameReady', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('scoreboard').style.display = 'block';
+        });
+
+        socket.on('updateScoreboard', (data) => {
+            fullScoreHistory = data.history;
+            renderScoreboard();
+        });
+
+        socket.on('notification', (msg) => {
+            if (msg.includes('Ανακάτεμα')) playSound('shuffle');
+            else if (msg.includes('+') || msg.includes('ΦΑΕ') || msg.includes('ποινή') || msg.includes('Auto-pass')) playSound('penalty');
+
+            const o = document.getElementById('msg-overlay');
+            o.innerText = msg; o.style.display = 'flex';
+            setTimeout(() => o.style.display = 'none', 3000); 
+        });
+
+        socket.on('invalidMove', () => {
+            actionLocked = false; 
+            const o = document.getElementById('msg-overlay');
+            o.innerText = "Ακυρη Κίνηση!"; 
+            o.style.display = 'flex';
+            o.style.color = "red";
+            setTimeout(() => { o.style.display = 'none'; o.style.color = "#d4af37"; }, 1000);
+            
+            document.querySelectorAll('.hand-card').forEach(c => c.classList.add('shake')); 
+            setTimeout(() => document.querySelectorAll('.hand-card').forEach(c => c.classList.remove('shake')), 200); 
+        });
+
+        // === CHAT ===
+        function addChatMessage(name, text) {
+            const m = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            const b = document.createElement('b');
+            b.style.color = 'var(--gold)';
+            b.textContent = name + ': ';
+            div.appendChild(b);
+            div.appendChild(document.createTextNode(text));
+            m.appendChild(div);
+            m.scrollTop = m.scrollHeight;
+        }
+
+        function sendChat() {
+            const input = document.getElementById('chat-input');
+            if(input.value) { socket.emit('chatMessage', input.value); input.value=''; }
+        }
+
+        function toggleChat() {
+            const box = document.getElementById('chat-box');
+            box.style.display = box.style.display==='flex'?'none':'flex';
+        }
+
+        // === LOGIN & UI UPDATES ===
         function joinGame() {
             const name = document.getElementById('username').value;
             if (name.trim() === "") return alert("Παρακαλώ βάλε ένα όνομα!");
@@ -581,118 +572,165 @@
             document.getElementById('waiting-area').style.display = 'block';
         }
 
-        socket.on('playerCountUpdate', (count) => {
-            document.getElementById('waiting-msg').innerText = `Συνδεδεμένοι παίκτες: ${count}`;
-            const btn = document.getElementById('start-btn');
-            if(count >= 2) btn.style.display = "inline-block"; else btn.style.display = "none";
-        });
+        function updateGameUI(data) {
+            actionLocked = false; 
+            window.currentScoreData = data; 
+            document.getElementById('deck-count').innerText = data.deckCount;
+            currentTopCard = data.topCard; 
+            currentActiveSuit = data.activeSuit; 
 
-        socket.on('gameReady', () => {
-            document.getElementById('start-screen').style.display = 'none';
-            document.getElementById('scoreboard').style.display = 'block';
-        });
-
-        socket.on('updateUI', (data) => {
-            try {
-                actionLocked = false; 
-                
-                window.currentScoreData = data; 
-                document.getElementById('deck-count').innerText = data.deckCount;
-                window.currentTopCard = data.topCard; 
-                window.currentActiveSuit = data.activeSuit; 
-
-                let currentIdToCheck = data.currentPlayerId; 
-                if (currentIdToCheck && currentIdToCheck !== window.lastPlayerId) {
-                    window.lastPlayerId = currentIdToCheck;
-                    startTimer(60); // 60s Start Timer
-                }
-
-                if (data.topCard) {
-                    const cardId = data.topCard.value + data.topCard.suit;
-                    if (cardId !== lastTopCardId) {
-                        addCardToPile(data.topCard);
-                        lastTopCardId = cardId;
-                        playSound('card');
-                    }
-                }
-
-                const suitDisplay = document.getElementById('active-suit-display');
-                if (data.activeSuit) {
-                    suitDisplay.innerText = data.activeSuit;
-                    suitDisplay.style.color = (data.activeSuit === '♥' || data.activeSuit === '♦') ? '#ff4444' : '#222';
-                    suitDisplay.style.display = 'block';
-                    suitDisplay.style.textShadow = "0 0 10px white, 0 0 20px white";
-                } else { suitDisplay.style.display = 'none'; }
-
-                const ind = document.getElementById('turn-indicator');
-                const myHandContainer = document.getElementById('my-hand-container');
-                
-                if (data.isMyTurn) {
-                    ind.innerText = data.penalty > 0 ? `⚠️ ΦΑΕ ${data.penalty}!` : "ΔΙΚΗ ΣΟΥ ΣΕΙΡΑ";
-                    ind.style.borderColor = "#4f4"; ind.style.color = "#4f4";
-                    myHandContainer.classList.remove('not-my-turn');
-                } else {
-                    ind.innerText = `ΠΑΙΖΕΙ: ${data.currentPlayerName}`;
-                    ind.style.borderColor = "#ff4444"; ind.style.color = "#ffdddd";
-                    myHandContainer.classList.add('not-my-turn'); 
-                }
-
-                if (data.myHand && Array.isArray(data.myHand)) {
-                    renderHand(data.myHand);
-                }
-                
-                distributePlayers(data.players, data.currentPlayerName, data.isMyTurn);
-                updateDirectionIndicator(data.players, data.direction);
-            } catch(e) {
-                document.getElementById('error-overlay').style.display = 'flex';
-                document.getElementById('error-text').innerText = e.message;
+            let currentIdToCheck = data.currentPlayerId || data.currentPlayerName;
+            if (currentIdToCheck && currentIdToCheck !== lastPlayerId) {
+                lastPlayerId = currentIdToCheck;
+                startTimer(60); 
             }
-        });
 
-        socket.on('revealHands', (playersData) => {
-            document.getElementById("turn-timer").style.display = "none";
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
-            
-            const others = playersData.filter(p => p.id !== myId);
-            const slots = ['slot-left', 'slot-top', 'slot-right'];
-            
-            others.forEach((p, i) => {
-                if(slots[i] && p.hand) {
-                    let cardsHtml = '';
-                    p.hand.forEach((c, idx) => {
-                        if(!c) return;
-                        const color = (c.color === 'red') ? '#d00' : 'black';
-                        cardsHtml += `<div style="background:white; color:${color}; width:35px; height:50px; border-radius:4px; border:1px solid #ccc; margin-left:-15px; margin-bottom:5px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:bold; font-size:16px; box-shadow:2px 2px 5px black; z-index:${idx};">${c.value}<div style="font-size:18px; line-height:1;">${c.suit}</div></div>`;
-                    });
-                    
-                    document.getElementById(slots[i]).innerHTML = `
-                        <div class="panel player-info" style="opacity: 1">
-                            <div class="player-name">${p.name}</div>
-                            <div style="font-size:12px; color:#4f4; margin-top:3px;">Σκορ: ${p.totalScore}</div>
-                        </div>
-                        <div style="display:flex; flex-wrap:wrap; justify-content:center; padding-left: 15px; max-width: 200px; height: auto; margin: 0 auto;">${cardsHtml}</div>
-                        <div class="card-count-text" style="opacity: 1">${p.hand.length} φύλλα</div>`;
+            if (data.topCard) {
+                const cardId = data.topCard.value + data.topCard.suit;
+                if (cardId !== window.lastTopCardIdStr) {
+                    addCardToPile(data.topCard);
+                    window.lastTopCardIdStr = cardId;
+                    playSound('card');
                 }
+            }
+
+            const suitDisplay = document.getElementById('active-suit-display');
+            if (data.activeSuit) {
+                suitDisplay.innerText = data.activeSuit;
+                suitDisplay.style.color = (data.activeSuit === '♥' || data.activeSuit === '♦') ? '#ff4444' : '#222';
+                suitDisplay.style.display = 'block';
+                suitDisplay.style.textShadow = "0 0 10px white, 0 0 20px white";
+            } else { suitDisplay.style.display = 'none'; }
+
+            const ind = document.getElementById('turn-indicator');
+            const myHandContainer = document.getElementById('my-hand-container');
+            
+            if (data.isMyTurn) {
+                ind.innerText = data.penalty > 0 ? `⚠️ ΦΑΕ ${data.penalty}!` : "ΔΙΚΗ ΣΟΥ ΣΕΙΡΑ";
+                ind.style.borderColor = "#4f4"; ind.style.color = "#4f4";
+                myHandContainer.classList.remove('not-my-turn');
+            } else {
+                ind.innerText = `ΠΑΙΖΕΙ: ${data.currentPlayerName}`;
+                ind.style.borderColor = "#ff4444"; ind.style.color = "#ffdddd";
+                myHandContainer.classList.add('not-my-turn'); 
+            }
+
+            if (data.myHand && Array.isArray(data.myHand)) {
+                renderHand(data.myHand);
+            }
+            
+            distributePlayers(data.players, data.currentPlayerName, data.isMyTurn);
+            updateDirectionIndicator(data.players, data.direction);
+        }
+
+        // === DRAW / PLAY ANIMATIONS ===
+        function triggerDrawAnimation() {
+            if (document.getElementById('my-hand-container').classList.contains('not-my-turn')) return;
+            if(actionLocked || Date.now()-lastClick<CLICK_DELAY) return;
+            lockAction();
+            lastClick = Date.now();
+
+            animateCardDraw(document.getElementById('draw-pile'), document.getElementById('my-hand-container'));
+            socket.emit('drawCard');
+        }
+
+        function animateCardDraw(deckEl, handEl) {
+            const clone = document.createElement('div');
+            clone.className = 'flying-card';
+            clone.style.width = '77px';
+            clone.style.height = '112px';
+            clone.style.background = 'linear-gradient(135deg, #a00, #500)';
+            clone.style.border = '2px solid white';
+            clone.style.borderRadius = '5px';
+            
+            const rectDeck = deckEl.getBoundingClientRect();
+            clone.style.left = rectDeck.left + 'px';
+            clone.style.top = rectDeck.top + 'px';
+            clone.style.transform = `scale(${gameScale})`;
+            document.body.appendChild(clone);
+
+            const rectHand = handEl.getBoundingClientRect();
+            requestAnimationFrame(() => {
+                clone.style.transition = 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)';
+                clone.style.left = (rectHand.left + rectHand.width/2 - 38)+'px';
+                clone.style.top = (rectHand.top-20)+'px';
+                clone.style.opacity = 0;
+                clone.style.transform = `scale(${gameScale}) rotate(180deg)`;
             });
-        });
 
-        socket.on('gameOver', (finalMsg) => {
-            playSound('win');
-            document.getElementById('game-wrapper').style.filter = "blur(10px)";
-            
-            const btnPhrases = [
-                "Άντε πάμε άλλο ένα 🃏",
-                "Ένα τελευταίο 😂",
-                "Θα πάρω το αίμα μου πίσω, πάμε 💪🏻"
-            ];
-            const randomBtnText = btnPhrases[Math.floor(Math.random() * btnPhrases.length)];
-            
-            document.getElementById('victory-msg').innerText = finalMsg;
-            document.getElementById('victory-btn').innerText = randomBtnText;
-            
-            document.getElementById('victory-screen').style.display = 'flex';
-        });
+            setTimeout(() => clone.remove(), 300);
+        }
 
+        function animateThrow(elem) {
+            if(!elem) return;
+            const clone = elem.cloneNode(true);
+            clone.className='flying-card';
+            const rect = elem.getBoundingClientRect();
+            clone.style.left=rect.left+'px';
+            clone.style.top=rect.top+'px';
+            clone.style.margin = '0';
+            clone.style.transform = `scale(${gameScale})`;
+            document.body.appendChild(clone);
+
+            const pileRect = document.getElementById('pile-container').getBoundingClientRect();
+            requestAnimationFrame(() => {
+                clone.style.transition='all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                clone.style.left = pileRect.left+'px';
+                clone.style.top = pileRect.top+'px';
+                clone.style.transform = `scale(${gameScale}) rotate(${Math.random()*20-10}deg)`;
+                clone.style.opacity = 0.8;
+            });
+            clone.addEventListener('transitionend', ()=>clone.remove(), { once:true });
+            setTimeout(()=>{ if(document.body.contains(clone)) clone.remove(); },500);
+        }
+
+        function addCardToPile(c) {
+            const container = document.getElementById('pile-container');
+            if(!container) return;
+            const div = document.createElement('div');
+            const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : '';
+            
+            div.className = `card-base pile-card played-card ${color}`; 
+            const x = Math.random() * 6 - 3;
+            const y = Math.random() * 6 - 3;
+            const r = Math.random() * 20 - 10; 
+            
+            div.style.transform = `translate(${x}px, ${y}px) rotate(${r}deg)`;
+            div.innerHTML = `<div class="card-corner">${c.value}<div>${c.suit}</div></div><div class="card-center">${c.suit}</div><div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>`;
+            
+            container.appendChild(div);
+            
+            const cards = container.querySelectorAll('.pile-card');
+            if (cards.length > 6) {
+                cards[0].remove();
+            }
+        }
+
+        // === HAND RENDERING ===
+        function renderHand(hand) {
+            const container = document.getElementById('my-hand-container');
+            container.className = hand.length>15 ? 'hand-compact' : 'hand-normal';
+            
+            const frag = document.createDocumentFragment();
+            let overlap = (hand.length > 15) ? "-25px" : (hand.length > 8 ? "-60px" : "-55px");
+
+            hand.forEach((c,i)=>{
+                if(!c) return;
+                const div = document.createElement('div');
+                div.className = `card-base card hand-card card-${i}` + ((c.suit==='♥'||c.suit==='♦')?' red':'');
+                div.style.marginLeft = i===0?'0':overlap;
+                div.innerHTML = `
+                    <div class="card-corner">${c.value}<div>${c.suit}</div></div>
+                    <div class="card-center">${c.suit}</div>
+                    <div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>`;
+                div.onclick = ()=>playCard(i,c.value,c.suit);
+                frag.appendChild(div);
+            });
+            container.innerHTML = '';
+            container.appendChild(frag);
+        }
+
+        // === OPPONENTS & DIRECTION ===
         function updateDirectionIndicator(playersArray, dir) {
             if(!playersArray || playersArray.length === 0) return;
             let names = playersArray.map(p => (p.name || "").replace('❤️','').trim());
@@ -717,7 +755,6 @@
 
         function distributePlayers(players, currentPlayerName, isMyTurn) {
             if (!players || !Array.isArray(players)) return;
-            
             const myIndex = players.findIndex(p => p.id === myId);
             if(myIndex === -1) return;
             
@@ -784,109 +821,39 @@
                 <div class="card-count-text" style="opacity: ${opacity}">${handCount} φύλλα</div>`;
         }
 
-        function renderHand(hand) {
-            const container = document.getElementById('my-hand-container');
-            if (hand.length > 15) { container.classList.add('hand-compact'); container.classList.remove('hand-normal'); } 
-            else { container.classList.add('hand-normal'); container.classList.remove('hand-compact'); }
-
-            const frag = document.createDocumentFragment();
-            let overlap = (hand.length > 15) ? "-25px" : (hand.length > 8 ? "-60px" : "-55px");
-
-            hand.forEach((c, i) => {
-                if(!c) return; 
-                const div = document.createElement("div");
-                div.className = `card-base card hand-card card-${i}`;
-                if (c.suit === '♥' || c.suit === '♦') div.classList.add("red");
-                
-                div.style.marginLeft = i === 0 ? "0" : overlap;
-                
-                div.innerHTML = `
-                    <div class="card-corner">${c.value}<div>${c.suit}</div></div>
-                    <div class="card-center">${c.suit}</div>
-                    <div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>
-                `;
-                
-                div.onclick = () => playLogic(i, c.value, c.suit);
-                frag.appendChild(div);
+        function renderAllHands(playersData) {
+            document.getElementById("turn-timer").style.display = "none";
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            
+            const others = playersData.filter(p => p.id !== myId);
+            const slots = ['slot-left', 'slot-top', 'slot-right'];
+            
+            others.forEach((p, i) => {
+                if(slots[i] && p.hand) {
+                    let cardsHtml = '';
+                    p.hand.forEach((c, idx) => {
+                        if(!c) return;
+                        const color = (c.color === 'red') ? '#d00' : 'black';
+                        cardsHtml += `<div style="background:white; color:${color}; width:35px; height:50px; border-radius:4px; border:1px solid #ccc; margin-left:-15px; margin-bottom:5px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:bold; font-size:16px; box-shadow:2px 2px 5px black; z-index:${idx};">${c.value}<div style="font-size:18px; line-height:1;">${c.suit}</div></div>`;
+                    });
+                    
+                    document.getElementById(slots[i]).innerHTML = `
+                        <div class="panel player-info" style="opacity: 1">
+                            <div class="player-name">${p.name}</div>
+                            <div style="font-size:12px; color:#4f4; margin-top:3px;">Σκορ: ${p.totalScore}</div>
+                        </div>
+                        <div style="display:flex; flex-wrap:wrap; justify-content:center; padding-left: 15px; max-width: 200px; height: auto; margin: 0 auto;">${cardsHtml}</div>
+                        <div class="card-count-text" style="opacity: 1">${p.hand.length} φύλλα</div>`;
+                }
             });
-
-            container.innerHTML = "";
-            container.appendChild(frag);
         }
 
-        function triggerDrawAnimation() {
+        // === CARD PLAY LOGIC ===
+        function playCard(index, value, suit) {
             if (document.getElementById('my-hand-container').classList.contains('not-my-turn')) return;
-            if (actionLocked || Date.now() - lastClickTime < CLICK_DELAY) return;
-            
-            actionLocked = true;
-            lastClickTime = Date.now();
-
-            const deckEl = document.getElementById('draw-pile');
-            const handEl = document.getElementById('my-hand-container');
-
-            const cardEl = document.createElement('div');
-            cardEl.style.width = '77px';
-            cardEl.style.height = '112px';
-            cardEl.style.background = 'linear-gradient(135deg, #a00, #500)';
-            cardEl.style.border = '2px solid white';
-            cardEl.style.borderRadius = '5px';
-            cardEl.style.position = 'fixed';
-            cardEl.style.zIndex = 9999;
-            cardEl.style.pointerEvents = 'none';
-            cardEl.style.boxShadow = '2px 2px 10px rgba(0,0,0,0.5)';
-            
-            const deckRect = deckEl.getBoundingClientRect();
-            const handRect = handEl.getBoundingClientRect();
-
-            cardEl.style.left = deckRect.left + "px";
-            cardEl.style.top = deckRect.top + "px";
-            cardEl.style.transform = `scale(${gameScale})`;
-            
-            document.body.appendChild(cardEl);
-
-            requestAnimationFrame(() => {
-                cardEl.style.transition = "all .3s cubic-bezier(0.25, 0.8, 0.25, 1)";
-                cardEl.style.left = (handRect.left + handRect.width / 2 - 38) + "px";
-                cardEl.style.top = (handRect.top - 20) + "px";
-                cardEl.style.opacity = "0"; 
-                cardEl.style.transform = `scale(${gameScale}) rotate(180deg)`;
-            });
-
-            setTimeout(() => cardEl.remove(), 300);
-            socket.emit('drawCard');
-        }
-
-        function animateThrow(elem) {
-            if (!elem) return;
-            const rect = elem.getBoundingClientRect();
-            const clone = elem.cloneNode(true);
-            clone.classList.add('flying-card');
-            clone.style.left = rect.left + 'px';
-            clone.style.top = rect.top + 'px';
-            clone.style.margin = '0';
-            clone.style.transform = `scale(${gameScale})`; 
-            document.body.appendChild(clone);
-
-            const pile = document.getElementById('pile-container');
-            const pileRect = pile.getBoundingClientRect();
-
-            setTimeout(() => {
-                clone.style.left = pileRect.left + 'px';
-                clone.style.top = pileRect.top + 'px';
-                clone.style.transform = `scale(${gameScale}) rotate(${Math.random() * 20 - 10}deg)`;
-                clone.style.opacity = '0.8';
-            }, 10);
-
-            clone.addEventListener("transitionend", () => clone.remove(), { once: true });
-            setTimeout(() => { if (document.body.contains(clone)) clone.remove(); }, 500); 
-        }
-
-        function playLogic(index, value, suit) {
-            if (document.getElementById('my-hand-container').classList.contains('not-my-turn')) return;
-            if (actionLocked || Date.now() - lastClickTime < CLICK_DELAY) return;
-            
-            actionLocked = true;
-            lastClickTime = Date.now();
+            if(actionLocked || Date.now()-lastClick<CLICK_DELAY) return;
+            lockAction();
+            lastClick = Date.now();
 
             const cardElement = document.querySelector(`.card-${index}`);
             
@@ -923,19 +890,23 @@
             actionLocked = false; 
         }
 
-        socket.on('updateScoreboard', (data) => {
-            fullScoreHistory = data.history;
-            renderScoreboard();
-        });
+        // === HELPERS ===
+        function lockAction(){ actionLocked=true; setTimeout(()=>actionLocked=false, CLICK_DELAY);}
+        
+        function showVictory(msg){
+            playSound('win');
+            document.getElementById('game-wrapper').style.filter='blur(10px)';
+            const btnPhrases = ["Άντε πάμε άλλο ένα 🃏", "Ένα τελευταίο 😂", "Θα πάρω το αίμα μου πίσω, πάμε 💪🏻"];
+            document.getElementById('victory-btn').innerText = btnPhrases[Math.floor(Math.random() * btnPhrases.length)];
+            document.getElementById('victory-msg').innerText=msg;
+            document.getElementById('victory-screen').style.display='flex';
+        }
 
         function renderScoreboard() {
             const t = document.getElementById('score-table');
-            if (!fullScoreHistory || fullScoreHistory.length === 0) {
-                t.innerHTML = "";
-                return;
-            }
-            const pIds = Object.keys(fullScoreHistory[0]);
+            if (!fullScoreHistory || fullScoreHistory.length === 0) { t.innerHTML = ""; return; }
             
+            const pIds = Object.keys(fullScoreHistory[0]);
             const pMap = {};
             if(window.currentScoreData && window.currentScoreData.players) {
                 window.currentScoreData.players.forEach(p => { pMap[p.id] = { name: p.name, hats: p.hats }; });
@@ -956,52 +927,6 @@
         function toggleScoreboard() {
             isScoreboardExpanded = !isScoreboardExpanded;
             renderScoreboard();
-        }
-        
-        socket.on('notification', (msg) => {
-            if (msg.includes('Ανακάτεμα')) playSound('shuffle');
-            else if (msg.includes('+') || msg.includes('ΦΑΕ') || msg.includes('ποινή') || msg.includes('Auto-pass')) playSound('penalty');
-
-            const o = document.getElementById('msg-overlay');
-            o.innerText = msg; o.style.display = 'flex';
-            setTimeout(() => o.style.display = 'none', 3000); 
-        });
-
-        socket.on('invalidMove', () => {
-            actionLocked = false; 
-            const o = document.getElementById('msg-overlay');
-            o.innerText = "Ακυρη Κίνηση!"; 
-            o.style.display = 'flex';
-            o.style.color = "red";
-            setTimeout(() => { o.style.display = 'none'; o.style.color = "#d4af37"; }, 1000);
-            shakeCards();
-        });
-
-        function addCardToPile(c) {
-            const container = document.getElementById('pile-container');
-            if(!container) return;
-            const div = document.createElement('div');
-            const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : '';
-            
-            div.className = `card-base pile-card played-card ${color}`; 
-            const x = Math.random() * 6 - 3;
-            const y = Math.random() * 6 - 3;
-            const r = Math.random() * 20 - 10; 
-            
-            div.style.transform = `translate(${x}px, ${y}px) rotate(${r}deg)`;
-            div.innerHTML = `<div class="card-corner">${c.value}<div>${c.suit}</div></div><div class="card-center">${c.suit}</div><div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>`;
-            
-            container.appendChild(div);
-            
-            const cards = container.querySelectorAll('.pile-card');
-            if (cards.length > 6) {
-                cards[0].remove();
-            }
-        }
-
-        function shakeCards() { 
-            document.querySelectorAll('.hand-card').forEach(c => c.classList.add('shake')); 
-            setTimeout(() => document.querySelectorAll('.hand-card').forEach(c => c.classList.remove('shake')), 200); 
         }
     </script>
 </body>
