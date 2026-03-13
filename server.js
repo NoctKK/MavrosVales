@@ -16,7 +16,6 @@ app.get('/ping', (req, res) => {
 });
 
 // === GLOBAL ERROR HANDLING ===
-// Αποτροπή κατάρρευσης του server από μη αναμενόμενα σφάλματα
 process.on('uncaughtException', (err) => {
     console.error('Αποτράπηκε Crash (Exception):', err);
 });
@@ -57,7 +56,6 @@ class Game {
         this.turnTimer = null; 
     }
 
-    // Δημιουργία και ανακάτεμα 2 τραπουλών (104 φύλλα)
     createDeck() {
         let newDeck = [];
         for (let i = 0; i < 2; i++) {
@@ -82,7 +80,6 @@ class Game {
         return deck;
     }
 
-    // Υπολογισμός πόντων
     calculateHandScore(hand) {
         let score = 0;
         hand.forEach(c => {
@@ -94,7 +91,6 @@ class Game {
         return score;
     }
 
-    // Reset Lobby αν δεν ξεκινήσει παιχνίδι
     resetLobby() {
         if (!this.gameStarted) {
             this.players = {};
@@ -109,10 +105,9 @@ class Game {
             clearTimeout(this.lobbyTimer);
             this.lobbyTimer = null;
         }
-        this.lobbyTimer = setTimeout(() => this.resetLobby(), 120000); // 2 λεπτά
+        this.lobbyTimer = setTimeout(() => this.resetLobby(), 120000); 
     }
 
-    // Τράβηγμα φύλλου με ανακάτεμα στοίβας αν τελειώσει η τράπουλα
     safeDraw(player) {
         if (this.deck.length === 0) {
             if (this.discardPile.length <= 1) return false;
@@ -137,7 +132,7 @@ class Game {
 
         this.turnTimer = setTimeout(() => {
             this.autoPlayTurn();
-        }, 60000); // 60 ΔΕΥΤΕΡΟΛΕΠΤΑ
+        }, 60000); 
     }
 
     autoPlayTurn() {
@@ -242,23 +237,10 @@ class Game {
         }
 
         if (isValid) {
-            if (card.value === 'A' && topCard.value === 'A' && !data.declaredSuit) {
-                let effectiveTopSuit = this.activeSuit || topCard.suit;
-                if (card.suit === effectiveTopSuit) {
-                    io.emit('notification', 'Σαν φύλλο! 🃏');
-                }
-            }
-
-            let top1 = this.discardPile[this.discardPile.length - 1];
-            let top2 = this.discardPile.length >= 2 ? this.discardPile[this.discardPile.length - 2] : null;
-            let isSpecial = ['7', '8', 'J', 'A'].includes(card.value);
-            
-            if (!isSpecial && top1) {
-                if (card.value === top1.value && card.suit === top1.suit) {
-                    io.emit('notification', 'Copy paste! 👯');
-                } else if (top2 && top1.value === top2.value && top1.suit === top2.suit && card.value === top1.value && card.suit !== top1.suit) {
-                    io.emit('notification', 'Copy erased! ❌');
-                }
+            if (card.value === 'A') {
+                this.activeSuit = data.declaredSuit || card.suit;
+            } else {
+                this.activeSuit = null;
             }
 
             p.hand.splice(data.index, 1);
@@ -297,27 +279,10 @@ class Game {
                     isPenaltyHandled = true;
                 }
 
-                if (card.value === 'A') {
-                    if (!data.declaredSuit && topCard.value === 'A') this.activeSuit = this.activeSuit || card.suit;
-                    else this.activeSuit = data.declaredSuit || card.suit;
-                } else {
-                    this.activeSuit = null;
-                }
-
                 if (this.turnTimer) clearTimeout(this.turnTimer);
                 this.broadcastUpdate();
                 setTimeout(() => this.handleRoundEnd(socket.id, card.value === 'A'), isPenaltyHandled ? 3000 : 1500);
                 return;
-            }
-
-            if (card.value === 'A') {
-                if (!data.declaredSuit && topCard.value === 'A') {
-                    this.activeSuit = this.activeSuit || card.suit;
-                } else {
-                    this.activeSuit = data.declaredSuit || card.suit;
-                }
-            } else {
-                this.activeSuit = null;
             }
 
             this.processCardLogic(card, p);
