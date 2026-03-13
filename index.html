@@ -91,14 +91,17 @@
             left: 50%; 
             transform: translate(-50%, -50%); 
             z-index: 10000; 
-            font-size: 45px; 
+            font-size: 30px; /* ΕΠΑΝΑΦΟΡΑ ΣΤΟ ΠΑΛΙΟ ΜΕΓΕΘΟΣ */
             color: var(--gold); 
             font-weight: bold; 
-            text-shadow: 0 0 20px black, 3px 3px 5px black; 
+            text-shadow: 2px 2px 10px black; 
             pointer-events: none; 
             text-align: center; 
+            width: 600px;
             white-space: pre-line; 
             line-height: 1.3;
+            justify-content: center;
+            align-items: center;
         }
 
         @keyframes popMsg {
@@ -368,6 +371,7 @@
             box-shadow: 2px 2px 5px rgba(0,0,0,0.5); 
         }
 
+        /* Το νέο πλαίσιο για το πλήθος των φύλλων */
         .card-count-box {
             background: rgba(0, 0, 0, 0.8);
             border: 1px solid var(--gold);
@@ -437,9 +441,9 @@
             padding: 8px; 
         }
 
-        /* === CARDS & HAND === */
+        /* === CARDS & MY HAND === */
         #my-hand-container { 
-            width: 1100px; /* Επέκταση για να χωράνε πολλά φύλλα */
+            width: 90%; /* ΕΠΑΝΑΦΟΡΑ στο αρχικό πλάτος */
             display: flex; 
             justify-content: center; 
             align-items: center; 
@@ -455,27 +459,30 @@
             box-shadow: -2px 0 5px rgba(0,0,0,0.3); 
             cursor: pointer; 
             transition: transform 0.2s, margin 0.2s;
-            position: relative;
+            position: relative; 
         }
         
         @media (hover: hover) and (pointer: fine) {
             .hand-card:hover { 
                 transform: translateY(-40px) scale(1.1); 
-                z-index: 9999 !important; /* Φέρνει την κάρτα μπροστά απ'όλες στο hover */
+                z-index: 9999 !important; /* Φέρνει την κάρτα μπροστά απ'όλες στο hover, δεν κρύβεται στις 2 σειρές! */
                 will-change: transform;
             }
         }
 
+        /* ΕΠΑΝΑΦΟΡΑ TOY WRAP ΟΠΩΣ ΤΟ ΕΙΧΕΣ */
         .hand-normal { flex-wrap: nowrap; }
-        .hand-compact { flex-wrap: nowrap; } /* Αποτρέπει τη δημιουργία δεύτερης σειράς */
-        .hand-compact .hand-card { width: 77px; height: 112px; margin-bottom: 0; }
-        .hand-compact .card-center { font-size: 40px; }
-        .hand-compact .card-corner { font-size: 16px; }
+        .hand-compact { flex-wrap: wrap; align-content: center; height: 220px !important; }
+        .hand-compact .hand-card { width: 77px; height: 112px; margin-bottom: -40px; }
         
         .red { color: #d00 !important; }
         .card-corner { position: absolute; top: 5px; left: 5px; font-size: 24px; font-weight: bold; line-height: 1; display: flex; flex-direction: column; align-items: center; }
         .card-corner.bottom { top: auto; bottom: 5px; left: auto; right: 5px; transform: rotate(180deg); }
         .card-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 70px; }
+
+        /* Στα μικρά φύλλα προσαρμόζουμε το μέγεθος των γραμμάτων */
+        .hand-compact .card-corner { font-size: 16px; }
+        .hand-compact .card-center { font-size: 40px; }
 
         /* === MODALS & OVERLAYS === */
         #ace-modal { 
@@ -564,7 +571,7 @@
             position: fixed; 
             z-index: 9999; 
             pointer-events: none;
-            transition: all 0.3s ease-out; 
+            transition: all 0.3s ease-out; /* Ομαλή πτήση */
             box-shadow: 10px 10px 30px rgba(0,0,0,0.5);
         }
 
@@ -686,7 +693,6 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // === GLOBALS ===
         const socket = io();
         let myId = null;
         let lastClick = 0;
@@ -716,13 +722,12 @@
 
             isMsgShowing = true;
             o.innerText = msgQueue.shift(); 
-            o.style.display = 'block';
-            o.style.animation = 'none';
-            o.offsetHeight; /* Trigger reflow */
-            o.style.animation = 'popMsg 0.3s ease-out forwards';
+            o.style.display = 'flex';
             
-            // Το κάθε μήνυμα μένει στην οθόνη 2.5 δευτερόλεπτα πριν δείξει το επόμενο
-            setTimeout(showNextMsg, 2500); 
+            setTimeout(() => {
+                o.style.display = 'none';
+                setTimeout(showNextMsg, 200); // 0.2s κενό ανάμεσα στα μηνύματα
+            }, 2000); 
         }
 
         // === RESIZE HANDLING ===
@@ -731,10 +736,6 @@
             if(!wrapper) return;
             gameScale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
             wrapper.style.transform = `scale(${gameScale})`;
-            
-            const rotateMsg = document.getElementById('rotate-msg');
-            if(window.innerHeight > window.innerWidth) rotateMsg.style.display = 'flex';
-            else rotateMsg.style.display = 'none';
         }
         window.addEventListener('resize', () => requestAnimationFrame(resizeGame));
         window.onload = () => { resizeGame(); };
@@ -797,13 +798,11 @@
             window.currentTopCard = data.topCard;
             window.currentActiveSuit = data.activeSuit;
 
-            // Timer
             if (data.currentPlayerId && data.currentPlayerId !== lastPlayerId) {
                 lastPlayerId = data.currentPlayerId;
                 startTimer(60);
             }
 
-            // Pile update
             if (data.topCard) {
                 const cardId = data.topCard.value + data.topCard.suit;
                 if (cardId !== window.lastTopCardIdStr) {
@@ -812,7 +811,6 @@
                 }
             }
 
-            // Active suit display
             const suitDisplay = document.getElementById('active-suit-display');
             if (suitDisplay) {
                 if (data.activeSuit) {
@@ -823,7 +821,6 @@
                 } else { suitDisplay.style.display = 'none'; }
             }
 
-            // Turn info
             const ind = document.getElementById('turn-indicator');
             const handCont = document.getElementById('my-hand-container');
             if (ind && handCont) {
@@ -967,41 +964,25 @@
             socket.emit('startGameRequest');
         }
 
-        // === ΔΥΝΑΜΙΚΟΣ ΥΠΟΛΟΓΙΣΜΟΣ OVERLAP ===
+        // === ΕΠΑΝΑΦΟΡΑ TOY ORIGINAL RENDER ΜΕ ΠΡΟΣΘΗΚΗ Z-INDEX ===
         function renderHand(hand) {
             const container = document.getElementById('my-hand-container');
             if(!container) return;
             
-            const isCompact = hand.length > 15;
-            container.className = isCompact ? 'hand-compact' : 'hand-normal';
+            // Επαναφορά της κλάσης όπως ήταν
+            container.className = hand.length > 15 ? 'hand-compact' : 'hand-normal';
+            
             const frag = document.createDocumentFragment();
-            
-            // Μαθηματικά για να χωράνε ΠΑΝΤΑ σε 1 γραμμή (1000px διαθέσιμο πλάτος)
-            let cardWidth = isCompact ? 77 : 110;
-            let availableWidth = 1000; 
-            let overlap = isCompact ? -40 : -55; 
-            
-            if (hand.length > 1) {
-                let requiredStep = availableWidth / hand.length;
-                let calculatedOverlap = requiredStep - cardWidth;
-                
-                if (calculatedOverlap < overlap) {
-                    overlap = calculatedOverlap;
-                }
-                // Μέγιστη επικάλυψη ώστε να φαίνεται το νούμερο (αφήνουμε 25px κενό)
-                let maxOverlap = cardWidth - 25; 
-                if (overlap < -maxOverlap) {
-                    overlap = -maxOverlap;
-                }
-            }
+            // Η αυθεντική λογική margin
+            let overlap = (hand.length > 15) ? "-25px" : (hand.length > 8 ? "-60px" : "-55px");
 
             hand.forEach((c, i) => {
                 if(!c) return;
                 const div = document.createElement("div");
                 div.className = `card-base card hand-card card-${i} ${((c.suit==='♥'||c.suit==='♦') ? 'red' : '')}`;
                 
-                div.style.marginLeft = i === 0 ? "0px" : `${overlap}px`;
-                div.style.zIndex = i; 
+                div.style.marginLeft = i === 0 ? "0px" : overlap;
+                div.style.zIndex = i; // Για να μην κρύβονται στο hover οι από κάτω
 
                 div.innerHTML = `
                     <div class="card-corner">${c.value}<div>${c.suit}</div></div>
@@ -1021,8 +1002,11 @@
             if (handCont && handCont.classList.contains('not-my-turn')) return;
             if (actionLocked || Date.now() - lastClick < CLICK_DELAY) return;
 
-            // Ο Άσσος είναι μπαλαντέρ, τον ρίχνεις και διαλέγεις χρώμα ΠΑΝΤΑ.
-            if (value === 'A') {
+            const topCard = window.currentTopCard;
+            const effectiveSuit = window.currentActiveSuit || (topCard ? topCard.suit : null);
+            const isTopAce = topCard && topCard.value === 'A';
+
+            if (value === 'A' && !(isTopAce && suit === effectiveSuit)) {
                 selectedAceIndex = index;
                 const modal = document.getElementById('ace-modal');
                 if(modal) modal.style.display = 'flex';
@@ -1107,7 +1091,7 @@
                 clone.style.transition = 'all 0.3s ease-out';
                 clone.style.left = pileRect.left + 'px';
                 clone.style.top = pileRect.top + 'px';
-                clone.style.transform = `scale(${gameScale}) rotate(${Math.random()*20-10}deg)`;
+                clone.style.transform = `scale(${gameScale}) rotate(${Math.random()*40-20}deg)`;
                 clone.style.opacity = 0.5;
             });
             
