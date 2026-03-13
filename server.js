@@ -5,11 +5,9 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
-// --- ΑΥΤΕΣ ΕΙΝΑΙ ΟΙ ΓΡΑΜΜΕΣ ΠΟΥ ΕΛΕΙΠΑΝ ---
 app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
-app.use('/sounds', express.static(__dirname + '/sounds')); // Επιτρέπει τη φόρτωση των ήχων
-app.get('/ping', (req, res) => res.send('pong')); // Anti-sleep ping
-// ------------------------------------------
+app.use('/sounds', express.static(__dirname + '/sounds')); 
+app.get('/ping', (req, res) => res.send('pong')); 
 
 // Global Error Handlers (Αποτροπή Crash)
 process.on('uncaughtException', (err) => { console.error('Αποτράπηκε Crash (Exception):', err); });
@@ -83,7 +81,7 @@ class Game {
             clearTimeout(this.lobbyTimer);
             this.lobbyTimer = null;
         }
-        this.lobbyTimer = setTimeout(() => this.resetLobby(), 120000); // 2 λεπτά
+        this.lobbyTimer = setTimeout(() => this.resetLobby(), 120000); 
     }
 
     safeDraw(player) {
@@ -104,7 +102,7 @@ class Game {
 
         this.turnTimer = setTimeout(() => {
             this.autoPlayTurn();
-        }, 45000); // 45 seconds
+        }, 60000); // 60 ΔΕΥΤΕΡΟΛΕΠΤΑ (1 λεπτό)
     }
 
     autoPlayTurn() {
@@ -329,14 +327,24 @@ class Game {
 
     processCardLogic(card, currentPlayer) {
         let advance = true, steps = 1, isStart = (!currentPlayer || !currentPlayer.id);
+        
         if (card.value === '2') {
             this.consecutiveTwos++;
-            if (this.consecutiveTwos >= 3) { io.emit('notification', 'Ξες πώς πάνε αυτά! 😂'); this.consecutiveTwos = 0; }
             if (!isStart) {
+                // ΝΕΟ ΛΕΚΤΙΚΟ ΜΕ \n (Αλλαγή γραμμής)
+                let msg = 'Πάρε μία! 🃏';
+                if (this.consecutiveTwos >= 3) {
+                    msg += '\nΞες πώς πάνε αυτά! 😂';
+                    this.consecutiveTwos = 0;
+                }
+                io.emit('notification', msg);
+
                 let victimId = this.playerOrder[(this.turnIndex - this.direction + this.playerOrder.length) % this.playerOrder.length];
                 this.safeDraw(this.players[victimId]);
             }
-        } else { this.consecutiveTwos = 0; }
+        } else { 
+            this.consecutiveTwos = 0; 
+        }
         
         if (card.value === '8') { advance = false; if(!isStart) currentPlayer.hasDrawn = false; }
         else if (card.value === '7') { this.penaltyStack += 2; this.penaltyType = '7'; }
