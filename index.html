@@ -81,6 +81,7 @@
             box-sizing: border-box; 
             color: black;
             position: relative;
+            will-change: transform; /* GPU Acceleration */
         }
 
         /* === NOTIFICATIONS === */
@@ -91,17 +92,14 @@
             left: 50%; 
             transform: translate(-50%, -50%); 
             z-index: 10000; 
-            font-size: 30px; /* ΕΠΑΝΑΦΟΡΑ ΣΤΟ ΠΑΛΙΟ ΜΕΓΕΘΟΣ */
+            font-size: 40px; 
             color: var(--gold); 
             font-weight: bold; 
-            text-shadow: 2px 2px 10px black; 
+            text-shadow: 0 0 20px black, 3px 3px 5px black; 
             pointer-events: none; 
             text-align: center; 
-            width: 600px;
             white-space: pre-line; 
             line-height: 1.3;
-            justify-content: center;
-            align-items: center;
         }
 
         @keyframes popMsg {
@@ -165,169 +163,58 @@
             text-align: left; 
         }
         
-        #chat-input-area { 
-            display: flex; 
-            padding: 10px; 
-            border-top: 1px solid #444; 
-        }
-        
-        #chat-input { 
-            flex: 1; 
-            background: #222; 
-            border: 1px solid var(--gold); 
-            color: white; 
-            padding: 8px; 
-            border-radius: 5px; 
-            outline: none; 
-        }
+        #chat-input-area { display: flex; padding: 10px; border-top: 1px solid #444; }
+        #chat-input { flex: 1; background: #222; border: 1px solid var(--gold); color: white; padding: 8px; border-radius: 5px; outline: none; }
 
         #reconnect-btn { 
-            position: absolute; 
-            bottom: 20px; 
-            left: 90px; 
-            height: 60px; 
-            padding: 0 20px; 
-            background: #b30000; 
-            border-radius: 30px; 
-            border: 2px solid var(--gold); 
-            font-size: 20px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            z-index: 7000; 
-            color: white; 
-            display: none; 
-            align-items: center; 
-            justify-content: center; 
+            position: absolute; bottom: 20px; left: 90px; height: 60px; padding: 0 20px; 
+            background: #b30000; border-radius: 30px; border: 2px solid var(--gold); 
+            font-size: 20px; font-weight: bold; cursor: pointer; z-index: 7000; 
+            color: white; display: none; align-items: center; justify-content: center; 
         }
 
         /* === LOGIN SCREEN === */
         #start-screen { 
-            position: fixed; 
-            inset: 0; 
-            z-index: 8000; 
+            position: fixed; inset: 0; z-index: 8000; 
             background: radial-gradient(circle, #222 0%, #000 100%); 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
         }
         
         .name-input {
-            background: transparent; 
-            border: none; 
-            border-bottom: 3px solid var(--gold);
-            color: white; 
-            font-size: 30px; 
-            text-align: center; 
-            padding: 10px;
-            margin-bottom: 30px; 
-            outline: none; 
-            width: 300px;
+            background: transparent; border: none; border-bottom: 3px solid var(--gold);
+            color: white; font-size: 30px; text-align: center; padding: 10px;
+            margin-bottom: 30px; outline: none; width: 300px;
         }
 
         .game-btn { 
             background: linear-gradient(to bottom, #4a4a4a, #2a2a2a); 
-            border: 2px solid #666; 
-            border-radius: 10px; 
-            color: white; 
-            padding: 15px 35px; 
-            font-size: 20px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            box-shadow: 0 5px 0 #111; 
-            transition: transform 0.1s;
+            border: 2px solid #666; border-radius: 10px; color: white; 
+            padding: 15px 35px; font-size: 20px; font-weight: bold; cursor: pointer; 
+            box-shadow: 0 5px 0 #111; transition: transform 0.1s; 
         }
         
         .game-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #111; }
         .game-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        #start-btn { 
-            border: 3px solid #4f4; 
-            color: #4f4; 
-            display: none; 
-            margin-top: 20px;
-        }
+        #start-btn { border: 3px solid #4f4; color: #4f4; display: none; margin-top: 20px; }
 
         /* === TOP UI AREA === */
-        #top-right-ui {
-            position: absolute; 
-            top: 15px; 
-            right: 20px; 
-            z-index: 1000;
-            display: flex; 
-            align-items: center; 
-            gap: 15px; 
-        }
-        
-        #turn-timer { 
-            position: relative; 
-            width: 52px; 
-            height: 52px; 
-            display: none; 
-        }
-        
+        #top-right-ui { position: absolute; top: 15px; right: 20px; z-index: 1000; display: flex; align-items: center; gap: 15px; }
+        #turn-timer { position: relative; width: 52px; height: 52px; display: none; }
         .timer-bg { stroke: #444; fill: rgba(0,0,0,0.5); }
-        .timer-bar {
-            stroke: #00ff9c; 
-            fill: none;
-            stroke-dasharray: 139; 
-            stroke-dashoffset: 0;
-            transform: rotate(-90deg); 
-            transform-origin: center;
-        }
-        
-        #timer-text {
-            position: absolute; 
-            inset: 0; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            font-size: 18px; 
-            font-weight: bold; 
-            color: white;
-            text-shadow: 1px 1px 3px black;
-        }
-        
-        #turn-indicator { 
-            padding: 10px 25px; 
-            background: #1a472a; 
-            border: 3px solid #4f4; 
-            border-radius: 15px; 
-            font-weight: bold; 
-            font-size: 18px; 
-            color: white;
-            white-space: nowrap;
-        }
+        .timer-bar { stroke: #00ff9c; fill: none; stroke-dasharray: 139; stroke-dashoffset: 0; transform: rotate(-90deg); transform-origin: center; }
+        #timer-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; color: white; text-shadow: 1px 1px 3px black; }
+        #turn-indicator { padding: 10px 25px; background: #1a472a; border: 3px solid #4f4; border-radius: 15px; font-weight: bold; font-size: 18px; color: white; white-space: nowrap; }
 
         /* === PLAYER SLOTS === */
-        .player-slot { 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            position: relative; 
-            z-index: 10; 
-        }
-        
+        .player-slot { display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 10; }
         #slot-top { grid-area: top; }
         #slot-left { grid-area: left; }
         #slot-right { grid-area: right; }
         #slot-bottom { grid-area: bottom; align-self: center; width: 100%; }
 
-        .player-info {
-            position: relative; 
-            padding: 5px 15px; 
-            text-align: center; 
-            min-width: 140px;
-            margin-bottom: 10px; 
-            transition: all 0.3s ease;
-        }
-        
-        .player-info.active {
-            animation: pulse 1.2s infinite;
-            border-color: #4f4;
-            background: rgba(0, 40, 0, 0.9);
-        }
+        .player-info { position: relative; padding: 5px 15px; text-align: center; min-width: 140px; margin-bottom: 10px; transition: all 0.3s ease; }
+        .player-info.active { animation: pulse 1.2s infinite; border-color: #4f4; background: rgba(0, 40, 0, 0.9); }
         
         @keyframes pulse {
             0% { box-shadow:0 0 0 0 rgba(0,255,150,.6); }
@@ -335,278 +222,94 @@
             100% { box-shadow:0 0 0 0 rgba(0,255,150,0); }
         }
 
-        .turn-indicator-dot {
-            position: absolute;
-            top: -6px; right: -6px;
-            width: 16px; height: 16px;
-            border-radius: 50%;
-            background: #00ff9c;
-            box-shadow: 0 0 8px #00ff9c;
-            animation: blink 1s infinite;
-            z-index: 50;
-        }
-        
-        @keyframes blink {
-            0% { opacity: .2; transform: scale(0.8); }
-            50% { opacity: 1; transform: scale(1.1); }
-            100% { opacity: .2; transform: scale(0.8); }
-        }
+        .turn-indicator-dot { position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%; background: #00ff9c; box-shadow: 0 0 8px #00ff9c; animation: blink 1s infinite; z-index: 50; }
+        @keyframes blink { 0% { opacity: .2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.1); } 100% { opacity: .2; transform: scale(0.8); } }
 
-        .opp-hand { 
-            position: relative; 
-            height: 45px; 
-            margin: 0 auto; 
-            display: flex; 
-            justify-content: center; 
-        }
-        
-        .mini-card { 
-            width: 30px; 
-            height: 45px; 
-            background: linear-gradient(135deg, #a00, #500); 
-            border: 1.5px solid white; 
-            border-radius: 4px; 
-            position: absolute; 
-            top: 0; 
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.5); 
-        }
-
-        /* Το νέο πλαίσιο για το πλήθος των φύλλων */
-        .card-count-box {
-            background: rgba(0, 0, 0, 0.8);
-            border: 1px solid var(--gold);
-            border-radius: 6px;
-            padding: 4px 10px;
-            font-size: 13px;
-            font-weight: bold;
-            color: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-            margin-top: 15px; 
-        }
+        .opp-hand { position: relative; height: 45px; margin: 0 auto; display: flex; justify-content: center; }
+        .mini-card { width: 30px; height: 45px; background: linear-gradient(135deg, #a00, #500); border: 1.5px solid white; border-radius: 4px; position: absolute; top: 0; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
+        .card-count-box { background: rgba(0, 0, 0, 0.8); border: 1px solid var(--gold); border-radius: 6px; padding: 4px 10px; font-size: 13px; font-weight: bold; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.5); margin-top: 15px; }
 
         /* === DECK & CENTER AREA === */
-        #game-center { 
-            grid-area: center; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            gap: 40px; 
-            z-index: 20; 
-            position: relative; 
-        }
-        
-        #draw-pile { 
-            position: relative;
-            width: 100px; height: 145px; 
-            background: linear-gradient(135deg, #8e2424, #4d0000); 
-            border: 3px solid white; 
-            border-radius: 10px; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            cursor: pointer; 
-            box-shadow: 10px 10px 20px rgba(0,0,0,0.6); 
-            transition: transform 0.2s ease;
-            transform-style: preserve-3d;
-            transform: translateZ(20px);
-        }
-        
-        #draw-pile::before, #draw-pile::after {
-            content: ""; position: absolute; width: 100%; height: 100%;
-            background: inherit; border-radius: 10px; border: 3px solid white; z-index: -1;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
-        }
+        #game-center { grid-area: center; display: flex; align-items: center; justify-content: center; gap: 40px; z-index: 20; position: relative; }
+        #draw-pile { position: relative; width: 100px; height: 145px; background: linear-gradient(135deg, #8e2424, #4d0000); border: 3px solid white; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; box-shadow: 10px 10px 20px rgba(0,0,0,0.6); transition: transform 0.2s ease; transform-style: preserve-3d; transform: translateZ(20px); }
+        #draw-pile::before, #draw-pile::after { content: ""; position: absolute; width: 100%; height: 100%; background: inherit; border-radius: 10px; border: 3px solid white; z-index: -1; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
         #draw-pile::before { transform: translate(4px, 4px) translateZ(-1px); }
         #draw-pile::after { transform: translate(8px, 8px) translateZ(-2px); }
-        
         #draw-pile:hover { transform: translateZ(20px) scale(1.08); }
         #deck-count { font-size: 28px; font-weight: bold; color: var(--gold); margin-top: 5px; }
 
-        #pile-container { 
-            width: 110px; 
-            height: 160px; 
-            position: relative; 
-            transform: translateZ(30px); 
-            transform-style: preserve-3d;
-        }
-        
-        .pile-card {
-            position: absolute; 
-            top: 0; left: 0;
-            box-shadow: 3px 3px 8px rgba(0,0,0,0.3); 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: space-between; 
-            padding: 8px; 
-        }
+        #pile-container { width: 110px; height: 160px; position: relative; transform: translateZ(30px); transform-style: preserve-3d; }
+        .pile-card { position: absolute; top: 0; left: 0; box-shadow: 3px 3px 8px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; padding: 8px; will-change: transform; }
 
         /* === CARDS & MY HAND === */
-        #my-hand-container { 
-            width: 90%; /* ΕΠΑΝΑΦΟΡΑ στο αρχικό πλάτος */
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 180px; 
-            margin: 0 auto; 
-            transition: opacity 0.3s; 
-            position: relative;
-        }
-        
+        #my-hand-container { width: 90%; display: flex; justify-content: center; align-items: center; height: 180px; margin: 0 auto; transition: opacity 0.3s; position: relative; }
         .not-my-turn .hand-card { pointer-events: none; opacity: 0.9; }
         
-        .hand-card { 
-            box-shadow: -2px 0 5px rgba(0,0,0,0.3); 
-            cursor: pointer; 
-            transition: transform 0.2s, margin 0.2s;
-            position: relative; 
-        }
+        .hand-card { box-shadow: -2px 0 5px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.2s, margin 0.2s; position: relative; will-change: transform; }
         
+        /* Σωστό Z-index στο Hover (χρησιμοποιεί hover:hover για να μη κολλάει σε touch) */
         @media (hover: hover) and (pointer: fine) {
-            .hand-card:hover { 
-                transform: translateY(-40px) scale(1.1); 
-                z-index: 9999 !important; /* Φέρνει την κάρτα μπροστά απ'όλες στο hover, δεν κρύβεται στις 2 σειρές! */
-                will-change: transform;
-            }
+            .hand-card:hover { transform: translateY(-40px) scale(1.1); z-index: 9999 !important; }
         }
 
-        /* ΕΠΑΝΑΦΟΡΑ TOY WRAP ΟΠΩΣ ΤΟ ΕΙΧΕΣ */
         .hand-normal { flex-wrap: nowrap; }
         .hand-compact { flex-wrap: wrap; align-content: center; height: 220px !important; }
         .hand-compact .hand-card { width: 77px; height: 112px; margin-bottom: -40px; }
+        .hand-compact .card-corner { font-size: 16px; }
+        .hand-compact .card-center { font-size: 40px; }
         
         .red { color: #d00 !important; }
         .card-corner { position: absolute; top: 5px; left: 5px; font-size: 24px; font-weight: bold; line-height: 1; display: flex; flex-direction: column; align-items: center; }
         .card-corner.bottom { top: auto; bottom: 5px; left: auto; right: 5px; transform: rotate(180deg); }
         .card-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 70px; }
 
-        /* Στα μικρά φύλλα προσαρμόζουμε το μέγεθος των γραμμάτων */
-        .hand-compact .card-corner { font-size: 16px; }
-        .hand-compact .card-center { font-size: 40px; }
-
         /* === MODALS & OVERLAYS === */
-        #ace-modal { 
-            display: none; 
-            position: fixed; 
-            inset: 0; 
-            background: rgba(0,0,0,0.7); 
-            z-index: 9000; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-        }
-        
-        #ace-backdrop {
-            position: absolute; 
-            inset: 0;
-            z-index: 1;
-        }
+        #ace-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9000; flex-direction: column; align-items: center; justify-content: center; }
+        #ace-backdrop { position: absolute; inset: 0; z-index: 1; }
+        #ace-content { background: var(--panel-bg); padding: 30px; border-radius: 20px; border: 3px solid var(--gold); text-align: center; position: relative; z-index: 10; }
+        .suit-btn { width: 90px; height: 90px; font-size: 55px; background: white; border-radius: 15px; margin: 15px; cursor: pointer; border: 4px solid var(--gold); }
 
-        #ace-content { 
-            background: var(--panel-bg); 
-            padding: 30px; 
-            border-radius: 20px; 
-            border: 3px solid var(--gold);
-            text-align: center;
-            position: relative;
-            z-index: 10;
-        }
-
-        .suit-btn { 
-            width: 90px; height: 90px; 
-            font-size: 55px; 
-            background: white; 
-            border-radius: 15px; 
-            margin: 15px; 
-            cursor: pointer; 
-            border: 4px solid var(--gold); 
-        }
-
-        #scoreboard { 
-            position: absolute; 
-            top: 20px; 
-            left: 20px; 
-            padding: 10px; 
-            z-index: 1000; 
-            font-size: 14px; 
-            display: none; 
-            color: white; 
-            cursor: pointer; 
-            max-height: 400px; 
-            overflow-y: auto; 
-        }
-        
+        #scoreboard { position: absolute; top: 20px; left: 20px; padding: 10px; z-index: 1000; font-size: 14px; display: none; color: white; cursor: pointer; max-height: 400px; overflow-y: auto; }
         table { border-collapse: collapse; width: 100%; color: white; }
         th, td { border: 1px solid var(--gold); padding: 8px; text-align: center; }
 
-        #active-suit-display {
-            position: absolute; 
-            top: 35%; 
-            left: 50%; 
-            transform: translate(-50%, -50%);
-            font-size: 120px; 
-            z-index: 100; 
-            text-shadow: 0 0 20px black; 
-            display: none; 
-            pointer-events: none; 
-            opacity: 0.6;
-        }
-
-        #direction-indicator {
-            position: absolute; 
-            bottom: 20px; 
-            right: 20px;
-            padding: 10px 20px; 
-            background: rgba(0,0,0,0.8);
-            border: 2px solid var(--gold); 
-            border-radius: 15px;
-            font-weight: bold; 
-            font-size: 20px; 
-            color: var(--gold);
-            z-index: 1000; 
-            letter-spacing: 2px;
-        }
-
-        .flying-card {
-            position: fixed; 
-            z-index: 9999; 
-            pointer-events: none;
-            transition: all 0.3s ease-out; /* Ομαλή πτήση */
-            box-shadow: 10px 10px 30px rgba(0,0,0,0.5);
-        }
-
+        #active-suit-display { position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%); font-size: 120px; z-index: 100; text-shadow: 0 0 20px black; display: none; pointer-events: none; opacity: 0.6; }
+        #direction-indicator { position: absolute; bottom: 20px; right: 20px; padding: 10px 20px; background: rgba(0,0,0,0.8); border: 2px solid var(--gold); border-radius: 15px; font-weight: bold; font-size: 20px; color: var(--gold); z-index: 1000; letter-spacing: 2px; }
+        
+        .flying-card { position: fixed; z-index: 99999; pointer-events: none; transition: all 0.3s ease-out; box-shadow: 10px 10px 30px rgba(0,0,0,0.5); will-change: transform, left, top; }
         .shake { animation: shake 0.2s; border-color: red !important; }
         @keyframes shake { 0%, 100% {transform:translateX(0);} 25% {transform:translateX(-5px);} 75% {transform:translateX(5px);} }
+        
+        #error-overlay { display: none; position: fixed; inset: 0; z-index: 999999; background: rgba(150, 0, 0, 0.95); flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
 
-        #error-overlay {
-            display: none; 
-            position: fixed; 
-            inset: 0; 
-            z-index: 99999;
-            background: rgba(150, 0, 0, 0.9); 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            padding: 20px; 
-            text-align: center;
+        /* === MOBILE RESPONSIVE TWEAKS ΕΙΔΙΚΑ ΓΙΑ ΤΑ OVERLAYS === */
+        @media (max-width: 800px) {
+            #start-screen h1 { font-size: 50px !important; }
+            .name-input { font-size: 22px !important; width: 220px !important; }
+            .game-btn { font-size: 18px !important; padding: 12px 25px !important; }
+            #msg-overlay { font-size: 28px !important; width: 90% !important; }
+            #victory-msg { font-size: 35px !important; }
+            .suit-btn { width: 60px !important; height: 60px !important; font-size: 40px !important; margin: 8px !important; }
+            #ace-content h2 { font-size: 28px !important; }
+            #error-text { font-size: 14px !important; }
         }
     </style>
 </head>
 <body>
 
     <div id="error-overlay">
-        <h2>ΠΡΟΕΚΥΨΕ ΣΦΑΛΜΑ!</h2>
-        <p id="error-text" style="font-family: monospace; background: black; padding: 10px;"></p>
-        <button onclick="window.location.reload()" style="padding:10px 20px; font-size:20px; cursor:pointer;">ΕΠΑΝΑΦΟΡΤΩΣΗ ΣΕΛΙΔΑΣ</button>
+        <h2 style="color: white;">ΠΡΟΕΚΥΨΕ ΣΦΑΛΜΑ!</h2>
+        <p id="error-text" style="font-family: monospace; background: black; color: #ff4444; padding: 15px; border-radius: 5px; max-width: 90%; word-wrap: break-word;"></p>
+        <button class="game-btn" onclick="window.location.reload()" style="margin-top: 20px;">ΕΠΑΝΑΦΟΡΤΩΣΗ ΣΕΛΙΔΑΣ</button>
     </div>
 
-    <div id="rotate-msg" style="display: none; position: fixed; inset: 0; z-index: 9999; background: black; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+    <div id="rotate-msg" style="display: none; position: fixed; inset: 0; z-index: 99990; background: black; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
         <div style="font-size: 50px;">🔄</div>
         <h2>Παρακαλώ γυρίστε τη συσκευή οριζόντια</h2>
     </div>
 
     <div id="start-screen">
-        <h1 style="color:var(--gold); font-size:80px; margin-bottom:10px; text-shadow: 0 0 20px rgba(212, 175, 55, 0.5); text-align:center;">Μαύρος Βαλές ♠️</h1>
+        <h1 style="color:var(--gold); margin-bottom:10px; text-shadow: 0 0 20px rgba(212, 175, 55, 0.5); text-align:center;">Μαύρος Βαλές ♠️</h1>
         <div id="login-area" style="display:flex; flex-direction:column; align-items:center;">
             <input type="text" id="username" class="name-input" placeholder="Το όνομά σου..." maxlength="12">
             <button id="login-btn" class="game-btn" onclick="joinGame()">ΕΙΣΟΔΟΣ</button>
@@ -620,8 +323,8 @@
     <div id="msg-overlay"></div>
 
     <div id="victory-screen">
-        <h1 id="victory-msg" style="color: white; font-size: 50px; text-shadow: 0 0 20px #4f4; line-height: 1.2; max-width: 80%; margin-bottom: 40px;">🏆</h1>
-        <button id="victory-btn" class="game-btn" style="font-size: 26px; padding: 20px 40px; border: 3px solid #4f4; color: #4f4; box-shadow: 0 0 15px rgba(79, 255, 68, 0.5);" onclick="location.reload()">ΝΕΟ ΠΑΙΧΝΙΔΙ</button>
+        <h1 id="victory-msg" style="color: white; text-shadow: 0 0 20px #4f4; line-height: 1.2; max-width: 80%; margin-bottom: 40px;">🏆</h1>
+        <button id="victory-btn" class="game-btn" style="border: 3px solid #4f4; color: #4f4; box-shadow: 0 0 15px rgba(79, 255, 68, 0.5);" onclick="location.reload()">ΝΕΟ ΠΑΙΧΝΙΔΙ</button>
     </div>
 
     <div id="game-wrapper">
@@ -629,7 +332,7 @@
         <div id="ace-modal">
             <div id="ace-backdrop" onclick="cancelAce()"></div>
             <div id="ace-content">
-                <h2 style="color:var(--gold); font-size: 40px; margin-bottom:20px;">Διάλεξε Χρώμα</h2>
+                <h2 style="color:var(--gold); margin-bottom:20px;">Διάλεξε Χρώμα</h2>
                 <div>
                     <button class="suit-btn" style="color:red;" onclick="confirmAce('♥')">♥</button>
                     <button class="suit-btn" style="color:red;" onclick="confirmAce('♦')">♦</button>
@@ -678,8 +381,7 @@
                 <div style="font-size:14px; color:#ccc;">ΤΡΑΒΑ</div>
                 <div id="deck-count">52</div>
             </div>
-            <div id="pile-container">
-                </div>
+            <div id="pile-container"></div>
             <button class="game-btn" onclick="socket.emit('passTurn')">ΠΑΣΟ</button>
         </div>
 
@@ -687,16 +389,37 @@
         
         <div id="slot-bottom" class="player-slot">
             <div id="my-info-container" style="margin-bottom: 5px;"></div>
-            <div id="my-hand-container"></div>
+            <div id="my-hand-container"></div> 
         </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        // === GLOBAL ERROR CATCHER ===
+        window.onerror = function(msg, url, line) {
+            const overlay = document.getElementById('error-overlay');
+            const text = document.getElementById('error-text');
+            if(overlay && text) {
+                text.innerText = `Error: ${msg}\nLine: ${line}`;
+                overlay.style.display = 'flex';
+            }
+            return false;
+        };
+
+        window.onunhandledrejection = function(event) {
+            const overlay = document.getElementById('error-overlay');
+            const text = document.getElementById('error-text');
+            if(overlay && text) {
+                text.innerText = `Promise Rejection: ${event.reason}`;
+                overlay.style.display = 'flex';
+            }
+        };
+
+        // === GLOBALS ===
         const socket = io();
         let myId = null;
         let lastClick = 0;
-        const CLICK_DELAY = 300;
+        const CLICK_DELAY = 400; // Debounce
         let actionLocked = false;
         let gameScale = 1;
         let selectedAceIndex = null;
@@ -722,11 +445,14 @@
 
             isMsgShowing = true;
             o.innerText = msgQueue.shift(); 
-            o.style.display = 'flex';
+            o.style.display = 'block';
+            o.style.animation = 'none';
+            o.offsetHeight; 
+            o.style.animation = 'popMsg 0.3s ease-out forwards';
             
             setTimeout(() => {
                 o.style.display = 'none';
-                setTimeout(showNextMsg, 200); // 0.2s κενό ανάμεσα στα μηνύματα
+                setTimeout(showNextMsg, 200); 
             }, 2000); 
         }
 
@@ -736,12 +462,27 @@
             if(!wrapper) return;
             gameScale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
             wrapper.style.transform = `scale(${gameScale})`;
+            
+            const rotateMsg = document.getElementById('rotate-msg');
+            if(window.innerHeight > window.innerWidth) rotateMsg.style.display = 'flex';
+            else rotateMsg.style.display = 'none';
         }
         window.addEventListener('resize', () => requestAnimationFrame(resizeGame));
         window.onload = () => { resizeGame(); };
 
         // === TIMER LOGIC ===
+        function clearGameTimer() {
+            if(animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            document.getElementById("turn-timer").style.display = "none";
+        }
+
         function startTimer(seconds = 60) {
+            clearGameTimer();
+            if(seconds <= 0) return;
+
             const bar = document.querySelector(".timer-bar");
             const text = document.getElementById("timer-text");
             const container = document.getElementById("turn-timer");
@@ -750,15 +491,17 @@
             container.style.display = "block";
             timerEnd = Date.now() + seconds * 1000;
 
-            if(animationFrameId) cancelAnimationFrame(animationFrameId);
-
             const update = () => {
                 const remaining = Math.max(0, timerEnd - Date.now());
                 const percent = remaining / (seconds * 1000);
                 bar.style.strokeDashoffset = 139 * (1 - percent); 
                 text.innerText = Math.ceil(remaining / 1000);
 
-                if(remaining > 0) animationFrameId = requestAnimationFrame(update);
+                if(remaining > 0) {
+                    animationFrameId = requestAnimationFrame(update);
+                } else {
+                    clearGameTimer();
+                }
             }
             update();
         }
@@ -776,6 +519,7 @@
 
         socket.on('disconnect', () => {
             document.getElementById('reconnect-btn').style.display = 'flex';
+            clearGameTimer();
         });
 
         socket.on('chatUpdate', data => {
@@ -788,6 +532,13 @@
             div.appendChild(b);
             div.appendChild(document.createTextNode(data.text));
             m.appendChild(div);
+            
+            // Chat Node Limit Optimization (κρατάει τα τελευταία 50 μηνύματα)
+            if (m.children.length > 50) {
+                m.removeChild(m.firstChild);
+            }
+
+            // Auto-scroll
             m.scrollTop = m.scrollHeight;
         });
 
@@ -841,10 +592,7 @@
         });
 
         socket.on('revealHands', playersData => {
-            const timerContainer = document.getElementById("turn-timer");
-            if(timerContainer) timerContainer.style.display = "none";
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
-            
+            clearGameTimer();
             const others = playersData.filter(p => p.id !== myId);
             const slots = ['slot-left', 'slot-top', 'slot-right'];
             
@@ -870,6 +618,7 @@
         });
 
         socket.on('gameOver', msg => {
+            clearGameTimer();
             document.getElementById('game-wrapper').style.filter = "blur(10px)";
             document.getElementById('victory-msg').innerText = msg;
             document.getElementById('victory-screen').style.display = 'flex';
@@ -909,7 +658,6 @@
             document.getElementById('scoreboard').style.display = 'block';
         });
 
-        // Το νέο σύστημα ειδοποιήσεων μπαίνει στην ουρά
         socket.on('notification', m => {
             msgQueue.push(m);
             if (!isMsgShowing) {
@@ -964,16 +712,26 @@
             socket.emit('startGameRequest');
         }
 
-        // === ΕΠΑΝΑΦΟΡΑ TOY ORIGINAL RENDER ΜΕ ΠΡΟΣΘΗΚΗ Z-INDEX ===
+        // === EVENT DELEGATION ΓΙΑ ΤΑ ΦΥΛΛΑ ===
+        document.getElementById('my-hand-container').addEventListener('click', function(e) {
+            const cardEl = e.target.closest('.hand-card');
+            if (!cardEl) return;
+            
+            const index = parseInt(cardEl.getAttribute('data-index'), 10);
+            const value = cardEl.getAttribute('data-value');
+            const suit = cardEl.getAttribute('data-suit');
+            
+            playCardLogic(index, value, suit);
+        });
+
         function renderHand(hand) {
             const container = document.getElementById('my-hand-container');
             if(!container) return;
             
-            // Επαναφορά της κλάσης όπως ήταν
+            // Το παλιό wrap layout 
             container.className = hand.length > 15 ? 'hand-compact' : 'hand-normal';
             
             const frag = document.createDocumentFragment();
-            // Η αυθεντική λογική margin
             let overlap = (hand.length > 15) ? "-25px" : (hand.length > 8 ? "-60px" : "-55px");
 
             hand.forEach((c, i) => {
@@ -982,13 +740,18 @@
                 div.className = `card-base card hand-card card-${i} ${((c.suit==='♥'||c.suit==='♦') ? 'red' : '')}`;
                 
                 div.style.marginLeft = i === 0 ? "0px" : overlap;
-                div.style.zIndex = i; // Για να μην κρύβονται στο hover οι από κάτω
+                div.style.zIndex = i; 
+                
+                // Set data attributes for Event Delegation
+                div.setAttribute('data-index', i);
+                div.setAttribute('data-value', c.value);
+                div.setAttribute('data-suit', c.suit);
 
                 div.innerHTML = `
                     <div class="card-corner">${c.value}<div>${c.suit}</div></div>
                     <div class="card-center">${c.suit}</div>
                     <div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>`;
-                div.onclick = () => playCardLogic(i, c.value, c.suit);
+                
                 frag.appendChild(div);
             });
 
@@ -1002,11 +765,7 @@
             if (handCont && handCont.classList.contains('not-my-turn')) return;
             if (actionLocked || Date.now() - lastClick < CLICK_DELAY) return;
 
-            const topCard = window.currentTopCard;
-            const effectiveSuit = window.currentActiveSuit || (topCard ? topCard.suit : null);
-            const isTopAce = topCard && topCard.value === 'A';
-
-            if (value === 'A' && !(isTopAce && suit === effectiveSuit)) {
+            if (value === 'A') {
                 selectedAceIndex = index;
                 const modal = document.getElementById('ace-modal');
                 if(modal) modal.style.display = 'flex';
@@ -1098,10 +857,11 @@
             setTimeout(() => { if (document.body.contains(clone)) clone.remove(); }, 300);
         }
 
-        // Η στοίβα (Pile) κρατάει πλέον 15 κάρτες με ωραία ακατάστατη διάταξη
+        // PERFORMANCE: Document Fragment στο Pile & Max 15 nodes
         function addCardToPile(c) {
             const container = document.getElementById('pile-container');
             if(!container) return;
+            
             const div = document.createElement('div');
             const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : '';
             div.className = `card-base pile-card ${color}`; 
@@ -1112,10 +872,13 @@
             
             div.style.transform = `translate(${x}px, ${y}px) rotate(${r}deg)`;
             div.innerHTML = `<div class="card-corner">${c.value}<div>${c.suit}</div></div><div class="card-center">${c.suit}</div><div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>`;
+            
             container.appendChild(div);
             
             const cards = container.querySelectorAll('.pile-card');
-            if (cards.length > 15) cards[0].remove();
+            if (cards.length > 15) {
+                cards[0].remove();
+            }
         }
 
         // === UI HELPERS ===
