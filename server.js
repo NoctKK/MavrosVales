@@ -144,12 +144,22 @@ io.on('connection', (socket) => {
             p.hand.splice(data.index, 1);
             discardPile.push(card);
             
-            // ΠΡΟΣΘΗΚΗ: Μήνυμα όταν μένει 1 κάρτα!
             if (p.hand.length === 1) {
                 io.emit('notification', `${p.name}: Μία μία μία μία! ⚠️`);
             }
 
             if (p.hand.length === 0) {
+                // Δεν μπορείς να κλείσεις με 8!
+                if (card.value === '8') {
+                    if (deck.length === 0) refillDeck();
+                    if (deck.length > 0) p.hand.push(deck.pop());
+                    io.emit('notification', `Ο/Η ${p.name} έκλεισε με 8 και τραβάει αναγκαστικά φύλλο! 🃏`);
+                    
+                    processCardLogic(card, p); 
+                    broadcastUpdate();
+                    return; 
+                }
+
                 let isPenaltyHandled = false;
                 let nextVictim = playerOrder[(turnIndex + direction + playerOrder.length) % playerOrder.length];
                 let prevVictim = playerOrder[(turnIndex - direction + playerOrder.length) % playerOrder.length];
