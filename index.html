@@ -365,6 +365,19 @@
             box-shadow: 2px 2px 5px rgba(0,0,0,0.5); 
         }
 
+        /* NEW: Box for the card count under opponent hands */
+        .card-count-box {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--gold);
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 13px;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            margin-top: 15px; 
+        }
+
         /* === DECK & CENTER AREA === */
         #game-center { 
             grid-area: center; 
@@ -478,12 +491,20 @@
             justify-content: center; 
         }
         
+        #ace-backdrop {
+            position: absolute; 
+            inset: 0;
+            z-index: 1;
+        }
+
         #ace-content { 
             background: var(--panel-bg); 
             padding: 30px; 
             border-radius: 20px; 
             border: 3px solid var(--gold);
             text-align: center;
+            position: relative;
+            z-index: 10;
         }
 
         .suit-btn { 
@@ -599,7 +620,7 @@
     <div id="game-wrapper">
         
         <div id="ace-modal">
-            <div id="ace-backdrop" style="position: absolute; inset: 0;" onclick="cancelAce()"></div>
+            <div id="ace-backdrop" onclick="cancelAce()"></div>
             <div id="ace-content">
                 <h2 style="color:var(--gold); font-size: 40px; margin-bottom:20px;">Διάλεξε Χρώμα</h2>
                 <div>
@@ -686,6 +707,10 @@
             if(!wrapper) return;
             gameScale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
             wrapper.style.transform = `scale(${gameScale})`;
+            
+            const rotateMsg = document.getElementById('rotate-msg');
+            if(window.innerHeight > window.innerWidth) rotateMsg.style.display = 'flex';
+            else rotateMsg.style.display = 'none';
         }
         window.addEventListener('resize', () => requestAnimationFrame(resizeGame));
         window.onload = () => {
@@ -815,7 +840,7 @@
                     p.hand.forEach((c, idx) => {
                         if(!c) return;
                         const color = (c.color === 'red') ? '#d00' : 'black';
-                        cardsHtml += `<div style="background:white; color:${color}; width:35px; height:50px; border-radius:4px; border:1px solid #ccc; margin-left:-15px; margin-bottom:5px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:bold; font-size:16px; box-shadow:2px 2px 5px black;">${c.value}<div style="font-size:18px; line-height:1;">${c.suit}</div></div>`;
+                        cardsHtml += `<div style="background:white; color:${color}; width:35px; height:50px; border-radius:4px; border:1px solid #ccc; margin-left:-15px; margin-bottom:5px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:bold; font-size:16px; box-shadow:2px 2px 5px black; z-index:${idx};">${c.value}<div style="font-size:18px; line-height:1;">${c.suit}</div></div>`;
                     });
                     
                     container.innerHTML = `
@@ -824,7 +849,7 @@
                             <div style="font-size:12px; color:#4f4; margin-top:3px;">Σκορ: ${p.totalScore}</div>
                         </div>
                         <div style="display:flex; flex-wrap:wrap; justify-content:center; padding-left: 15px; max-width: 200px; height: auto; margin: 0 auto;">${cardsHtml}</div>
-                        <div class="card-count-text" style="opacity: 1">${p.hand.length} φύλλα</div>`;
+                        <div class="card-count-box" style="opacity: 1">${p.hand.length} φύλλα</div>`;
                 }
             });
         });
@@ -836,17 +861,10 @@
         });
 
         socket.on('playerCountUpdate', count => {
-            console.log("Players connected:", count);
             const msg = document.getElementById('waiting-msg');
             const btn = document.getElementById('start-btn');
             if(msg) msg.innerText = `Συνδεδεμένοι παίκτες: ${count}`;
-            if(btn) {
-                if(count >= 2) {
-                    btn.style.display = 'inline-block';
-                } else {
-                    btn.style.display = 'none';
-                }
-            }
+            if(btn) btn.style.display = (count >= 2) ? 'inline-block' : 'none';
         });
 
         socket.on('gameReady', () => {
@@ -918,7 +936,6 @@
                 sessionId = 'sess_' + Math.random().toString(36).substr(2, 9);
             }
             
-            // Save to Session Storage before emit
             sessionStorage.setItem('mv_session', sessionId);
             sessionStorage.setItem('mv_username', name);
 
@@ -967,12 +984,9 @@
             if (handCont && handCont.classList.contains('not-my-turn')) return;
             if (actionLocked || Date.now() - lastClick < CLICK_DELAY) return;
 
-            const topCard = window.currentTopCard;
-            const effectiveSuit = window.currentActiveSuit || (topCard ? topCard.suit : null);
-            const isTopAce = topCard && topCard.value === 'A';
-
-            // Ace Logic
-            if (value === 'A' && !(isTopAce && suit === effectiveSuit)) {
+            // Ο Άσσος είναι μπαλαντέρ, παίζει πάντα (το server το επιτρέπει). 
+            // Οπότε, αν επιλέξεις Άσσο, δείχνουμε το modal χρώματος.
+            if (value === 'A') {
                 selectedAceIndex = index;
                 const modal = document.getElementById('ace-modal');
                 if(modal) modal.style.display = 'flex';
@@ -1110,9 +1124,9 @@
                         ${p.hats > 0 ? `<div class="hats-container">${"🎩".repeat(p.hats)}</div>` : ''}
                     </div>
                     <div class="opp-hand" style="width:${30 + (Math.min(p.handCount, 15) - 1) * 8}px">
-                        ${Array(Math.min(p.handCount, 15)).fill(0).map((_, idx) => `<div class="mini-card" style="left:${idx * 8}px"></div>`).join('')}
+                        ${Array(Math.min(p.handCount, 15)).fill(0).map((_, idx) => `<div class="mini-card" style="left:${idx * 8}px; z-index:${idx};"></div>`).join('')}
                     </div>
-                    <div class="card-count-text">${p.handCount} φύλλα</div>`;
+                    <div class="card-count-box">${p.handCount} φύλλα</div>`;
             });
         }
 
