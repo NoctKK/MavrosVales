@@ -92,7 +92,7 @@
             left: 50%; 
             transform: translate(-50%, -50%); 
             z-index: 10000; 
-            font-size: 30px; 
+            font-size: 30px; /* Αρχικό μέγεθος */
             color: var(--gold); 
             font-weight: bold; 
             text-shadow: 2px 2px 10px black; 
@@ -230,6 +230,8 @@
 
         .opp-hand { position: relative; height: 45px; margin: 0 auto; display: flex; justify-content: center; }
         .mini-card { width: 30px; height: 45px; background: linear-gradient(135deg, #a00, #500); border: 1.5px solid white; border-radius: 4px; position: absolute; top: 0; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
+        
+        /* Το νέο πλαίσιο για το πλήθος των φύλλων */
         .card-count-box { background: rgba(0, 0, 0, 0.8); border: 1px solid var(--gold); border-radius: 6px; padding: 4px 10px; font-size: 13px; font-weight: bold; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.5); margin-top: 15px; }
 
         /* === DECK & CENTER AREA === */
@@ -245,25 +247,29 @@
         .pile-card { position: absolute; top: 0; left: 0; box-shadow: 3px 3px 8px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; padding: 8px; will-change: transform; }
 
         /* === CARDS & MY HAND === */
-        #my-hand-container { width: 90%; display: flex; justify-content: center; align-items: center; height: 180px; margin: 0 auto; transition: opacity 0.3s; position: relative; flex-wrap: wrap; align-content: center;}
+        #my-hand-container { width: 90%; display: flex; justify-content: center; align-items: center; height: 180px; margin: 0 auto; transition: opacity 0.3s; position: relative; }
         .not-my-turn .hand-card { pointer-events: none; opacity: 0.9; }
         
         .hand-card { box-shadow: -2px 0 5px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.2s, margin 0.2s; position: relative; will-change: transform; }
         
+        /* Σωστό Z-index στο Hover για να έρχεται ΠΑΝΤΑ μπροστά το φύλλο! */
         @media (hover: hover) and (pointer: fine) {
             .hand-card:hover { transform: translateY(-40px) scale(1.1); z-index: 9999 !important; }
         }
 
+        /* ΕΠΑΝΑΦΟΡΑ ΣΤΟ WRAP (Να μπαίνουν σε 2η και 3η σειρά τα πολλά φύλλα) */
         .hand-normal { flex-wrap: nowrap; }
-        .hand-compact { height: 220px !important; }
+        .hand-compact { flex-wrap: wrap; align-content: center; height: 220px !important; }
         .hand-compact .hand-card { width: 77px; height: 112px; margin-bottom: -40px; }
-        .hand-compact .card-corner { font-size: 16px; }
-        .hand-compact .card-center { font-size: 40px; }
         
         .red { color: #d00 !important; }
         .card-corner { position: absolute; top: 5px; left: 5px; font-size: 24px; font-weight: bold; line-height: 1; display: flex; flex-direction: column; align-items: center; }
         .card-corner.bottom { top: auto; bottom: 5px; left: auto; right: 5px; transform: rotate(180deg); }
         .card-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 70px; }
+
+        /* Προσαρμογή γραμμάτων όταν τα φύλλα είναι μικρά (στις 2+ σειρές) */
+        .hand-compact .card-corner { font-size: 16px; }
+        .hand-compact .card-center { font-size: 40px; }
 
         /* === MODALS & OVERLAYS === */
         #ace-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9000; flex-direction: column; align-items: center; justify-content: center; }
@@ -371,7 +377,8 @@
                 <div style="font-size:14px; color:#ccc;">ΤΡΑΒΑ</div>
                 <div id="deck-count">52</div>
             </div>
-            <div id="pile-container"></div>
+            <div id="pile-container">
+                </div>
             <button class="game-btn" onclick="socket.emit('passTurn')">ΠΑΣΟ</button>
         </div>
 
@@ -713,6 +720,7 @@
             playCardLogic(index, value, suit);
         });
 
+        // === RENDER HAND (ME WRAP ΚΑΙ Z-INDEX) ===
         function renderHand(hand) {
             const container = document.getElementById('my-hand-container');
             if(!container) return;
@@ -727,7 +735,7 @@
                 div.className = `card-base card hand-card card-${i} ${((c.suit==='♥'||c.suit==='♦') ? 'red' : '')}`;
                 
                 div.style.marginLeft = i === 0 ? "0px" : overlap;
-                div.style.zIndex = i; 
+                div.style.zIndex = i; // Αυτό εξασφαλίζει ότι το hover θα δουλεύει άψογα ακόμα και στις 2-3 σειρές
                 
                 div.setAttribute('data-index', i);
                 div.setAttribute('data-value', c.value);
@@ -843,6 +851,7 @@
             setTimeout(() => { if (document.body.contains(clone)) clone.remove(); }, 300);
         }
 
+        // H στοίβα κρατάει 15 κάρτες με τυχαία κλίση
         function addCardToPile(c) {
             const container = document.getElementById('pile-container');
             if(!container) return;
