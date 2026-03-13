@@ -38,7 +38,18 @@
             transform-origin: center center;
             backface-visibility: hidden;
             perspective: 1000px;
-            transform-style: preserve-3d; /* Προστέθηκε depth στο τραπέζι */
+            transform-style: preserve-3d;
+        }
+
+        /* 3D TABLE SHADOW RING */
+        #game-wrapper::before {
+            content: "";
+            position: absolute;
+            inset: -40px;
+            border-radius: 50%;
+            box-shadow: 0 0 200px rgba(0,0,0,.9) inset;
+            pointer-events: none;
+            z-index: 1; /* Κάτω από τα UI στοιχεία, πάνω από το background */
         }
 
         .panel {
@@ -46,6 +57,7 @@
             border: 2px solid var(--gold); 
             border-radius: 10px; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            z-index: 10;
         }
         
         .card-base {
@@ -61,7 +73,6 @@
             white-space: nowrap; justify-content: center; align-items: center;
         }
 
-        /* VICTORY ANIMATION */
         #victory-screen {
             display: none; position: fixed; inset: 0; z-index: 10000;
             background: rgba(0,0,0,0.92); flex-direction: column;
@@ -180,7 +191,6 @@
 
         #game-center { grid-area: center; display: flex; align-items: center; justify-content: center; gap: 40px; z-index: 20; position: relative; }
         
-        /* 3D DECK EFFECT & TRANSLATE Z */
         #draw-pile { 
             position: relative;
             width: 100px; height: 145px; background: linear-gradient(135deg, #8e2424, #4d0000); 
@@ -209,7 +219,7 @@
         .pile-card {
             position: absolute; top: 0; left: 0;
             box-shadow: 3px 3px 8px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; padding: 8px; 
-            transition: transform 0.2s; will-change: transform;
+            transition: transform 0.2s;
         }
         
         .played-card { animation: cardThrow .35s cubic-bezier(.25,.8,.25,1) forwards; }
@@ -222,7 +232,7 @@
         .card { 
             position: relative;
             box-shadow: 5px 5px 15px rgba(0,0,0,0.4); cursor: pointer; transition: transform 0.1s; flex-shrink: 0; 
-            will-change: transform; backface-visibility: hidden;
+            backface-visibility: hidden;
         }
         
         .red { color: #d00 !important; }
@@ -259,9 +269,10 @@
         .hand-compact .card-center { font-size: 40px; }
         .hand-compact .card-corner { font-size: 16px; }
 
+        /* MEMORY OPTIMIZATION ΓΙΑ ΚΙΝΗΤΑ */
         @media (hover: hover) and (pointer: fine) {
-            .hand-card:hover { transform: translateY(-50px) scale(1.1); z-index: 100; }
-            .hand-compact .hand-card:hover { transform: translateY(-20px) scale(1.2); z-index: 200; }
+            .hand-card:hover { transform: translateY(-50px) scale(1.1); z-index: 100; will-change: transform; }
+            .hand-compact .hand-card:hover { transform: translateY(-20px) scale(1.2); z-index: 200; will-change: transform; }
         }
 
         #ace-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9000; flex-direction: column; align-items: center; justify-content: center; }
@@ -341,8 +352,8 @@
         
         <div id="turn-timer" style="display:none;">
             <svg width="60" height="60">
-                <circle r="26" cx="30" cy="30" stroke-width="4" class="timer-bg"/>
-                <circle r="26" cx="30" cy="30" stroke-width="4" class="timer-bar"/>
+                <circle r="26" cx="30" cy="30" class="timer-bg" stroke-width="4"/>
+                <circle r="26" cx="30" cy="30" class="timer-bar" stroke-width="4"/>
             </svg>
         </div>
         <div id="turn-indicator">ΣΥΝΔΕΣΗ...</div>
@@ -381,19 +392,24 @@
         let myId, lastTopCardId = null, selectedAceIndex = null;
         let fullScoreHistory = [], isScoreboardExpanded = false;
         let gameScale = 1;
+        
+        // DEBOUNCING - LATENCY FIX
         let lastClickTime = 0; 
-        const CLICK_DELAY = 300; // DEBOUNCE CLICK
+        const CLICK_DELAY = 300; 
+        let actionLocked = false; 
         
         window.currentActiveSuit = null; 
         window.currentTopCard = null;
         window.lastPlayerId = null;
 
+        // SOUND EFFECTS
         const sfx = {
             card: new Audio('sounds/card.mp3'),
             shuffle: new Audio('sounds/shuffle.mp3'),
             penalty: new Audio('sounds/penalty.mp3'),
             win: new Audio('sounds/win.mp3')
         };
+        
         function playSound(type) {
             try {
                 sfx[type].currentTime = 0;
@@ -408,7 +424,7 @@
         function resizeGame() {
             if (!resizeTicking) {
                 requestAnimationFrame(() => {
-                    if (Math.abs(window.innerHeight - lastHeight) < 100 && window.innerWidth === lastWidth && gameScale !== 1) {
+                    if (window.innerWidth === lastWidth && window.innerHeight === lastHeight && gameScale !== 1) {
                         resizeTicking = false;
                         return;
                     }
@@ -422,32 +438,38 @@
                 resizeTicking = true;
             }
         }
+        
         window.addEventListener('resize', resizeGame);
-        window.addEventListener('load', resizeGame);
+        window.addEventListener('load', () => {
+            resizeGame();
+            // Preload sounds on load to prevent delay
+            Object.values(sfx).forEach(a => { a.volume = 0; a.play().catch(()=>{}); a.volume = 1; });
+        });
 
-        let turnTimerInterval = null;
+        // REQUEST ANIMATION FRAME TIMER (BACKGROUND TAB SYNC FIX)
+        let timerEnd = 0;
+        let animationFrameId;
+
         function startTimer(seconds = 45) {
             const bar = document.querySelector(".timer-bar");
             const timerContainer = document.getElementById("turn-timer");
             if(!bar || !timerContainer) return;
             
             timerContainer.style.display = "block";
-            let time = seconds;
-            const total = 163;
+            timerEnd = Date.now() + seconds * 1000;
             
-            bar.style.transition = 'none';
-            bar.style.strokeDashoffset = '0';
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
             
-            if (turnTimerInterval) clearInterval(turnTimerInterval);
-            
-            void bar.offsetWidth; 
-            bar.style.transition = 'stroke-dashoffset 1s linear';
+            function updateTimer() {
+                const remaining = Math.max(0, timerEnd - Date.now());
+                const percent = remaining / (seconds * 1000);
+                bar.style.strokeDashoffset = 163 * (1 - percent);
 
-            turnTimerInterval = setInterval(() => {
-                time--;
-                bar.style.strokeDashoffset = total * (1 - time / seconds);
-                if (time <= 0) clearInterval(turnTimerInterval);
-            }, 1000);
+                if (remaining > 0) {
+                    animationFrameId = requestAnimationFrame(updateTimer);
+                }
+            }
+            updateTimer();
         }
 
         setInterval(() => { fetch('/ping').catch(() => {}); }, 60000);
@@ -554,14 +576,16 @@
 
         socket.on('updateUI', (data) => {
             try {
+                actionLocked = false; // Ελευθέρωση του Action Lock μόλις απαντήσει ο server
+                
                 window.currentScoreData = data; 
                 document.getElementById('deck-count').innerText = data.deckCount;
                 window.currentTopCard = data.topCard; 
                 window.currentActiveSuit = data.activeSuit; 
 
-                // FIX: Συνδυασμός ID ή Name για ασφάλεια στο Timer reset
-                let currentIdToCheck = data.currentPlayerId || data.currentPlayerName;
-                if (currentIdToCheck !== window.lastPlayerId) {
+                // Αλλαγή σε currentPlayerId για απόλυτη ασφάλεια χρονόμετρου (Αποτροπή Name Collisions)
+                let currentIdToCheck = data.currentPlayerId; 
+                if (currentIdToCheck && currentIdToCheck !== window.lastPlayerId) {
                     window.lastPlayerId = currentIdToCheck;
                     startTimer(45);
                 }
@@ -610,7 +634,7 @@
 
         socket.on('revealHands', (playersData) => {
             document.getElementById("turn-timer").style.display = "none";
-            if (turnTimerInterval) clearInterval(turnTimerInterval);
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
             
             const others = playersData.filter(p => p.id !== myId);
             const slots = ['slot-left', 'slot-top', 'slot-right'];
@@ -743,17 +767,14 @@
                 <div class="card-count-text" style="opacity: ${opacity}">${handCount} φύλλα</div>`;
         }
 
-        // PERFORMANCE FIX: DOCUMENT FRAGMENT ΓΙΑ ΜΗΔΕΝΙΚΟ LAG ΣΤΗΝ ΚΑΡΤΑ
+        // DOCUMENT FRAGMENT RENDER
         function renderHand(hand) {
             const container = document.getElementById('my-hand-container');
             if (hand.length > 15) { container.classList.add('hand-compact'); container.classList.remove('hand-normal'); } 
             else { container.classList.add('hand-normal'); container.classList.remove('hand-compact'); }
 
             const frag = document.createDocumentFragment();
-            
-            let overlap = "-55px";
-            if (hand.length > 15) overlap = "-25px";
-            else if (hand.length > 8) overlap = "-60px";
+            let overlap = (hand.length > 15) ? "-25px" : (hand.length > 8 ? "-60px" : "-55px");
 
             hand.forEach((c, i) => {
                 if(!c) return; 
@@ -778,17 +799,14 @@
         }
 
         function triggerDrawAnimation() {
-            if (Date.now() - lastClickTime < CLICK_DELAY) return; 
+            if (document.getElementById('my-hand-container').classList.contains('not-my-turn')) return;
+            if (actionLocked || Date.now() - lastClickTime < CLICK_DELAY) return;
             
+            actionLocked = true;
+            lastClickTime = Date.now();
+
             const deckEl = document.getElementById('draw-pile');
             const handEl = document.getElementById('my-hand-container');
-            
-            if (handEl.classList.contains('not-my-turn')) {
-                socket.emit('drawCard'); 
-                return;
-            }
-
-            lastClickTime = Date.now();
 
             const cardEl = document.createElement('div');
             cardEl.style.width = '77px';
@@ -843,11 +861,16 @@
                 clone.style.opacity = '0.8';
             }, 10);
 
-            setTimeout(() => { clone.remove(); }, 400);
+            // Ολοκληρωτική ασφάλεια: Event listener + Safety Timeout
+            clone.addEventListener("transitionend", () => clone.remove(), { once: true });
+            setTimeout(() => { if (document.body.contains(clone)) clone.remove(); }, 500); 
         }
 
         function playLogic(index, value, suit) {
-            if (Date.now() - lastClickTime < CLICK_DELAY) return; 
+            if (document.getElementById('my-hand-container').classList.contains('not-my-turn')) return;
+            if (actionLocked || Date.now() - lastClickTime < CLICK_DELAY) return;
+            
+            actionLocked = true;
             lastClickTime = Date.now();
 
             const cardElement = document.querySelector(`.card-${index}`);
@@ -882,6 +905,7 @@
         function cancelAce() {
             document.getElementById('ace-modal').style.display = 'none';
             selectedAceIndex = null;
+            actionLocked = false; // Ελευθερώνουμε το lock αν ακυρώσει
         }
 
         socket.on('updateScoreboard', (data) => {
@@ -903,7 +927,7 @@
             }
 
             let html = `<tr>${pIds.map(id => {
-                let p = pMap[id] || {name: "Unknown", hats: 0};
+                let p = pMap[id] || {name: "Παίκτης", hats: 0};
                 return `<th>${p.name} ${"🎩".repeat(p.hats)}</th>`;
             }).join('')}</tr>`;
 
@@ -929,6 +953,7 @@
         });
 
         socket.on('invalidMove', () => {
+            actionLocked = false; // Απελευθερώνει το κλικ αν ο server ακυρώσει την κίνηση
             const o = document.getElementById('msg-overlay');
             o.innerText = "Ακυρη Κίνηση!"; 
             o.style.display = 'flex';
@@ -937,13 +962,13 @@
             shakeCards();
         });
 
+        // DOM LEAK FIX
         function addCardToPile(c) {
             const container = document.getElementById('pile-container');
             if(!container) return;
             const div = document.createElement('div');
             const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : '';
             
-            // RANDOM SPREAD & ANIMATION!
             div.className = `card-base pile-card played-card ${color}`; 
             const x = Math.random() * 6 - 3;
             const y = Math.random() * 6 - 3;
@@ -953,8 +978,11 @@
             div.innerHTML = `<div class="card-corner">${c.value}<div>${c.suit}</div></div><div class="card-center">${c.suit}</div><div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>`;
             
             container.appendChild(div);
-            if (container.children.length > 6) {
-                container.removeChild(container.children[1]);
+            
+            // Ασφαλής διαγραφή ΜΟΝΟ των καρτών, διατηρώντας το msg-overlay άθικτο
+            const cards = container.querySelectorAll('.pile-card');
+            if (cards.length > 6) {
+                cards[0].remove();
             }
         }
 
