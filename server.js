@@ -16,6 +16,7 @@ app.get('/ping', (req, res) => {
 });
 
 // === GLOBAL ERROR HANDLING ===
+// Αποτροπή κατάρρευσης του server από μη αναμενόμενα σφάλματα
 process.on('uncaughtException', (err) => {
     console.error('Αποτράπηκε Crash (Exception):', err);
 });
@@ -56,6 +57,7 @@ class Game {
         this.turnTimer = null; 
     }
 
+    // Δημιουργία και ανακάτεμα 2 τραπουλών (104 φύλλα)
     createDeck() {
         let newDeck = [];
         for (let i = 0; i < 2; i++) {
@@ -80,6 +82,7 @@ class Game {
         return deck;
     }
 
+    // Υπολογισμός πόντων στο τέλος του γύρου
     calculateHandScore(hand) {
         let score = 0;
         hand.forEach(c => {
@@ -91,6 +94,7 @@ class Game {
         return score;
     }
 
+    // Reset Lobby αν δεν ξεκινήσει παιχνίδι
     resetLobby() {
         if (!this.gameStarted) {
             this.players = {};
@@ -108,6 +112,7 @@ class Game {
         this.lobbyTimer = setTimeout(() => this.resetLobby(), 120000); 
     }
 
+    // Τράβηγμα φύλλου με ανακάτεμα στοίβας αν τελειώσει η τράπουλα
     safeDraw(player) {
         if (this.deck.length === 0) {
             if (this.discardPile.length <= 1) return false;
@@ -132,7 +137,7 @@ class Game {
 
         this.turnTimer = setTimeout(() => {
             this.autoPlayTurn();
-        }, 60000); 
+        }, 60000); // 60 ΔΕΥΤΕΡΟΛΕΠΤΑ
     }
 
     autoPlayTurn() {
@@ -227,24 +232,39 @@ class Game {
         let effectiveSuit = this.activeSuit || topCard.suit;
         let isValid = false;
 
+        // Έλεγχος Ποινής
         if (this.penaltyStack > 0) {
             if (this.penaltyType === '7' && card.value === '7') isValid = true;
             if (this.penaltyType === 'J' && card.value === 'J') isValid = true;
         } else {
-            if (card.value === 'A') isValid = true;
+            if (card.value === 'A') isValid = true; // Ο Άσσος πέφτει ΠΑΝΤΟΥ
             else if (card.value === topCard.value || card.suit === effectiveSuit) isValid = true;
             else if (card.value === 'J' && card.color === 'red' && topCard.value === 'J') isValid = true;
         }
 
         if (isValid) {
+            // Έλεγχος για "Copy Paste" ΜΟΝΟ στα απλά φύλλα
+            let top1 = this.discardPile[this.discardPile.length - 1];
+            let top2 = this.discardPile.length >= 2 ? this.discardPile[this.discardPile.length - 2] : null;
+            let isSpecial = ['7', '8', 'J', 'A'].includes(card.value);
+            
+            if (!isSpecial && top1) {
+                if (card.value === top1.value && card.suit === top1.suit) {
+                    io.emit('notification', 'Copy paste! 👯');
+                } else if (top2 && top1.value === top2.value && top1.suit === top2.suit && card.value === top1.value && card.suit !== top1.suit) {
+                    io.emit('notification', 'Copy erased! ❌');
+                }
+            }
+
+            p.hand.splice(data.index, 1);
+            this.discardPile.push(card);
+            
+            // Διαχείριση Άσσου
             if (card.value === 'A') {
                 this.activeSuit = data.declaredSuit || card.suit;
             } else {
                 this.activeSuit = null;
             }
-
-            p.hand.splice(data.index, 1);
-            this.discardPile.push(card);
             
             if (p.hand.length === 1) {
                 io.emit('notification', `${p.name}: Μία μία μία μία! ⚠️`);
