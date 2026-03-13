@@ -430,7 +430,7 @@
             100% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
         }
 
-        /* === MY HAND === */
+        /* === CARDS & HAND === */
         #my-hand-container { 
             width: 90%; 
             display: flex; 
@@ -558,7 +558,7 @@
     </div>
 
     <div id="victory-screen">
-        <h1 id="victory-msg" style="color: white; font-size: 50px; text-shadow: 0 0 20px #4f4; line-height: 1.2; max-width: 80%; margin-bottom: 40px;"></h1>
+        <h1 id="victory-msg" style="color: white; font-size: 50px; text-shadow: 0 0 20px #4f4; line-height: 1.2; max-width: 80%; margin-bottom: 40px;">🏆</h1>
         <button id="victory-btn" class="game-btn" style="font-size: 26px; padding: 20px 40px; border: 3px solid #4f4; color: #4f4; box-shadow: 0 0 15px rgba(79, 255, 68, 0.5);" onclick="location.reload()">ΝΕΟ ΠΑΙΧΝΙΔΙ</button>
     </div>
 
@@ -632,7 +632,6 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // === GLOBALS ===
         const socket = io();
         let myId = null;
         let lastClick = 0;
@@ -646,7 +645,6 @@
         let fullScoreHistory = [];
         let isScoreboardExpanded = false;
 
-        // === SOUNDS ===
         const sfx = {
             card: new Audio('sounds/card.mp3'),
             shuffle: new Audio('sounds/shuffle.mp3'),
@@ -655,13 +653,9 @@
         };
 
         function playSound(type) {
-            try { 
-                sfx[type].currentTime = 0; 
-                sfx[type].play().catch(()=>{}); 
-            } catch(e){}
+            try { sfx[type].currentTime = 0; sfx[type].play().catch(()=>{}); } catch(e){}
         }
 
-        // === RESIZE HANDLING ===
         function resizeGame() {
             const wrapper = document.getElementById('game-wrapper');
             if(!wrapper) return;
@@ -669,42 +663,29 @@
             wrapper.style.transform = `scale(${gameScale})`;
         }
         window.addEventListener('resize', () => requestAnimationFrame(resizeGame));
-        window.onload = () => {
-            resizeGame();
-            Object.values(sfx).forEach(a => { 
-                a.volume=0; a.play().catch(()=>{}); a.volume=1; a.load(); 
-            });
-        };
+        window.onload = () => { resizeGame(); Object.values(sfx).forEach(a => { a.volume=0; a.play().catch(()=>{}); a.volume=1; a.load(); }); };
 
-        // === TIMER LOGIC ===
         function startTimer(seconds = 60) {
             const bar = document.querySelector(".timer-bar");
             const text = document.getElementById("timer-text");
             const container = document.getElementById("turn-timer");
             if(!bar || !text || !container) return;
-
             container.style.display = "block";
             timerEnd = Date.now() + seconds * 1000;
-
             if(animationFrameId) cancelAnimationFrame(animationFrameId);
-
             const update = () => {
                 const remaining = Math.max(0, timerEnd - Date.now());
-                const percent = remaining / (seconds * 1000);
-                bar.style.strokeDashoffset = 139 * (1 - percent); 
+                bar.style.strokeDashoffset = 139 * (1 - remaining / (seconds * 1000));
                 text.innerText = Math.ceil(remaining / 1000);
-
                 if(remaining > 0) animationFrameId = requestAnimationFrame(update);
             }
             update();
         }
 
-        // === SOCKET EVENTS ===
         socket.on('connect', () => {
-            console.log("Connected as:", socket.id);
+            console.log("Socket connected:", socket.id);
             document.getElementById('reconnect-btn').style.display = 'none';
             myId = socket.id;
-            
             const name = sessionStorage.getItem('mv_username');
             const session = sessionStorage.getItem('mv_session');
             if(name && session && document.getElementById('start-screen').style.display === 'none') {
@@ -712,20 +693,14 @@
             }
         });
 
-        socket.on('disconnect', () => {
-            document.getElementById('reconnect-btn').style.display = 'flex';
-        });
+        socket.on('disconnect', () => document.getElementById('reconnect-btn').style.display = 'flex');
 
         socket.on('chatUpdate', data => {
             const m = document.getElementById('chat-messages');
             const div = document.createElement('div');
-            const b = document.createElement('b');
-            b.style.color = 'var(--gold)';
-            b.textContent = data.name + ': ';
-            div.appendChild(b);
-            div.appendChild(document.createTextNode(data.text));
-            m.appendChild(div);
-            m.scrollTop = m.scrollHeight;
+            const b = document.createElement('b'); b.style.color = 'var(--gold)'; b.textContent = data.name + ': ';
+            div.appendChild(b); div.appendChild(document.createTextNode(data.text));
+            m.appendChild(div); m.scrollTop = m.scrollHeight;
         });
 
         socket.on('updateUI', data => {
@@ -775,13 +750,10 @@
         });
 
         socket.on('revealHands', playersData => {
-            const timerContainer = document.getElementById("turn-timer");
-            if(timerContainer) timerContainer.style.display = "none";
+            document.getElementById("turn-timer").style.display = "none";
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
-            
             const others = playersData.filter(p => p.id !== myId);
             const slots = ['slot-left', 'slot-top', 'slot-right'];
-            
             others.forEach((p, i) => {
                 const container = document.getElementById(slots[i]);
                 if(container && p.hand) {
@@ -790,7 +762,6 @@
                         const color = (c.color === 'red') ? '#d00' : 'black';
                         cardsHtml += `<div style="background:white; color:${color}; width:35px; height:50px; border-radius:4px; border:1px solid #ccc; margin-left:-15px; margin-bottom:5px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:bold; font-size:16px; box-shadow:2px 2px 5px black;">${c.value}<div style="font-size:18px; line-height:1;">${c.suit}</div></div>`;
                     });
-                    
                     container.innerHTML = `
                         <div class="panel player-info" style="opacity: 1">
                             <div class="player-name">${p.name}</div>
@@ -826,23 +797,20 @@
             document.getElementById('login-area').style.display = 'none';
             document.getElementById('start-screen').style.display = 'none';
             if (data.gameStarted && data.history) {
-                fullScoreHistory = data.history;
-                renderScoreboard();
+                fullScoreHistory = data.history; renderScoreboard();
                 document.getElementById('scoreboard').style.display = 'block';
             }
         });
 
         socket.on('updateScoreboard', data => {
-            fullScoreHistory = data.history;
-            renderScoreboard();
+            fullScoreHistory = data.history; renderScoreboard();
             document.getElementById('scoreboard').style.display = 'block';
         });
 
         socket.on('notification', m => {
             if (m.includes('Ανακάτεμα')) playSound('shuffle');
             else if (m.includes('+') || m.includes('ΦΑΕ') || m.includes('ποινή') || m.includes('Πάρε')) playSound('penalty');
-            const o = document.getElementById('msg-overlay');
-            o.innerText = m; o.style.display = 'flex';
+            const o = document.getElementById('msg-overlay'); o.innerText = m; o.style.display = 'flex';
             setTimeout(() => o.style.display = 'none', 3000); 
         });
 
@@ -855,33 +823,30 @@
             setTimeout(() => document.querySelectorAll('.hand-card').forEach(c => c.classList.remove('shake')), 200); 
         });
 
-        // === LOGIC ===
         function joinGame() {
             const input = document.getElementById('username');
             const btn = document.getElementById('login-btn');
             const name = input.value.trim();
             if (name === "") return alert("Παρακαλώ βάλε ένα όνομα!");
-            
             if(!socket.connected) {
+                console.log("Socket disconnected. Reconnecting...");
                 socket.connect();
                 btn.innerText = "ΣΥΝΔΕΣΗ...";
                 btn.disabled = true;
                 setTimeout(joinGame, 1000); 
                 return;
             }
-
             btn.disabled = true;
             let sessionId = sessionStorage.getItem('mv_session') || 'sess_' + Math.random().toString(36).substr(2, 9);
             sessionStorage.setItem('mv_session', sessionId);
             sessionStorage.setItem('mv_username', name);
-
             socket.emit('joinGame', { username: name, sessionId: sessionId });
         }
 
         function startGameRequest() {
-            console.log("Emitting startGameRequest. Socket status:", socket.connected);
+            console.log("Start game request. Connected:", socket.connected);
             if(!socket.connected) {
-                alert("Σφάλμα σύνδεσης! Προσπάθεια επανασύνδεσης...");
+                alert("Αποσυνδεθήκατε! Προσπάθεια επανασύνδεσης...");
                 socket.connect();
                 return;
             }
@@ -892,35 +857,27 @@
             const container = document.getElementById('my-hand-container');
             if(!container) return;
             container.className = hand.length > 15 ? 'hand-compact' : 'hand-normal';
-            
             const frag = document.createDocumentFragment();
             let overlap = (hand.length > 15) ? "-25px" : (hand.length > 8 ? "-60px" : "-55px");
-
             hand.forEach((c, i) => {
                 if(!c) return;
                 const div = document.createElement("div");
                 div.className = `card-base card hand-card card-${i}` + ((c.suit==='♥'||c.suit==='♦')?' red':'');
                 div.style.marginLeft = i === 0 ? "0" : overlap;
-                div.innerHTML = `
-                    <div class="card-corner">${c.value}<div>${c.suit}</div></div>
-                    <div class="card-center">${c.suit}</div>
-                    <div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>`;
+                div.innerHTML = `<div class="card-corner">${c.value}<div>${c.suit}</div></div><div class="card-center">${c.suit}</div><div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>`;
                 div.onclick = () => playCardLogic(i, c.value, c.suit);
                 frag.appendChild(div);
             });
-            container.innerHTML = "";
-            container.appendChild(frag);
+            container.innerHTML = ""; container.appendChild(frag);
         }
 
         function playCardLogic(index, value, suit) {
             const handCont = document.getElementById('my-hand-container');
             if (handCont && handCont.classList.contains('not-my-turn')) return;
             if (actionLocked || Date.now() - lastClick < CLICK_DELAY) return;
-
             const topCard = window.currentTopCard;
             const effectiveSuit = window.currentActiveSuit || (topCard ? topCard.suit : null);
             const isTopAce = topCard && topCard.value === 'A';
-
             if (value === 'A' && !(isTopAce && suit === effectiveSuit)) {
                 selectedAceIndex = index;
                 document.getElementById('ace-modal').style.display = 'flex';
@@ -936,68 +893,44 @@
             selectedAceIndex = null;
         }
 
-        function cancelAce() {
-            selectedAceIndex = null;
-            document.getElementById('ace-modal').style.display = 'none';
-            actionLocked = false;
-        }
+        function cancelAce() { selectedAceIndex = null; document.getElementById('ace-modal').style.display = 'none'; actionLocked = false; }
 
         function executePlayCard(index, declaredSuit) {
             const cardElement = document.querySelector(`.card-${index}`);
             if (cardElement) animateThrow(cardElement);
-
-            actionLocked = true;
-            lastClick = Date.now();
+            actionLocked = true; lastClick = Date.now();
             socket.emit('playCard', { index: index, declaredSuit: declaredSuit });
         }
 
         function triggerDrawAnimation() {
             const handCont = document.getElementById('my-hand-container');
             if (actionLocked || handCont.classList.contains('not-my-turn')) return;
-            actionLocked = true;
-            lastClick = Date.now();
-
+            actionLocked = true; lastClick = Date.now();
             const deckEl = document.getElementById('draw-pile');
             const clone = document.createElement('div');
-            clone.className = 'flying-card';
-            clone.style.width = '77px'; clone.style.height = '112px';
-            clone.style.background = 'linear-gradient(135deg, #a00, #500)';
-            clone.style.border = '2px solid white';
-            clone.style.borderRadius = '5px';
-            
-            const rectDeck = deckEl.getBoundingClientRect();
-            clone.style.left = rectDeck.left + 'px';
-            clone.style.top = rectDeck.top + 'px';
-            clone.style.transform = `scale(${gameScale})`;
-            document.body.appendChild(clone);
-
+            clone.className = 'flying-card'; clone.style.width = '77px'; clone.style.height = '112px';
+            clone.style.background = 'linear-gradient(135deg, #a00, #500)'; clone.style.border = '2px solid white'; clone.style.borderRadius = '5px';
+            const rectDeck = deckEl.getBoundingClientRect(); clone.style.left = rectDeck.left + 'px'; clone.style.top = rectDeck.top + 'px';
+            clone.style.transform = `scale(${gameScale})`; document.body.appendChild(clone);
             const rectHand = handCont.getBoundingClientRect();
             requestAnimationFrame(() => {
                 clone.style.transition = 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)';
                 clone.style.left = (rectHand.left + rectHand.width/2 - 38)+'px';
-                clone.style.top = (rectHand.top-20)+'px';
-                clone.style.opacity = 0;
+                clone.style.top = (rectHand.top-20)+'px'; clone.style.opacity = 0;
                 clone.style.transform = `scale(${gameScale}) rotate(180deg)`;
             });
-
             setTimeout(() => { clone.remove(); socket.emit('drawCard'); }, 300);
         }
 
         function animateThrow(elem) {
-            const clone = elem.cloneNode(true);
-            clone.className = 'flying-card';
-            const rect = elem.getBoundingClientRect();
-            clone.style.left = rect.left + 'px';
-            clone.style.top = rect.top + 'px';
-            clone.style.margin = '0';
-            clone.style.transform = `scale(${gameScale})`;
+            const clone = elem.cloneNode(true); clone.className = 'flying-card';
+            const rect = elem.getBoundingClientRect(); clone.style.left = rect.left + 'px'; clone.style.top = rect.top + 'px';
+            clone.style.margin = '0'; clone.style.transform = `scale(${gameScale})`;
             document.body.appendChild(clone);
-
             const pileRect = document.getElementById('pile-container').getBoundingClientRect();
             requestAnimationFrame(() => {
                 clone.style.transition = 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-                clone.style.left = pileRect.left + 'px';
-                clone.style.top = pileRect.top + 'px';
+                clone.style.left = pileRect.left + 'px'; clone.style.top = pileRect.top + 'px';
                 clone.style.transform = `scale(${gameScale}) rotate(${Math.random()*40-20}deg)`;
                 clone.style.opacity = 0.8;
             });
@@ -1011,10 +944,7 @@
             const div = document.createElement('div');
             const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : '';
             div.className = `card-base pile-card played-card ${color}`; 
-            const x = Math.random() * 10 - 5;
-            const y = Math.random() * 10 - 5;
-            const r = Math.random() * 20 - 10; 
-            div.style.transform = `translate(${x}px, ${y}px) rotate(${r}deg)`;
+            div.style.transform = `translate(${Math.random()*10-5}px, ${Math.random()*10-5}px) rotate(${Math.random()*20-10}deg)`;
             div.innerHTML = `<div class="card-corner">${c.value}<div>${c.suit}</div></div><div class="card-center">${c.suit}</div><div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>`;
             container.appendChild(div);
             const cards = container.querySelectorAll('.pile-card');
@@ -1024,32 +954,14 @@
         function distributePlayers(players, curName, isMyTurn) {
             const myIdx = players.findIndex(p => p.id === myId);
             if (myIdx === -1) return;
-            
-            document.getElementById('my-info-container').innerHTML = `
-                <div class="panel player-info ${isMyTurn ? 'active' : ''}">
-                    ${isMyTurn ? '<div class="turn-indicator-dot"></div>' : ''}
-                    <div class="player-name">${players[myIdx].name}</div>
-                    ${players[myIdx].hats > 0 ? `<div class="hats-container">${"🎩".repeat(players[myIdx].hats)}</div>` : ''}
-                </div>`;
-
+            document.getElementById('my-info-container').innerHTML = `<div class="panel player-info ${isMyTurn ? 'active' : ''}"> ${isMyTurn ? '<div class="turn-indicator-dot"></div>' : ''} <div class="player-name">${players[myIdx].name}</div> ${players[myIdx].hats > 0 ? `<div class="hats-container">${"🎩".repeat(players[myIdx].hats)}</div>` : ''} </div>`;
             const others = players.slice(myIdx).concat(players.slice(0, myIdx)).slice(1);
             const slotIds = ['slot-left', 'slot-top', 'slot-right'];
             slotIds.forEach(id => { const el = document.getElementById(id); if(el) el.innerHTML = ''; });
-
             others.forEach((p, i) => {
-                const container = document.getElementById(slotIds[i]);
-                if(!container) return;
+                const container = document.getElementById(slotIds[i]); if(!container) return;
                 const active = p.name === curName;
-                container.innerHTML = `
-                    <div class="panel player-info ${active ? 'active' : ''}" style="opacity:${p.connected ? 1 : 0.4}">
-                        ${active ? '<div class="turn-indicator-dot"></div>' : ''}
-                        <div class="player-name">${p.name}${p.connected ? '' : ' (Αποσ.)'}</div>
-                        ${p.hats > 0 ? `<div class="hats-container">${"🎩".repeat(p.hats)}</div>` : ''}
-                    </div>
-                    <div class="opp-hand" style="width:${30 + (Math.min(p.handCount, 15) - 1) * 8}px">
-                        ${Array(Math.min(p.handCount, 15)).fill(0).map((_, idx) => `<div class="mini-card" style="left:${idx * 8}px"></div>`).join('')}
-                    </div>
-                    <div class="card-count-text">${p.handCount} φύλλα</div>`;
+                container.innerHTML = `<div class="panel player-info ${active ? 'active' : ''}" style="opacity:${p.connected ? 1 : 0.4}"> ${active ? '<div class="turn-indicator-dot"></div>' : ''} <div class="player-name">${p.name}${p.connected ? '' : ' (Αποσ.)'}</div> ${p.hats > 0 ? `<div class="hats-container">${"🎩".repeat(p.hats)}</div>` : ''} </div> <div class="opp-hand" style="width:${30 + (Math.min(p.handCount, 15) - 1) * 8}px"> ${Array(Math.min(p.handCount, 15)).fill(0).map(() => `<div class="mini-card"></div>`).join('')} </div> <div class="card-count-text">${p.handCount} φύλλα</div>`;
             });
         }
 
@@ -1057,13 +969,9 @@
             if(!playersArray.length) return;
             let names = playersArray.map(p => (p.name || "").replace('❤️','').trim());
             let initials = names.map(n => n.charAt(0).toUpperCase());
-            
             const used = {};
             initials = initials.map((init, i) => {
-                let len = 1;
-                while(Object.values(used).includes(init) && len < names[i].length && len < 4) {
-                    len++; init = names[i].substring(0, len).toUpperCase();
-                }
+                let len = 1; while(Object.values(used).includes(init) && len < Math.min(names[i].length, 4)) { len++; init = names[i].substring(0, len).toUpperCase(); }
                 used[i] = init; return init;
             });
             document.getElementById('direction-indicator').innerText = dir === 1 ? initials.join(' ➔ ') : initials.join(' ⬅ ');
@@ -1073,25 +981,14 @@
             const table = document.getElementById('score-table');
             if (!fullScoreHistory.length) return;
             const pIds = Object.keys(fullScoreHistory[0]);
-            const pMap = {};
-            (window.currentScoreData?.players || []).forEach(p => pMap[p.id] = p);
-            
+            const pMap = {}; (window.currentScoreData?.players || []).forEach(p => pMap[p.id] = p);
             let html = `<tr>${pIds.map(id => `<th>${pMap[id]?.name || 'Π'}${"🎩".repeat(pMap[id]?.hats || 0)}</th>`).join('')}</tr>`;
-            const dataToShow = isScoreboardExpanded ? fullScoreHistory : fullScoreHistory.slice(-5);
-            dataToShow.forEach(row => {
-                html += '<tr>' + pIds.map(id => `<td>${row[id] === "WC" ? '<b style="color:var(--gold)">WC</b>' : row[id]}</td>`).join('') + '</tr>';
-            });
+            (isScoreboardExpanded ? fullScoreHistory : fullScoreHistory.slice(-5)).forEach(row => { html += '<tr>' + pIds.map(id => `<td>${row[id] === "WC" ? '<b style="color:var(--gold)">WC</b>' : row[id]}</td>`).join('') + '</tr>'; });
             table.innerHTML = html;
         }
 
-        function toggleChat() {
-            const b = document.getElementById('chat-box');
-            b.style.display = b.style.display === 'flex' ? 'none' : 'flex';
-        }
-        function sendChat() {
-            const i = document.getElementById('chat-input');
-            if(i.value) { socket.emit('chatMessage', i.value); i.value = ''; }
-        }
+        function toggleChat() { const b = document.getElementById('chat-box'); b.style.display = b.style.display === 'flex' ? 'none' : 'flex'; }
+        function sendChat() { const i = document.getElementById('chat-input'); if(i.value) { socket.emit('chatMessage', i.value); i.value = ''; } }
         function forceReconnect() { socket.connected ? joinGame() : socket.connect(); }
     </script>
 </body>
