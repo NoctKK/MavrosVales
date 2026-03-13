@@ -215,6 +215,7 @@
         #scoreboard:hover { background: rgba(0,0,0,0.95); }
         
         #my-hand-container { width: 90%; display: flex; justify-content: center; align-items: center; height: 180px; margin: 0 auto; transition: opacity 0.3s; }
+        
         .not-my-turn .hand-card { pointer-events: none; }
 
         .hand-normal { flex-wrap: nowrap; }
@@ -256,7 +257,7 @@
         <h1 style="color:var(--gold); font-size:80px; margin-bottom:10px; text-shadow: 0 0 20px rgba(212, 175, 55, 0.5); text-align:center;">Μαύρος Βαλές ♠️</h1>
         <div id="login-area" style="display:flex; flex-direction:column; align-items:center;">
             <input type="text" id="username" class="name-input" placeholder="Το όνομά σου..." maxlength="12">
-            <button class="game-btn" onclick="socket.emit('connect'); joinGame()">ΕΙΣΟΔΟΣ</button>
+            <button class="game-btn" onclick="joinGame()">ΕΙΣΟΔΟΣ</button>
         </div>
         <div id="waiting-area" style="display:none; text-align:center;">
             <p id="waiting-msg" style="font-size:24px; color:#aaa; margin-bottom:20px;">Περιμένοντας παίκτες...</p>
@@ -341,7 +342,7 @@
         const CLICK_DELAY = 300;
         let actionLocked = false;
         let gameScale = 1;
-        let selectedAceIndex = null; // Προσθήκη Ace Index
+        let selectedAceIndex = null;
 
         window.currentTopCard = null;
         window.currentActiveSuit = null;
@@ -366,6 +367,7 @@
         // === RESIZE HANDLING ===
         function resizeGame() {
             const wrapper = document.getElementById('game-wrapper');
+            if(!wrapper) return;
             gameScale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
             wrapper.style.transform = `scale(${gameScale})`;
         }
@@ -478,6 +480,7 @@
         // === CHAT ===
         function addChatMessage(name, text) {
             const m = document.getElementById('chat-messages');
+            if(!m) return;
             const div = document.createElement('div');
             const b = document.createElement('b');
             b.style.color = 'var(--gold)';
@@ -490,12 +493,12 @@
 
         function sendChat() {
             const input = document.getElementById('chat-input');
-            if(input.value) { socket.emit('chatMessage', input.value); input.value=''; }
+            if(input && input.value) { socket.emit('chatMessage', input.value); input.value=''; }
         }
 
         function toggleChat() {
             const box = document.getElementById('chat-box');
-            box.style.display = box.style.display==='flex'?'none':'flex';
+            if(box) box.style.display = box.style.display==='flex'?'none':'flex';
         }
 
         // === LOGIN & UI UPDATES ===
@@ -519,7 +522,8 @@
         function updateGameUI(data) {
             actionLocked = false; 
             window.currentScoreData = data; 
-            document.getElementById('deck-count').innerText = data.deckCount;
+            const deckCnt = document.getElementById('deck-count');
+            if(deckCnt) deckCnt.innerText = data.deckCount;
             window.currentTopCard = data.topCard; 
             window.currentActiveSuit = data.activeSuit; 
 
@@ -539,24 +543,28 @@
             }
 
             const suitDisplay = document.getElementById('active-suit-display');
-            if (data.activeSuit) {
-                suitDisplay.innerText = data.activeSuit;
-                suitDisplay.style.color = (data.activeSuit === '♥' || data.activeSuit === '♦') ? '#ff4444' : '#222';
-                suitDisplay.style.display = 'block';
-                suitDisplay.style.textShadow = "0 0 10px white, 0 0 20px white";
-            } else { suitDisplay.style.display = 'none'; }
+            if (suitDisplay) {
+                if (data.activeSuit) {
+                    suitDisplay.innerText = data.activeSuit;
+                    suitDisplay.style.color = (data.activeSuit === '♥' || data.activeSuit === '♦') ? '#ff4444' : '#222';
+                    suitDisplay.style.display = 'block';
+                    suitDisplay.style.textShadow = "0 0 10px white, 0 0 20px white";
+                } else { suitDisplay.style.display = 'none'; }
+            }
 
             const ind = document.getElementById('turn-indicator');
             const myHandContainer = document.getElementById('my-hand-container');
             
-            if (data.isMyTurn) {
-                ind.innerText = data.penalty > 0 ? `⚠️ ΦΑΕ ${data.penalty}!` : "ΔΙΚΗ ΣΟΥ ΣΕΙΡΑ";
-                ind.style.borderColor = "#4f4"; ind.style.color = "#4f4";
-                myHandContainer.classList.remove('not-my-turn');
-            } else {
-                ind.innerText = `ΠΑΙΖΕΙ: ${data.currentPlayerName}`;
-                ind.style.borderColor = "#ff4444"; ind.style.color = "#ffdddd";
-                myHandContainer.classList.add('not-my-turn'); 
+            if (ind && myHandContainer) {
+                if (data.isMyTurn) {
+                    ind.innerText = data.penalty > 0 ? `⚠️ ΦΑΕ ${data.penalty}!` : "ΔΙΚΗ ΣΟΥ ΣΕΙΡΑ";
+                    ind.style.borderColor = "#4f4"; ind.style.color = "#4f4";
+                    myHandContainer.classList.remove('not-my-turn');
+                } else {
+                    ind.innerText = `ΠΑΙΖΕΙ: ${data.currentPlayerName}`;
+                    ind.style.borderColor = "#ff4444"; ind.style.color = "#ffdddd";
+                    myHandContainer.classList.add('not-my-turn'); 
+                }
             }
 
             if (data.myHand && Array.isArray(data.myHand)) {
@@ -569,16 +577,18 @@
 
         // === DRAW / PLAY ANIMATIONS ===
         function triggerDrawAnimation() {
-            if (document.getElementById('my-hand-container').classList.contains('not-my-turn')) return;
+            const handCont = document.getElementById('my-hand-container');
+            if (!handCont || handCont.classList.contains('not-my-turn')) return;
             if(actionLocked || Date.now()-lastClick<CLICK_DELAY) return;
             lockAction();
             lastClick = Date.now();
 
-            animateCardDraw(document.getElementById('draw-pile'), document.getElementById('my-hand-container'));
+            animateCardDraw(document.getElementById('draw-pile'), handCont);
             socket.emit('drawCard');
         }
 
         function animateCardDraw(deckEl, handEl) {
+            if(!deckEl || !handEl) return;
             const clone = document.createElement('div');
             clone.className = 'flying-card';
             clone.style.width = '77px';
@@ -616,7 +626,9 @@
             clone.style.transform = `scale(${gameScale})`;
             document.body.appendChild(clone);
 
-            const pileRect = document.getElementById('pile-container').getBoundingClientRect();
+            const pileContainer = document.getElementById('pile-container');
+            if(!pileContainer) return;
+            const pileRect = pileContainer.getBoundingClientRect();
             requestAnimationFrame(() => {
                 clone.style.transition='all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                 clone.style.left = pileRect.left+'px';
@@ -650,9 +662,9 @@
             }
         }
 
-        // === HAND RENDERING ===
         function renderHand(hand) {
             const container = document.getElementById('my-hand-container');
+            if(!container) return;
             container.className = hand.length>15 ? 'hand-compact' : 'hand-normal';
             
             const frag = document.createDocumentFragment();
@@ -667,14 +679,13 @@
                     <div class="card-corner">${c.value}<div>${c.suit}</div></div>
                     <div class="card-center">${c.suit}</div>
                     <div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>`;
-                div.onclick = ()=>playCard(i,c.value,c.suit);
+                div.onclick = ()=>playCardLogic(i,c.value,c.suit);
                 frag.appendChild(div);
             });
             container.innerHTML = '';
             container.appendChild(frag);
         }
 
-        // === OPPONENTS & DIRECTION ===
         function updateDirectionIndicator(playersArray, dir) {
             if(!playersArray || playersArray.length === 0) return;
             
@@ -700,10 +711,8 @@
             initials = makeUnique(initials, names);
             
             const indicator = document.getElementById('direction-indicator');
-            if (dir === 1) {
-                indicator.innerText = initials.join(' ➔ ');
-            } else {
-                indicator.innerText = initials.join(' ⬅ ');
+            if (indicator) {
+                indicator.innerText = (dir === 1) ? initials.join(' ➔ ') : initials.join(' ⬅ ');
             }
         }
 
@@ -714,25 +723,24 @@
             
             const me = players[myIndex];
             const myInfo = document.getElementById('my-info-container');
-            let hatsHTML = me.hats > 0 ? `<div class="hats-container" style="color:white; font-size:24px;">${"🎩".repeat(me.hats)}</div>` : '';
-            
-            let myActiveClass = isMyTurn ? 'active' : '';
-            let myIndicator = isMyTurn ? '<div class="turn-indicator-dot"></div>' : '';
-            
-            myInfo.innerHTML = `
-                <div class="panel player-info ${myActiveClass}">
-                    ${myIndicator}
-                    <div class="player-name">${me.name}</div>
-                    ${hatsHTML}
-                </div>
-            `;
+            if(myInfo) {
+                let hatsHTML = me.hats > 0 ? `<div class="hats-container" style="color:white; font-size:24px;">${"🎩".repeat(me.hats)}</div>` : '';
+                let myActiveClass = isMyTurn ? 'active' : '';
+                let myIndicator = isMyTurn ? '<div class="turn-indicator-dot"></div>' : '';
+                
+                myInfo.innerHTML = `
+                    <div class="panel player-info ${myActiveClass}">
+                        ${myIndicator}
+                        <div class="player-name">${me.name}</div>
+                        ${hatsHTML}
+                    </div>
+                `;
+            }
 
             const ordered = players.slice(myIndex).concat(players.slice(0, myIndex));
             const others = ordered.slice(1); 
             
-            // Re-assign slot innerHTML as per slots logic
-            const slotIds = ['slot-top', 'slot-left', 'slot-right'];
-            slotIds.forEach(id => {
+            ['slot-top', 'slot-left', 'slot-right'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) el.innerHTML = '';
             });
@@ -780,11 +788,11 @@
         }
 
         function renderAllHands(playersData) {
-            document.getElementById("turn-timer").style.display = "none";
+            const timerContainer = document.getElementById("turn-timer");
+            if(timerContainer) timerContainer.style.display = "none";
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
             
             const others = playersData.filter(p => p.id !== myId);
-            // slots assignment check
             const slots = ['slot-left', 'slot-top', 'slot-right'];
             
             others.forEach((p, i) => {
@@ -809,16 +817,15 @@
         }
 
         // === CARD PLAY LOGIC ===
-        function playCard(index, value, suit) {
-            const handContainer = document.getElementById('my-hand-container');
-            if(handContainer.classList.contains('not-my-turn')) return;
+        function playCardLogic(index, value, suit) {
+            const handCont = document.getElementById('my-hand-container');
+            if (handCont && handCont.classList.contains('not-my-turn')) return;
             if(actionLocked || Date.now()-lastClick < CLICK_DELAY) return;
             lockAction();
             lastClick = Date.now();
 
             const cardElement = document.querySelector(`.card-${index}`);
             
-            // === Άσσος ===
             if(value === 'A') {
                 const topCard = window.currentTopCard;
                 const effectiveSuit = window.currentActiveSuit || (topCard ? topCard.suit : null);
@@ -832,11 +839,11 @@
 
                 if(cardElement) animateThrow(cardElement);
                 selectedAceIndex = index;
-                document.getElementById('ace-modal').style.display = 'flex';
+                const modal = document.getElementById('ace-modal');
+                if(modal) modal.style.display = 'flex';
                 return;
             }
 
-            // === Οποιοδήποτε άλλο φύλλο ===
             if(cardElement) animateThrow(cardElement);
             socket.emit('playCard', { index: index, declaredSuit: null });
         }
@@ -844,13 +851,15 @@
         function confirmAce(chosenSuit) {
             if(selectedAceIndex === null) return;
             socket.emit('playCard', { index: selectedAceIndex, declaredSuit: chosenSuit });
-            document.getElementById('ace-modal').style.display = 'none';
+            const modal = document.getElementById('ace-modal');
+            if(modal) modal.style.display = 'none';
             selectedAceIndex = null;
         }
 
         function cancelAce() {
             selectedAceIndex = null;
-            document.getElementById('ace-modal').style.display = 'none';
+            const modal = document.getElementById('ace-modal');
+            if(modal) modal.style.display = 'none';
             actionLocked = false;
         }
 
@@ -859,16 +868,22 @@
         
         function showVictory(msg){
             playSound('win');
-            document.getElementById('game-wrapper').style.filter='blur(10px)';
-            const btnPhrases = ["Άντε πάμε άλλο ένα 🃏", "Ένα τελευταίο 😂", "Θα πάρω το αίμα μου πίσω, πάμε 💪🏻"];
-            document.getElementById('victory-btn').innerText = btnPhrases[Math.floor(Math.random() * btnPhrases.length)];
-            document.getElementById('victory-msg').innerText=msg;
-            document.getElementById('victory-screen').style.display='flex';
+            const wrapper = document.getElementById('game-wrapper');
+            if(wrapper) wrapper.style.filter='blur(10px)';
+            const btn = document.getElementById('victory-btn');
+            if(btn) {
+                const btnPhrases = ["Άντε πάμε άλλο ένα 🃏", "Ένα τελευταίο 😂", "Θα πάρω το αίμα μου πίσω, πάμε 💪🏻"];
+                btn.innerText = btnPhrases[Math.floor(Math.random() * btnPhrases.length)];
+            }
+            const vicMsg = document.getElementById('victory-msg');
+            if(vicMsg) vicMsg.innerText=msg;
+            const vicScr = document.getElementById('victory-screen');
+            if(vicScr) vicScr.style.display='flex';
         }
 
         function renderScoreboard() {
             const t = document.getElementById('score-table');
-            if (!fullScoreHistory || fullScoreHistory.length === 0) { t.innerHTML = ""; return; }
+            if (!t || !fullScoreHistory || fullScoreHistory.length === 0) { if(t) t.innerHTML = ""; return; }
             
             const pIds = Object.keys(fullScoreHistory[0]);
             const pMap = {};
