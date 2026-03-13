@@ -81,7 +81,7 @@
             box-sizing: border-box; 
             color: black;
             position: relative;
-            will-change: transform; /* GPU Acceleration */
+            will-change: transform;
         }
 
         /* === NOTIFICATIONS === */
@@ -92,14 +92,17 @@
             left: 50%; 
             transform: translate(-50%, -50%); 
             z-index: 10000; 
-            font-size: 40px; 
+            font-size: 30px; 
             color: var(--gold); 
             font-weight: bold; 
-            text-shadow: 0 0 20px black, 3px 3px 5px black; 
+            text-shadow: 2px 2px 10px black; 
             pointer-events: none; 
             text-align: center; 
+            width: 600px;
             white-space: pre-line; 
             line-height: 1.3;
+            justify-content: center;
+            align-items: center;
         }
 
         @keyframes popMsg {
@@ -242,18 +245,17 @@
         .pile-card { position: absolute; top: 0; left: 0; box-shadow: 3px 3px 8px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; padding: 8px; will-change: transform; }
 
         /* === CARDS & MY HAND === */
-        #my-hand-container { width: 90%; display: flex; justify-content: center; align-items: center; height: 180px; margin: 0 auto; transition: opacity 0.3s; position: relative; }
+        #my-hand-container { width: 90%; display: flex; justify-content: center; align-items: center; height: 180px; margin: 0 auto; transition: opacity 0.3s; position: relative; flex-wrap: wrap; align-content: center;}
         .not-my-turn .hand-card { pointer-events: none; opacity: 0.9; }
         
         .hand-card { box-shadow: -2px 0 5px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.2s, margin 0.2s; position: relative; will-change: transform; }
         
-        /* Σωστό Z-index στο Hover (χρησιμοποιεί hover:hover για να μη κολλάει σε touch) */
         @media (hover: hover) and (pointer: fine) {
             .hand-card:hover { transform: translateY(-40px) scale(1.1); z-index: 9999 !important; }
         }
 
         .hand-normal { flex-wrap: nowrap; }
-        .hand-compact { flex-wrap: wrap; align-content: center; height: 220px !important; }
+        .hand-compact { height: 220px !important; }
         .hand-compact .hand-card { width: 77px; height: 112px; margin-bottom: -40px; }
         .hand-compact .card-corner { font-size: 16px; }
         .hand-compact .card-center { font-size: 40px; }
@@ -281,18 +283,6 @@
         @keyframes shake { 0%, 100% {transform:translateX(0);} 25% {transform:translateX(-5px);} 75% {transform:translateX(5px);} }
         
         #error-overlay { display: none; position: fixed; inset: 0; z-index: 999999; background: rgba(150, 0, 0, 0.95); flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
-
-        /* === MOBILE RESPONSIVE TWEAKS ΕΙΔΙΚΑ ΓΙΑ ΤΑ OVERLAYS === */
-        @media (max-width: 800px) {
-            #start-screen h1 { font-size: 50px !important; }
-            .name-input { font-size: 22px !important; width: 220px !important; }
-            .game-btn { font-size: 18px !important; padding: 12px 25px !important; }
-            #msg-overlay { font-size: 28px !important; width: 90% !important; }
-            #victory-msg { font-size: 35px !important; }
-            .suit-btn { width: 60px !important; height: 60px !important; font-size: 40px !important; margin: 8px !important; }
-            #ace-content h2 { font-size: 28px !important; }
-            #error-text { font-size: 14px !important; }
-        }
     </style>
 </head>
 <body>
@@ -309,7 +299,7 @@
     </div>
 
     <div id="start-screen">
-        <h1 style="color:var(--gold); margin-bottom:10px; text-shadow: 0 0 20px rgba(212, 175, 55, 0.5); text-align:center;">Μαύρος Βαλές ♠️</h1>
+        <h1 style="color:var(--gold); font-size:80px; margin-bottom:10px; text-shadow: 0 0 20px rgba(212, 175, 55, 0.5); text-align:center;">Μαύρος Βαλές ♠️</h1>
         <div id="login-area" style="display:flex; flex-direction:column; align-items:center;">
             <input type="text" id="username" class="name-input" placeholder="Το όνομά σου..." maxlength="12">
             <button id="login-btn" class="game-btn" onclick="joinGame()">ΕΙΣΟΔΟΣ</button>
@@ -323,8 +313,8 @@
     <div id="msg-overlay"></div>
 
     <div id="victory-screen">
-        <h1 id="victory-msg" style="color: white; text-shadow: 0 0 20px #4f4; line-height: 1.2; max-width: 80%; margin-bottom: 40px;">🏆</h1>
-        <button id="victory-btn" class="game-btn" style="border: 3px solid #4f4; color: #4f4; box-shadow: 0 0 15px rgba(79, 255, 68, 0.5);" onclick="location.reload()">ΝΕΟ ΠΑΙΧΝΙΔΙ</button>
+        <h1 id="victory-msg" style="color: white; font-size: 50px; text-shadow: 0 0 20px #4f4; line-height: 1.2; max-width: 80%; margin-bottom: 40px;">🏆</h1>
+        <button id="victory-btn" class="game-btn" style="font-size: 26px; padding: 20px 40px; border: 3px solid #4f4; color: #4f4; box-shadow: 0 0 15px rgba(79, 255, 68, 0.5);" onclick="location.reload()">ΝΕΟ ΠΑΙΧΝΙΔΙ</button>
     </div>
 
     <div id="game-wrapper">
@@ -332,7 +322,7 @@
         <div id="ace-modal">
             <div id="ace-backdrop" onclick="cancelAce()"></div>
             <div id="ace-content">
-                <h2 style="color:var(--gold); margin-bottom:20px;">Διάλεξε Χρώμα</h2>
+                <h2 style="color:var(--gold); font-size: 40px; margin-bottom:20px;">Διάλεξε Χρώμα</h2>
                 <div>
                     <button class="suit-btn" style="color:red;" onclick="confirmAce('♥')">♥</button>
                     <button class="suit-btn" style="color:red;" onclick="confirmAce('♦')">♦</button>
@@ -533,12 +523,11 @@
             div.appendChild(document.createTextNode(data.text));
             m.appendChild(div);
             
-            // Chat Node Limit Optimization (κρατάει τα τελευταία 50 μηνύματα)
+            // Chat Node Limit Optimization
             if (m.children.length > 50) {
                 m.removeChild(m.firstChild);
             }
 
-            // Auto-scroll
             m.scrollTop = m.scrollHeight;
         });
 
@@ -728,9 +717,7 @@
             const container = document.getElementById('my-hand-container');
             if(!container) return;
             
-            // Το παλιό wrap layout 
             container.className = hand.length > 15 ? 'hand-compact' : 'hand-normal';
-            
             const frag = document.createDocumentFragment();
             let overlap = (hand.length > 15) ? "-25px" : (hand.length > 8 ? "-60px" : "-55px");
 
@@ -742,7 +729,6 @@
                 div.style.marginLeft = i === 0 ? "0px" : overlap;
                 div.style.zIndex = i; 
                 
-                // Set data attributes for Event Delegation
                 div.setAttribute('data-index', i);
                 div.setAttribute('data-value', c.value);
                 div.setAttribute('data-suit', c.suit);
@@ -857,7 +843,6 @@
             setTimeout(() => { if (document.body.contains(clone)) clone.remove(); }, 300);
         }
 
-        // PERFORMANCE: Document Fragment στο Pile & Max 15 nodes
         function addCardToPile(c) {
             const container = document.getElementById('pile-container');
             if(!container) return;
