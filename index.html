@@ -91,7 +91,7 @@
             left: 50%; 
             transform: translate(-50%, -50%); 
             z-index: 10000; 
-            font-size: 45px; 
+            font-size: clamp(18px,4vw,45px); 
             color: var(--gold); 
             font-weight: bold; 
             text-shadow: 0 0 20px black, 3px 3px 5px black; 
@@ -468,6 +468,10 @@
         .hand-normal { flex-wrap: nowrap; }
         .hand-compact { flex-wrap: wrap; align-content: center; height: 220px !important; }
         .hand-compact .hand-card { width: 77px; height: 112px; margin-bottom: -40px; }
+        /* scale symbols when many cards */
+        .hand-compact .card-center{ font-size:42px; }
+        .hand-compact .card-corner{ font-size:16px; }
+        .hand-compact .card-corner div{ font-size:14px; }
         
         .red { color: #d00 !important; }
         .card-corner { position: absolute; top: 5px; left: 5px; font-size: 24px; font-weight: bold; line-height: 1; display: flex; flex-direction: column; align-items: center; }
@@ -579,6 +583,22 @@
             justify-content: center; 
             padding: 20px; 
             text-align: center;
+
+            /* MOBILE FIX */
+            @media (max-width:700px){
+
+            .card-base{
+            width:90px;
+            height:130px;
+            }
+
+            .card-center{
+            font-size:55px;
+            }
+
+            .card-corner{
+            font-size:18px;
+            }
         }
     </style>
 </head>
