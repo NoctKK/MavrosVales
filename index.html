@@ -47,7 +47,7 @@
                 "left center right"
                 ". bottom .";
             grid-template-columns: 250px 1fr 250px;
-            grid-template-rows: 150px 1fr 260px;
+            grid-template-rows: 150px 1fr 260px; /* Επαναφορά στο αρχικό layout */
             box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
             border: 15px solid #2b1d12;
             border-radius: 40px;
@@ -91,7 +91,7 @@
             will-change: transform;
         }
 
-        /* === REVEALED HANDS (ΣΤΟΙΒΕΣ) === */
+        /* === REVEALED HANDS (ΣΤΟΙΒΕΣ ΣΤΟ ΤΕΛΟΣ ΤΟΥ ΓΥΡΟΥ) === */
         .player-cards {
             display: flex;
             flex-wrap: wrap; 
@@ -253,7 +253,7 @@
         /* === MY HAND LAYOUT (ΧΩΡΙΣ SCROLLBAR) === */
         #my-hand-container { 
             width: 90%; display: flex; justify-content: center; align-items: flex-start; height: auto; min-height: 180px; 
-            margin: 0 auto; transition: opacity 0.3s; position: relative; z-index: 10;
+            margin: 0 auto; transition: opacity 0.3s; position: relative; z-index: 10; overflow: visible; 
         }
         .not-my-turn .hand-card { pointer-events: none; opacity: 0.9; }
         .hand-card { box-shadow: -2px 0 5px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.2s, margin 0.2s; position: relative; }
@@ -555,6 +555,10 @@
             btn.disabled = true;
             btn.innerText = "ΣΥΝΔΕΣΗ...";
 
+            let sessionId = sessionStorage.getItem('mv_session') || 'sess_' + Math.random().toString(36).substr(2, 9);
+            sessionStorage.setItem('mv_session', sessionId);
+            sessionStorage.setItem('mv_username', name);
+
             if(!socket.connected) {
                 socket.connect();
                 setTimeout(() => {
@@ -567,13 +571,10 @@
                 return;
             }
 
-            let sessionId = sessionStorage.getItem('mv_session') || 'sess_' + Math.random().toString(36).substr(2, 9);
-            sessionStorage.setItem('mv_session', sessionId);
-            sessionStorage.setItem('mv_username', name);
-            
             socket.emit('joinGame', { username: name, sessionId: sessionId });
         }
 
+        // FIX: Το reconnect πλέον κοιτάζει απευθείας τα session data
         function forceReconnect() { 
             const sess = sessionStorage.getItem('mv_session');
             const name = sessionStorage.getItem('mv_username');
@@ -604,6 +605,15 @@
             }
         });
 
+        // FIX: ΔΙΑΧΕΙΡΙΣΗ CONNECT_ERROR ΓΙΑ ΝΑ ΜΗΝ ΚΟΛΛΑΕΙ ΤΟ ΚΟΥΜΠΙ
+        socket.on('connect_error', () => {
+            const btn = document.getElementById('login-btn');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = 'ΕΙΣΟΔΟΣ';
+            }
+        });
+
         socket.on('disconnect', () => {
             document.getElementById('reconnect-btn').style.display = 'flex';
         });
@@ -622,11 +632,28 @@
             if (m.children.length > 50) m.removeChild(m.firstChild);
         });
 
+        // FIX: ΣΩΣΤΟ HANDLING ΟΤΑΝ ΤΟ LOBBY ΜΗΔΕΝΙΖΕΤΑΙ
         socket.on('playerCountUpdate', count => {
-            document.getElementById('waiting-area').style.display = 'block';
-            document.getElementById('login-area').style.display = 'none';
-            document.getElementById('waiting-msg').innerText = `Συνδεδεμένοι παίκτες: ${count}`;
-            document.getElementById('start-btn').style.display = count >= 2 ? 'inline-block' : 'none';
+            const waitingArea = document.getElementById('waiting-area');
+            const loginArea = document.getElementById('login-area');
+            const waitingMsg = document.getElementById('waiting-msg');
+            const startBtn = document.getElementById('start-btn');
+            const loginBtn = document.getElementById('login-btn');
+
+            if (count === 0) {
+                waitingArea.style.display = 'none';
+                loginArea.style.display = 'flex';
+                if (loginBtn) {
+                    loginBtn.disabled = false;
+                    loginBtn.innerText = 'ΕΙΣΟΔΟΣ';
+                }
+                return;
+            }
+
+            waitingArea.style.display = 'block';
+            loginArea.style.display = 'none';
+            waitingMsg.innerText = `Συνδεδεμένοι παίκτες: ${count}`;
+            startBtn.style.display = count >= 2 ? 'inline-block' : 'none';
         });
 
         socket.on('gameReady', () => {
@@ -634,6 +661,35 @@
             document.getElementById('scoreboard').style.display = 'block';
             document.getElementById('pile-container').innerHTML = '';
             lastDiscardCount = 0;
+        });
+
+        // FIX: ΚΑΘΑΡΙΣΜΟΣ STATE ΣΕ ΠΕΡΙΠΤΩΣΗ ΔΙΑΚΟΠΗΣ
+        socket.on('gameInterrupted', payload => {
+            clearGameTimer();
+            actionLocked = false;
+            lastPlayerId = null;
+            selectedAceIndex = null;
+
+            const aceModal = document.getElementById('ace-modal');
+            const victoryScreen = document.getElementById('victory-screen');
+            const gameWrapper = document.getElementById('game-wrapper');
+            const pileContainer = document.getElementById('pile-container');
+            const scoreboard = document.getElementById('scoreboard');
+            const startScreen = document.getElementById('start-screen');
+
+            if (aceModal) aceModal.style.display = 'none';
+            if (victoryScreen) victoryScreen.style.display = 'none';
+            if (gameWrapper) gameWrapper.style.filter = '';
+            if (pileContainer) pileContainer.innerHTML = '';
+            if (scoreboard) scoreboard.style.display = 'none';
+            if (startScreen) startScreen.style.display = 'flex';
+
+            lastDiscardCount = 0;
+
+            if (payload && payload.message) {
+                msgQueue.push(payload.message);
+                if (!isMsgShowing) showNextMsg();
+            }
         });
 
         socket.on('notification', m => {
@@ -645,6 +701,7 @@
             if (!isMsgShowing) showNextMsg();
         });
 
+        // FIX: Απελευθέρωση του Action Lock
         socket.on('actionRejected', () => {
             actionLocked = false;
         });
@@ -740,7 +797,7 @@
             document.getElementById('victory-screen').style.display = 'flex';
         });
 
-        // FIX 4: Ορθή διαχείριση του RejoinSuccess
+        // FIX: ΣΩΣΤΟΣ ΕΛΕΓΧΟΣ REJOIN (Να μην κρύβει το waiting-area αν δεν έχει ξεκινήσει το παιχνίδι)
         socket.on('rejoinSuccess', data => {
             document.getElementById('login-area').style.display = 'none';
 
@@ -1024,6 +1081,7 @@
             const b = document.getElementById('chat-box');
             b.style.display = b.style.display === 'flex' ? 'none' : 'flex';
         }
+        
         function sendChat() {
             const i = document.getElementById('chat-input');
             if(i.value) { socket.emit('chatMessage', i.value); i.value = ''; }
