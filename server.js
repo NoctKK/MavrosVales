@@ -24,6 +24,7 @@ const STARTING_HAND_SIZE = 11;
 const MAX_SCORE = 500;
 const MAX_NAME_LEN = 15;
 const MAX_CHAT_LEN = 80;
+const LOBBY_ROOM = 'mv_lobby';
 
 const SUITS = ['♠', '♣', '♥', '♦'];
 const VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -48,6 +49,10 @@ class Game {
 
         this.timers = { lobby: null, deal: null, turn: null, restart: null };
         this.resetRoundState();
+    }
+
+    emitPlayerCount() {
+        io.to(LOBBY_ROOM).emit('playerCountUpdate', this.playerOrder.length);
     }
 
     resetRoundState() {
@@ -82,7 +87,6 @@ class Game {
         this.roundStarterIndex = 0;
         this.resetRoundState();
 
-        // κρατάμε μόνο τους συνδεδεμένους στο lobby
         this.playerOrder = this.playerOrder.filter(id => this.players[id] && this.players[id].connected);
 
         Object.keys(this.players).forEach(id => {
@@ -100,7 +104,7 @@ class Game {
             p.lastChat = 0;
         });
 
-        io.emit('playerCountUpdate', this.playerOrder.length);
+        this.emitPlayerCount();
     }
 
     forceEmergencyReset() {
@@ -153,7 +157,7 @@ class Game {
             this.roundStarterIndex = 0;
             this.resetRoundState();
 
-            io.emit('playerCountUpdate', 0);
+            this.emitPlayerCount();
             io.emit('notification', 'Το lobby μηδενίστηκε λόγω αδράνειας.');
         }
     }
@@ -281,9 +285,13 @@ class Game {
         if (!cleanName) cleanName = "Παίκτης " + (this.playerOrder.length + 1);
         if (["δήμητρα", "δημητρα", "δημητρούλα"].includes(cleanName.toLowerCase())) cleanName += " ❤️";
 
-        const existingId = Object.keys(this.players).find(id => this.players[id].sessionId === sessionId && sessionId != null);
+        const existingId = Object.keys(this.players).find(
+            id => this.players[id].sessionId === sessionId && sessionId != null
+        );
 
         if (existingId) {
+            socket.join(LOBBY_ROOM);
+
             if (existingId === socket.id) {
                 this.players[socket.id].connected = true;
 
@@ -294,7 +302,7 @@ class Game {
                 });
 
                 if (this.gameStarted) this.broadcastUpdate();
-                else io.emit('playerCountUpdate', this.playerOrder.length);
+                else this.emitPlayerCount();
 
                 return;
             }
@@ -314,7 +322,7 @@ class Game {
                 history: this.roundHistory
             });
 
-            io.emit('playerCountUpdate', this.playerOrder.length);
+            this.emitPlayerCount();
             if (this.gameStarted) this.broadcastUpdate();
             return;
         }
@@ -322,6 +330,8 @@ class Game {
         if (this.gameStarted) {
             return socket.emit('notification', 'Το παιχνίδι έχει ήδη ξεκινήσει!');
         }
+
+        socket.join(LOBBY_ROOM);
 
         this.players[socket.id] = {
             id: socket.id,
@@ -338,7 +348,7 @@ class Game {
 
         this.playerOrder.push(socket.id);
 
-        io.emit('playerCountUpdate', this.playerOrder.length);
+        this.emitPlayerCount();
         socket.emit('joinedLobby');
     }
 
@@ -707,7 +717,7 @@ class Game {
         if (!this.gameStarted) {
             this.playerOrder = this.playerOrder.filter(id => id !== socketId);
             delete this.players[socketId];
-            io.emit('playerCountUpdate', this.playerOrder.length);
+            this.emitPlayerCount();
             return;
         }
 
