@@ -1,0 +1,60 @@
+.flying-card {
+    position: fixed;
+    z-index: 99999;
+    pointer-events: none;
+    transition: all 0.22s ease-out;
+    box-shadow: 10px 10px 30px rgba(0,0,0,0.5);
+}
+
+.shake {
+    animation: shake 0.18s;
+    border-color: red !important;
+}
+
+#msg-overlay {
+    display: none;
+    position: absolute;
+    top: -85px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20000;
+    font-size: 26px;
+    color: var(--gold);
+    font-weight: bold;
+    text-shadow: 2px 2px 5px black, 0 0 15px rgba(0,0,0,0.8);
+    pointer-events: none;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.player-info.active {
+    animation: pulse 1.2s infinite;
+}
+
+.turn-indicator-dot {
+    animation: blink 1s infinite;
+}
+
+@keyframes popMsg {
+    0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
+    80% { transform: translateX(-50%) scale(1.1); opacity: 1; }
+    100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0,255,150,.6); }
+    70% { box-shadow: 0 0 0 12px rgba(0,255,150,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,255,150,0); }
+}
+
+@keyframes blink {
+    0% { opacity: .2; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.1); }
+    100% { opacity: .2; transform: scale(0.8); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
