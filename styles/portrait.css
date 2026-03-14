@@ -1,0 +1,56 @@
+@media (orientation: portrait) {
+    #rotate-msg {
+        display: none !important;
+    }
+
+    #game-wrapper {
+        width: 720px;
+        height: 1280px;
+        grid-template-areas:
+            "top"
+            "center"
+            "left"
+            "right"
+            "bottom";
+        grid-template-columns: 1fr;
+        grid-template-rows: 140px 300px 150px 150px 1fr;
+        border-width: 10px;
+        border-radius: 28px;
+    }
+
+    #slot-top,
+    #slot-left,
+    #slot-right,
+    #slot-bottom {
+        width: 100%;
+        padding: 8px 0;
+    }
+
+    #slot-left,
+    #slot-right {
+        flex-direction: row;
+        gap: 10px;
+    }
+
+    #game-center {
+        flex-direction: row;
+        gap: 20px;
+    }
+
+    #my-hand-container {
+        width: 96%;
+        min-height: 260px;
+    }
+
+    #chat-box {
+        width: 260px;
+        height: 260px;
+        left: 12px;
+        bottom: 150px;
+    }
+
+    #scoreboard {
+        max-width: calc(100vw - 24px);
+        max-height: 320px;
+    }
+}
