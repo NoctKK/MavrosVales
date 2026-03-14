@@ -30,6 +30,16 @@
             justify-content: center;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
+
+            /* FIX ΓΙΑ ΤΕΡΑΣΤΙΑ ΓΡΑΜΜΑΤΑ ΣΤΟ ΚΙΝΗΤΟ */
+            text-size-adjust: none;
+            -webkit-text-size-adjust: none;
+            -moz-text-size-adjust: none;
+        }
+
+        /* Επιπλέον fix για το Font Boosting */
+        * {
+            max-height: 999999px;
         }
 
         /* === 3D VIEWPORT === */
@@ -81,6 +91,7 @@
             box-sizing: border-box; 
             color: black;
             position: relative;
+            will-change: transform;
         }
 
         #msg-overlay { 
@@ -378,6 +389,37 @@
             margin-top: 15px; 
         }
 
+        /* === REVEALED HANDS (ΑΠΟ ΤΟΝ ΧΡΗΣΤΗ) === */
+        .player-cards {
+            display: flex;
+            flex-wrap: wrap; /* επιτρέπει νέες γραμμές όταν δημιουργούνται στοίβες */
+            gap: 5px; /* απόσταση μεταξύ των φύλλων */
+            justify-content: center;
+            position: relative;
+            padding-bottom: 10px; /* αφήνει χώρο κάτω από το όνομα του παίκτη */
+        }
+
+        .player-cards .card {
+            width: 50px; /* μέγεθος φύλλου */
+            height: 70px;
+            margin-left: -20px; /* overlap αν έχουμε πολλές κάρτες */
+            z-index: 1;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+        }
+
+        .player-cards .stacked .card {
+            margin-left: -35px; /* μεγαλύτερο overlap για στοίβες */
+        }
+
         /* === DECK & CENTER AREA === */
         #game-center { 
             grid-area: center; 
@@ -443,7 +485,7 @@
             100% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
         }
 
-        /* === CARDS & HAND === */
+        /* === CARDS & MY HAND === */
         #my-hand-container { 
             width: 90%; 
             display: flex; 
@@ -474,6 +516,11 @@
         .hand-compact { flex-wrap: wrap; align-content: center; height: 220px !important; }
         .hand-compact .hand-card { width: 77px; height: 112px; margin-bottom: -40px; }
         
+        /* ΔΙΟΡΘΩΣΗ: Scaling των συμβόλων στις 2-3 σειρές */
+        .hand-compact .card-corner { font-size: 16px; top: 4px; left: 4px; }
+        .hand-compact .card-corner.bottom { top: auto; bottom: 4px; left: auto; right: 4px; transform: rotate(180deg); }
+        .hand-compact .card-center { font-size: 40px; }
+
         .red { color: #d00 !important; }
         .card-corner { position: absolute; top: 5px; left: 5px; font-size: 24px; font-weight: bold; line-height: 1; display: flex; flex-direction: column; align-items: center; }
         .card-corner.bottom { top: auto; bottom: 5px; left: auto; right: 5px; transform: rotate(180deg); }
@@ -561,7 +608,7 @@
             z-index: 1000; 
             letter-spacing: 2px;
         }
-
+        
         .flying-card {
             position: fixed; 
             z-index: 9999; 
@@ -572,7 +619,7 @@
 
         .shake { animation: shake 0.2s; border-color: red !important; }
         @keyframes shake { 0%, 100% {transform:translateX(0);} 25% {transform:translateX(-5px);} 75% {transform:translateX(5px);} }
-
+        
         #error-overlay {
             display: none; 
             position: fixed; 
@@ -590,8 +637,8 @@
 <body>
 
     <div id="error-overlay">
-        <h2>ΠΡΟΕΚΥΨΕ ΣΦΑΛΜΑ!</h2>
-        <p id="error-text" style="font-family: monospace; background: black; padding: 10px;"></p>
+        <h2 style="color: white;">ΠΡΟΕΚΥΨΕ ΣΦΑΛΜΑ!</h2>
+        <p id="error-text" style="font-family: monospace; background: black; padding: 10px; color: #ff4444;"></p>
         <button onclick="window.location.reload()" style="padding:10px 20px; font-size:20px; cursor:pointer;">ΕΠΑΝΑΦΟΡΤΩΣΗ ΣΕΛΙΔΑΣ</button>
     </div>
 
@@ -825,6 +872,7 @@
             updateDirectionIndicator(data.players, data.direction);
         });
 
+        // ΔΙΟΡΘΩΣΗ: Αντικατάσταση των inline styles με τις κλάσεις .player-cards και .card
         socket.on('revealHands', playersData => {
             const timerContainer = document.getElementById("turn-timer");
             if(timerContainer) timerContainer.style.display = "none";
@@ -840,7 +888,7 @@
                     p.hand.forEach((c, idx) => {
                         if(!c) return;
                         const color = (c.color === 'red') ? '#d00' : 'black';
-                        cardsHtml += `<div style="background:white; color:${color}; width:35px; height:50px; border-radius:4px; border:1px solid #ccc; margin-left:-15px; margin-bottom:5px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:bold; font-size:16px; box-shadow:2px 2px 5px black; z-index:${idx};">${c.value}<div style="font-size:18px; line-height:1;">${c.suit}</div></div>`;
+                        cardsHtml += `<div class="card" style="color:${color}; z-index:${idx};">${c.value}<div style="font-size:18px; line-height:1;">${c.suit}</div></div>`;
                     });
                     
                     container.innerHTML = `
@@ -848,7 +896,7 @@
                             <div class="player-name">${p.name}</div>
                             <div style="font-size:12px; color:#4f4; margin-top:3px;">Σκορ: ${p.totalScore}</div>
                         </div>
-                        <div style="display:flex; flex-wrap:wrap; justify-content:center; padding-left: 15px; max-width: 200px; height: auto; margin: 0 auto;">${cardsHtml}</div>
+                        <div class="player-cards">${cardsHtml}</div>
                         <div class="card-count-box" style="opacity: 1">${p.hand.length} φύλλα</div>`;
                 }
             });
@@ -984,8 +1032,6 @@
             if (handCont && handCont.classList.contains('not-my-turn')) return;
             if (actionLocked || Date.now() - lastClick < CLICK_DELAY) return;
 
-            // Ο Άσσος είναι μπαλαντέρ, παίζει πάντα (το server το επιτρέπει). 
-            // Οπότε, αν επιλέξεις Άσσο, δείχνουμε το modal χρώματος.
             if (value === 'A') {
                 selectedAceIndex = index;
                 const modal = document.getElementById('ace-modal');
@@ -1078,20 +1124,24 @@
             setTimeout(() => { if (document.body.contains(clone)) clone.remove(); }, 500);
         }
 
+        // ΔΙΟΡΘΩΣΗ: Επαναφορά της ακατάστατης στοίβας με 15 κάρτες
         function addCardToPile(c) {
             const container = document.getElementById('pile-container');
             if(!container) return;
             const div = document.createElement('div');
             const color = (c.suit === '♥' || c.suit === '♦') ? 'red' : '';
             div.className = `card-base pile-card played-card ${color}`; 
-            const x = Math.random() * 10 - 5;
-            const y = Math.random() * 10 - 5;
-            const r = Math.random() * 20 - 10; 
+            
+            const x = Math.random() * 20 - 10;
+            const y = Math.random() * 20 - 10;
+            const r = Math.random() * 30 - 15; 
+            
             div.style.transform = `translate(${x}px, ${y}px) rotate(${r}deg)`;
             div.innerHTML = `<div class="card-corner">${c.value}<div>${c.suit}</div></div><div class="card-center">${c.suit}</div><div class="card-corner bottom">${c.value}<div>${c.suit}</div></div>`;
             container.appendChild(div);
+            
             const cards = container.querySelectorAll('.pile-card');
-            if (cards.length > 6) cards[0].remove();
+            if (cards.length > 15) cards[0].remove();
         }
 
         // === UI HELPERS ===
