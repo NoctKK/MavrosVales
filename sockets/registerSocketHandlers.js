@@ -1,3 +1,5 @@
+const { MAX_CHAT_LEN } = require('../game/constants');
+
 module.exports = function registerSocketHandlers(io, socket, game) {
     if (!game.gameStarted) {
         game.refreshLobbyTimer();
@@ -11,7 +13,7 @@ module.exports = function registerSocketHandlers(io, socket, game) {
         game.refreshLobbyTimer();
 
         const activeCount = game.playerOrder.filter(
-            id => game.players[id] && game.players[id].connected
+            (id) => game.players[id] && game.players[id].connected
         ).length;
 
         if (!game.gameStarted && !game.starting && activeCount >= 2) {
@@ -35,15 +37,18 @@ module.exports = function registerSocketHandlers(io, socket, game) {
     socket.on('chatMessage', (msg) => {
         game.refreshLobbyTimer();
 
-        const p = game.players[socket.id];
-        if (!p) return;
+        const player = game.players[socket.id];
+        if (!player) return;
 
-        if (!p.lastChat || Date.now() - p.lastChat > 500) {
-            p.lastChat = Date.now();
+        if (!player.lastChat || Date.now() - player.lastChat > 500) {
+            player.lastChat = Date.now();
 
             io.emit('chatUpdate', {
-                name: p.name,
-                text: String(msg).replace(/[<>]/g, '').substring(0, 80)
+                name: player.name,
+                text: String(msg ?? '')
+                    .replace(/[<>]/g, '')
+                    .trim()
+                    .substring(0, MAX_CHAT_LEN)
             });
         }
     });
