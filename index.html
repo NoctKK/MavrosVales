@@ -15,7 +15,6 @@
         * {
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
-            /* ΚΛΕΙΔΩΜΑ ΓΡΑΜΜΑΤΩΝ ΓΙΑ ΚΙΝΗΤΑ - FIX ΓΙΑ FONT BOOSTING */
             -webkit-text-size-adjust: none;
             text-size-adjust: none;
             max-height: 1000000px;
@@ -48,7 +47,7 @@
                 "left center right"
                 ". bottom .";
             grid-template-columns: 250px 1fr 250px;
-            grid-template-rows: 150px 1fr 280px; /* Χώρος για να χωράνε τα φύλλα */
+            grid-template-rows: 150px 1fr 260px; /* Επαναφορά στο αρχικό layout */
             box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
             border: 15px solid #2b1d12;
             border-radius: 40px;
@@ -101,7 +100,7 @@
             position: relative;
             padding-bottom: 10px; 
             max-width: 220px;
-            z-index: 1; /* Κάτω από το όνομα */
+            z-index: 1; /* Για να πάει κάτω από το όνομα του παίκτη */
         }
 
         .player-cards .card {
@@ -145,7 +144,7 @@
             padding: 20px;
         }
         
-        /* === CHAT & SCORE TOGGLE === */
+        /* === CHAT & UI === */
         #chat-toggle { 
             position: absolute; 
             bottom: 20px; 
@@ -160,26 +159,10 @@
             z-index: 7000; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
         }
-
-        #score-toggle { 
-            position: absolute; 
-            bottom: 90px; 
-            left: 20px; 
-            width: 60px; 
-            height: 60px; 
-            background: #1a472a; 
-            border-radius: 50%; 
-            border: 2px solid var(--gold); 
-            font-size: 30px; 
-            color: white;
-            cursor: pointer; 
-            z-index: 7000; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
-        }
         
         #chat-box { 
             position: absolute; 
-            bottom: 160px; 
+            bottom: 90px; 
             left: 20px; 
             width: 300px; 
             height: 350px; 
@@ -235,7 +218,7 @@
         #slot-right { grid-area: right; }
         #slot-bottom { grid-area: bottom; align-self: flex-start; width: 100%; display: flex; flex-direction: column; align-items: center; padding-top: 10px; }
 
-        /* ΟΝΟΜΑΤΑ ΠΑΙΚΤΩΝ: z-index 2000 για να είναι ΠΑΝΤΑ πάνω από τα φύλλα */
+        /* FIX: Ονόματα Παικτών ΠΑΝΤΑ πάνω από τα φύλλα με z-index 2000 */
         .player-info { 
             position: relative; 
             padding: 5px 15px; 
@@ -268,7 +251,7 @@
         /* === MY HAND LAYOUT (ΧΩΡΙΣ SCROLLBAR) === */
         #my-hand-container { 
             width: 90%; display: flex; justify-content: center; align-items: flex-start; height: auto; min-height: 180px; 
-            margin: 0 auto; transition: opacity 0.3s; position: relative; z-index: 10; overflow: visible;
+            margin: 0 auto; transition: opacity 0.3s; position: relative; z-index: 10; overflow: visible; 
         }
         .not-my-turn .hand-card { pointer-events: none; opacity: 0.9; }
         .hand-card { box-shadow: -2px 0 5px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.2s, margin 0.2s; position: relative; }
@@ -278,7 +261,7 @@
         }
 
         .hand-normal { flex-wrap: nowrap; }
-        .hand-compact { flex-wrap: wrap; align-content: flex-start; }
+        .hand-compact { flex-wrap: wrap; align-content: flex-start; padding-top: 10px; }
         .hand-compact .hand-card { width: 77px; height: 112px; margin-bottom: -40px; }
         
         /* Scaling των συμβόλων στις 2-3 σειρές */
@@ -313,11 +296,11 @@
             padding: 8px; will-change: transform; display: flex; flex-direction: column; justify-content: space-between;
         }
 
-        /* === MESSAGES (ΑΚΡΙΒΩΣ ΠΑΝΩ ΑΠΟ ΤΗ ΣΤΟΙΒΑ ΜΕΣΑ ΣΤΟ ΚΕΝΤΡΟ) === */
+        /* === MESSAGES (ΑΚΡΙΒΩΣ ΠΑΝΩ ΑΠΟ ΤΗ ΣΤΟΙΒΑ ΜΕΣΑ ΣΤΟ ΚΕΝΤΡΟ ΓΙΑ ΣΩΣΤΟ SCALE) === */
         #msg-overlay { 
             display: none; 
             position: absolute; 
-            top: -80px; 
+            top: -85px; 
             left: 50%; 
             transform: translateX(-50%); 
             z-index: 20000; 
@@ -409,8 +392,6 @@
         </div>
 
         <button id="chat-toggle" onclick="toggleChat()">💬</button>
-        <button id="score-toggle" onclick="toggleScoreboard()">📊</button>
-        
         <button id="reconnect-btn" onclick="forceReconnect()">🔄 Reconnect</button>
         
         <div id="chat-box" class="panel">
@@ -486,7 +467,7 @@
         let isScoreboardExpanded = false;
         let msgQueue = [];
         let isMsgShowing = false;
-        let lastDiscardCount = 0; // Fix 2
+        let lastDiscardCount = 0; // FIX: Server discard count sync
 
         function resizeGame() {
             const wrapper = document.getElementById('game-wrapper');
@@ -520,7 +501,7 @@
             
             setTimeout(() => {
                 o.style.display = 'none';
-                setTimeout(showNextMsg, 150); 
+                setTimeout(showNextMsg, 200); 
             }, 2500); 
         }
 
@@ -541,27 +522,49 @@
                 bar.style.strokeDashoffset = 139 * (1 - percent); 
                 text.innerText = Math.ceil(remaining / 1000);
 
-                if(remaining > 0) animationFrameId = requestAnimationFrame(update);
+                if(remaining > 0) {
+                    animationFrameId = requestAnimationFrame(update);
+                } else {
+                    container.style.display = "none";
+                }
             }
             update();
         }
 
         function joinGame() {
             const input = document.getElementById('username');
+            const btn = document.getElementById('login-btn');
+            if(!input || !btn) return;
+            
             const name = input.value.trim();
-            if(!name) return alert("Βάλε όνομα!");
+            if (name === "") return alert("Παρακαλώ βάλε ένα όνομα!");
             
             if(!socket.connected) {
                 socket.connect();
-                document.getElementById('login-btn').innerText = "ΣΥΝΔΕΣΗ...";
+                btn.innerText = "ΣΥΝΔΕΣΗ...";
+                btn.disabled = true;
                 setTimeout(joinGame, 1000); 
                 return;
             }
 
-            const sess = sessionStorage.getItem('mv_session') || 'sess_' + Math.random().toString(36).substr(2, 9);
-            sessionStorage.setItem('mv_session', sess);
+            btn.disabled = true;
+            let sessionId = sessionStorage.getItem('mv_session') || 'sess_' + Math.random().toString(36).substr(2, 9);
+            sessionStorage.setItem('mv_session', sessionId);
             sessionStorage.setItem('mv_username', name);
-            socket.emit('joinGame', { username: name, sessionId: sess });
+            
+            socket.emit('joinGame', { username: name, sessionId: sessionId });
+        }
+
+        // FIX: Το reconnect πλέον κοιτάζει απευθείας τα session data (Δεν σκάει αν είναι άδειο το input)
+        function forceReconnect() { 
+            const sess = sessionStorage.getItem('mv_session');
+            const name = sessionStorage.getItem('mv_username');
+            if (sess && name) {
+                socket.connect();
+                socket.emit('joinGame', { username: name, sessionId: sess });
+            } else {
+                joinGame();
+            }
         }
 
         function startGameRequest() {
@@ -577,7 +580,7 @@
             document.getElementById('reconnect-btn').style.display = 'none';
             myId = socket.id;
             
-            // Fix 5: Πάντα rejoin αν υπάρχει session
+            // FIX: Πάντα αυτόματο rejoin αν υπάρχει session storage
             const name = sessionStorage.getItem('mv_username');
             const session = sessionStorage.getItem('mv_session');
             if(name && session) {
@@ -613,7 +616,7 @@
         socket.on('gameReady', () => {
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('scoreboard').style.display = 'block';
-            // Fix 3: Καθαρισμός στοίβας στην αρχή του γύρου
+            // FIX: Καθαρισμός στοίβας στην αρχή του γύρου
             document.getElementById('pile-container').innerHTML = '';
             lastDiscardCount = 0;
         });
@@ -623,7 +626,7 @@
             if (!isMsgShowing) showNextMsg();
         });
 
-        // Fix 4: Action Rejected event
+        // FIX: Απελευθέρωση του Action Lock αν ο server απορρίψει την κίνηση (lag, race conditions)
         socket.on('actionRejected', () => {
             actionLocked = false;
         });
@@ -649,7 +652,7 @@
                 startTimer(60);
             }
 
-            // Fix 2: Χρήση discardCount από τον server για να ξέρουμε αν όντως έπεσε φύλλο
+            // FIX: Χρήση του Server Discard Count για απόλυτη ακρίβεια στις διπλές κάρτες
             if (data.topCard && data.discardCount !== undefined && data.discardCount > lastDiscardCount) {
                 addCardToPile(data.topCard);
                 lastDiscardCount = data.discardCount;
@@ -689,7 +692,7 @@
             if(timerContainer) timerContainer.style.display = "none";
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
             
-            // Fix 3: Καθαρισμός στοίβας για καθαρή οθόνη
+            // FIX: Καθαρισμός Στοίβας για καθαρή εμφάνιση χεριών στο τέλος
             document.getElementById('pile-container').innerHTML = '';
             lastDiscardCount = 0;
 
@@ -718,6 +721,7 @@
         });
 
         socket.on('gameOver', msg => {
+            clearGameTimer();
             document.getElementById('game-wrapper').style.filter = "blur(10px)";
             document.getElementById('victory-msg').innerText = msg;
             document.getElementById('victory-screen').style.display = 'flex';
@@ -791,7 +795,7 @@
                 const topCard = window.currentTopCard;
                 const effectiveSuit = window.currentActiveSuit || (topCard ? topCard.suit : null);
                 
-                // Άσσος "σαν φύλλο"
+                // Άσσος "Σαν Φύλλο" εάν είναι το ίδιο χρώμα με τον προηγούμενο
                 if (topCard && topCard.value === 'A' && suit === effectiveSuit) {
                     executePlayCard(index, null);
                     return;
@@ -895,7 +899,7 @@
             const isRed = (c.suit === '♥' || c.suit === '♦');
             div.className = `card-base pile-card ${isRed ? 'red' : ''}`; 
             
-            // Τυχαία ρεαλιστική κλίση
+            // Τυχαία ρεαλιστική κλίση (έως 15 φύλλα)
             const x = Math.random() * 24 - 12;
             const y = Math.random() * 24 - 12;
             const r = Math.random() * 30 - 15; 
@@ -949,7 +953,6 @@
             });
         }
 
-        // Ονόματα στην κατεύθυνση ("ΤΕ -> ΤΟ")
         function updateDirectionIndicator(playersArray, dir) {
             if(!playersArray || !playersArray.length) return;
             let names = playersArray.map(p => (p.name || "").replace('❤️','').trim());
@@ -1001,11 +1004,6 @@
             table.innerHTML = html;
         }
 
-        function toggleScoreboard() {
-            const s = document.getElementById('scoreboard');
-            s.style.display = s.style.display === 'block' ? 'none' : 'block';
-        }
-
         function toggleChat() {
             const b = document.getElementById('chat-box');
             b.style.display = b.style.display === 'flex' ? 'none' : 'flex';
@@ -1014,10 +1012,6 @@
         function sendChat() {
             const i = document.getElementById('chat-input');
             if(i.value) { socket.emit('chatMessage', i.value); i.value = ''; }
-        }
-        
-        function forceReconnect() { 
-            socket.connected ? joinGame() : socket.connect(); 
         }
     </script>
 </body>
