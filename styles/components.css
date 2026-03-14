@@ -1,0 +1,268 @@
+.name-input {
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid var(--gold);
+    color: white;
+    font-size: 30px;
+    text-align: center;
+    padding: 10px;
+    margin-bottom: 30px;
+    outline: none;
+    width: 300px;
+}
+
+#chat-toggle,
+#score-toggle {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    font-size: 30px;
+    cursor: pointer;
+    z-index: 7000;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+
+#chat-toggle {
+    bottom: 20px;
+    left: 20px;
+    background: var(--gold);
+    border: none;
+}
+
+#score-toggle {
+    bottom: 90px;
+    left: 20px;
+    background: #1a472a;
+    border: 2px solid var(--gold);
+    color: white;
+}
+
+#reconnect-btn {
+    position: absolute;
+    bottom: 20px;
+    left: 90px;
+    height: 60px;
+    padding: 0 20px;
+    background: #b30000;
+    border-radius: 30px;
+    border: 2px solid var(--gold);
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 7000;
+    color: white;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+#chat-box {
+    position: absolute;
+    bottom: 160px;
+    left: 20px;
+    width: 300px;
+    height: 350px;
+    display: none;
+    flex-direction: column;
+    z-index: 7000;
+}
+
+#chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    font-size: 14px;
+    color: #eee;
+    text-align: left;
+}
+
+#chat-input-area {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #444;
+}
+
+#chat-input {
+    flex: 1;
+    background: #222;
+    border: 1px solid var(--gold);
+    color: white;
+    padding: 8px;
+    border-radius: 5px;
+    outline: none;
+}
+
+.player-info {
+    position: relative;
+    padding: 5px 15px;
+    text-align: center;
+    min-width: 140px;
+    margin-bottom: 5px;
+    transition: all 0.3s ease;
+    z-index: 2000;
+    background: var(--panel-bg);
+    border: 2px solid var(--gold);
+    border-radius: 10px;
+}
+
+.player-info.active {
+    animation: pulse 1.2s infinite;
+    border-color: #4f4;
+    background: rgba(0, 40, 0, 0.95);
+}
+
+.turn-indicator-dot {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #00ff9c;
+    box-shadow: 0 0 8px #00ff9c;
+    z-index: 50;
+}
+
+.card-count-box {
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid var(--gold);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 13px;
+    font-weight: bold;
+    color: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    margin-top: 15px;
+    z-index: 2000;
+    position: relative;
+}
+
+#turn-timer {
+    position: relative;
+    width: 52px;
+    height: 52px;
+    display: none;
+}
+
+.timer-bg {
+    stroke: #444;
+    fill: rgba(0,0,0,0.5);
+}
+
+.timer-bar {
+    stroke: #00ff9c;
+    fill: none;
+    stroke-dasharray: 139;
+    stroke-dashoffset: 0;
+    transform: rotate(-90deg);
+    transform-origin: center;
+}
+
+#timer-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 3px black;
+}
+
+#turn-indicator {
+    padding: 10px 25px;
+    background: #1a472a;
+    border: 3px solid #4f4;
+    border-radius: 15px;
+    font-weight: bold;
+    font-size: 18px;
+    color: white;
+    white-space: nowrap;
+}
+
+#ace-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 50000;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#ace-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+#ace-content {
+    background: var(--panel-bg);
+    padding: 40px;
+    border-radius: 20px;
+    border: 3px solid var(--gold);
+    text-align: center;
+    position: relative;
+    z-index: 10;
+}
+
+#ace-title {
+    color: var(--gold);
+    font-size: 40px;
+    margin-bottom: 20px;
+}
+
+.suit-btn {
+    width: 90px;
+    height: 90px;
+    font-size: 55px;
+    background: white;
+    border: 4px solid var(--gold);
+    border-radius: 15px;
+    margin: 15px;
+    cursor: pointer;
+}
+
+.suit-red { color: red; }
+.suit-black { color: black; }
+
+#active-suit-display {
+    position: absolute;
+    top: 35%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 120px;
+    z-index: 100;
+    text-shadow: 0 0 20px black;
+    display: none;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+#error-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    background: rgba(150, 0, 0, 0.95);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    text-align: center;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    color: white;
+}
+
+th, td {
+    border: 1px solid var(--gold);
+    padding: 8px;
+    text-align: center;
+}
