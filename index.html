@@ -100,7 +100,7 @@
             position: relative;
             padding-bottom: 10px; 
             max-width: 220px;
-            z-index: 1;
+            z-index: 1; /* Κάτω από το όνομα του παίκτη */
         }
 
         .player-cards .card {
@@ -144,7 +144,7 @@
             padding: 20px;
         }
         
-        /* === CHAT & UI === */
+        /* === CHAT & SCORE TOGGLE === */
         #chat-toggle { 
             position: absolute; 
             bottom: 20px; 
@@ -159,10 +159,26 @@
             z-index: 7000; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
         }
+
+        #score-toggle { 
+            position: absolute; 
+            bottom: 90px; 
+            left: 20px; 
+            width: 60px; 
+            height: 60px; 
+            background: #1a472a; 
+            border-radius: 50%; 
+            border: 2px solid var(--gold); 
+            font-size: 30px; 
+            color: white;
+            cursor: pointer; 
+            z-index: 7000; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+        }
         
         #chat-box { 
             position: absolute; 
-            bottom: 90px; 
+            bottom: 160px; 
             left: 20px; 
             width: 300px; 
             height: 350px; 
@@ -394,6 +410,8 @@
         </div>
 
         <button id="chat-toggle" onclick="toggleChat()">💬</button>
+        <button id="score-toggle" onclick="toggleScoreboard()">📊</button>
+        
         <button id="reconnect-btn" onclick="forceReconnect()">🔄 Reconnect</button>
         
         <div id="chat-box" class="panel">
@@ -574,7 +592,6 @@
             socket.emit('joinGame', { username: name, sessionId: sessionId });
         }
 
-        // FIX: Το reconnect πλέον κοιτάζει απευθείας τα session data
         function forceReconnect() { 
             const sess = sessionStorage.getItem('mv_session');
             const name = sessionStorage.getItem('mv_username');
@@ -605,7 +622,6 @@
             }
         });
 
-        // FIX: ΔΙΑΧΕΙΡΙΣΗ CONNECT_ERROR ΓΙΑ ΝΑ ΜΗΝ ΚΟΛΛΑΕΙ ΤΟ ΚΟΥΜΠΙ
         socket.on('connect_error', () => {
             const btn = document.getElementById('login-btn');
             if (btn) {
@@ -614,7 +630,10 @@
             }
         });
 
+        // FIX: Απελευθέρωση UI σε περίπτωση αποσύνδεσης εν ώρα γύρου
         socket.on('disconnect', () => {
+            actionLocked = false;
+            selectedAceIndex = null;
             document.getElementById('reconnect-btn').style.display = 'flex';
         });
 
@@ -632,7 +651,6 @@
             if (m.children.length > 50) m.removeChild(m.firstChild);
         });
 
-        // FIX: ΣΩΣΤΟ HANDLING ΟΤΑΝ ΤΟ LOBBY ΜΗΔΕΝΙΖΕΤΑΙ
         socket.on('playerCountUpdate', count => {
             const waitingArea = document.getElementById('waiting-area');
             const loginArea = document.getElementById('login-area');
@@ -663,7 +681,6 @@
             lastDiscardCount = 0;
         });
 
-        // FIX: ΚΑΘΑΡΙΣΜΟΣ STATE ΣΕ ΠΕΡΙΠΤΩΣΗ ΔΙΑΚΟΠΗΣ
         socket.on('gameInterrupted', payload => {
             clearGameTimer();
             actionLocked = false;
@@ -701,7 +718,6 @@
             if (!isMsgShowing) showNextMsg();
         });
 
-        // FIX: Απελευθέρωση του Action Lock
         socket.on('actionRejected', () => {
             actionLocked = false;
         });
@@ -763,6 +779,8 @@
 
         socket.on('revealHands', playersData => {
             clearGameTimer();
+            // FIX: Reset lastPlayerId για να ξεκινήσει σωστά ο timer στον επόμενο γύρο αν παίζει πάλι ο ίδιος
+            lastPlayerId = null;
             document.getElementById('pile-container').innerHTML = '';
             lastDiscardCount = 0;
 
@@ -797,7 +815,6 @@
             document.getElementById('victory-screen').style.display = 'flex';
         });
 
-        // FIX: ΣΩΣΤΟΣ ΕΛΕΓΧΟΣ REJOIN (Να μην κρύβει το waiting-area αν δεν έχει ξεκινήσει το παιχνίδι)
         socket.on('rejoinSuccess', data => {
             document.getElementById('login-area').style.display = 'none';
 
@@ -1075,6 +1092,11 @@
                 html += '<tr>' + pIds.map(id => `<td>${row[id] === "WC" ? '<b style="color:var(--gold)">WC</b>' : row[id]}</td>`).join('') + '</tr>';
             });
             table.innerHTML = html;
+        }
+
+        function toggleScoreboard() {
+            const s = document.getElementById('scoreboard');
+            s.style.display = s.style.display === 'block' ? 'none' : 'block';
         }
 
         function toggleChat() {
