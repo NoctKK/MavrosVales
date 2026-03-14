@@ -15,7 +15,7 @@ app.get('/ping', (req, res) => {
     res.send('pong');
 });
 
-// === ΣΤΑΘΕΡΕΣ ΠΑΙΧΝΙΔΙΟΥ (Βελτιστοποίηση 4) ===
+// === ΣΤΑΘΕΡΕΣ ΠΑΙΧΝΙΔΙΟΥ ===
 const TURN_TIME_MS = 60000;
 const LOBBY_IDLE_MS = 120000;
 const ROUND_RESTART_MS = 4000;
@@ -28,7 +28,7 @@ const MAX_CHAT_LEN = 80;
 const SUITS = ['♠', '♣', '♥', '♦'];
 const VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
-// === GLOBAL ERROR HANDLING (Βελτιστοποίηση 7) ===
+// === GLOBAL ERROR HANDLING ===
 process.on('uncaughtException', (err) => {
     console.error('Αποτράπηκε Crash (Exception):', err);
     if (globalGameInstance) globalGameInstance.forceEmergencyReset();
@@ -121,7 +121,6 @@ class Game {
         }
     }
 
-    // Server Fix 1: refreshLobbyTimer παντού
     refreshLobbyTimer() {
         if (this.gameStarted) return;
         if (this.timers.lobby) clearTimeout(this.timers.lobby);
@@ -149,7 +148,6 @@ class Game {
         this.timers.turn = setTimeout(() => this.autoPlayTurn(), TURN_TIME_MS);
     }
 
-    // Server Fix 3: Σωστή εύρεση επόμενου/προηγούμενου (αγνοώντας disconnected)
     getNextActivePlayerIndex(startIndex, steps = 1) {
         let activeCount = this.playerOrder.filter(id => this.players[id].connected).length;
         if (activeCount === 0) return 0;
@@ -222,13 +220,25 @@ class Game {
         let username = data?.username;
         let sessionId = data?.sessionId;
 
-        // Server Fix 9: Validation και Truncation
         let cleanName = username ? String(username).replace(/[<>]/g, '').trim().substring(0, MAX_NAME_LEN) : "Παίκτης " + (this.playerOrder.length + 1);
         if (["δήμητρα", "δημητρα", "δημητρούλα"].includes(cleanName.toLowerCase())) cleanName += " ❤️";
         
         let existingId = Object.keys(this.players).find(id => this.players[id].sessionId === sessionId && sessionId != null);
 
         if (existingId) {
+            // Server Fix 2: Μην κάνεις delete αν το existingId είναι το ίδιο το socket.id (αποφυγή αυτοκαταστροφής παίκτη)
+            if (existingId === socket.id) {
+                this.players[socket.id].connected = true;
+                socket.emit('rejoinSuccess', { 
+                    gameStarted: this.gameStarted, 
+                    myHand: this.players[socket.id].hand, 
+                    history: this.roundHistory 
+                });
+                if (this.gameStarted) this.broadcastUpdate();
+                else io.emit('playerCountUpdate', this.playerOrder.length);
+                return;
+            }
+
             this.players[socket.id] = this.players[existingId];
             this.players[socket.id].id = socket.id;
             this.players[socket.id].connected = true;
@@ -262,7 +272,6 @@ class Game {
         this.refreshLobbyTimer();
         let p = this.players[socket.id];
         
-        // Client Fix 4 / Server Fix 9: Ασφάλεια ελέγχων και επιστροφή actionRejected
         if (!this.gameStarted || this.playerOrder[this.turnIndex] !== socket.id || !p) {
             return socket.emit('actionRejected');
         }
@@ -313,7 +322,7 @@ class Game {
 
         p.hand.splice(data.index, 1);
         this.discardPile.push(card);
-        this.discardCount++; // Client Fix 2
+        this.discardCount++; 
         
         if (p.hand.length === 1) {
             io.emit('notification', `${p.name}: Μία μία μία μία! ⚠️`);
@@ -330,7 +339,7 @@ class Game {
 
             let isPenaltyHandled = false;
             let nextVictim = this.playerOrder[this.getNextActivePlayerIndex(this.turnIndex, 1)];
-            let prevVictim = this.playerOrder[this.getPreviousActivePlayerIndex(this.turnIndex, 1)]; // Server Fix 3
+            let prevVictim = this.playerOrder[this.getPreviousActivePlayerIndex(this.turnIndex, 1)]; 
 
             if (card.value === 'J' && card.color === 'black') {
                 let totalPenalty = (this.penaltyType === 'J' ? this.penaltyStack : 0) + 10;
@@ -410,7 +419,7 @@ class Game {
                     this.consecutiveTwos = 0;
                 }
                 io.emit('notification', msg);
-                let victimId = this.playerOrder[this.getPreviousActivePlayerIndex(this.turnIndex, 1)]; // Server Fix 3
+                let victimId = this.playerOrder[this.getPreviousActivePlayerIndex(this.turnIndex, 1)];
                 this.safeDraw(this.players[victimId]);
             }
         } else {
@@ -430,11 +439,9 @@ class Game {
             this.penaltyStack = 0;
             this.penaltyType = null;
         } else if (card.value === '3') {
-            // Server Fix 5: Επαναφορά του κανόνα βάσει του συνολικού τραπεζιού
             if (this.playerOrder.length === 2) advance = false;
             else this.direction *= -1;
         } else if (card.value === '9') {
-            // Server Fix 5: Επαναφορά του κανόνα βάσει του συνολικού τραπεζιού
             steps = (this.playerOrder.length === 2) ? 0 : 2;
             advance = (this.playerOrder.length !== 2);
             if (!isStart) {
@@ -465,12 +472,11 @@ class Game {
                 this.players[id].hats = 0;
             });
         } else {
-            // Server Fix 2: Modulo για να μη βγαίνει εκτός ορίων
             this.roundStarterIndex = (this.roundStarterIndex + 1) % this.playerOrder.length;
             this.turnIndex = this.roundStarterIndex;
-            // Αν ο starter έχει βγει, πάμε στον επόμενο active
+            // Server Fix 5: Εύρεση επόμενου ενεργού παίκτη ΧΩΡΙΣ κλήση του advanceTurn() που ξεκινάει περιττά timers
             if (!this.players[this.playerOrder[this.turnIndex]].connected) {
-                this.advanceTurn(1);
+                this.turnIndex = this.getNextActivePlayerIndex(this.turnIndex, 1);
             }
         }
 
@@ -483,7 +489,6 @@ class Game {
         let dealCount = 0;
 
         this.timers.deal = setInterval(() => {
-            // Server Fix 4: Μοιράζει σε ΟΛΟΥΣ (και στους disconnected) για να μη χαλάσει ο κανόνας
             this.playerOrder.forEach(id => {
                 if (this.deck.length > 0) this.players[id].hand.push(this.deck.pop());
             });
@@ -570,7 +575,7 @@ class Game {
             io.to(id).emit('updateUI', {
                 players: publicPlayers,
                 topCard: this.discardPile[this.discardPile.length - 1],
-                discardCount: this.discardCount, // Client Fix 2
+                discardCount: this.discardCount, 
                 penalty: this.penaltyStack,
                 direction: this.direction,
                 currentPlayerName: cp ? cp.name : "...",
@@ -598,7 +603,7 @@ class Game {
                     this.gameStarted = false;
                     this.clearAllTimers();
                     this.refreshLobbyTimer();
-                    io.emit('notification', 'Παίκτες αποσυνδέθηκαν. Το παιχνίδι διακόπηκε.');
+                    io.emit('notification', 'Παίκτες αποσυνδέθηκαν. Το παιχνίδι διεκόπη.');
                 } else if (this.playerOrder[this.turnIndex] === socketId) {
                     this.advanceTurn(1);
                     this.broadcastUpdate();
