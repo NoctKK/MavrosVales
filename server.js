@@ -1,16 +1,24 @@
 const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io');
 const path = require('path');
+const { Server } = require('socket.io');
 
 const Game = require('./game/Game');
 const registerSocketHandlers = require('./sockets/registerSocketHandlers');
 
 const app = express();
 const server = http.createServer(app);
+const io = new Server(server, {
+    cors: { origin: '*', methods: ['GET', 'POST'] }
+});
 
-app.use(express.static(__dirname));
+const globalGameInstance = new Game(io);
 
+// static files
+app.use('/styles', express.static(path.join(__dirname, 'styles')));
+app.use('/js', express.static(path.join(__dirname, 'js')));
+
+// main page
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -19,15 +27,12 @@ app.get('/ping', (req, res) => {
     res.send('pong');
 });
 
-const io = new Server(server, {
-    cors: { origin: "*", methods: ["GET", "POST"] }
-});
-
-const globalGameInstance = new Game(io);
-
+// global error handling
 process.on('uncaughtException', (err) => {
     console.error('Αποτράπηκε Crash (Exception):', err);
-    if (globalGameInstance) globalGameInstance.forceEmergencyReset();
+    if (globalGameInstance && typeof globalGameInstance.forceEmergencyReset === 'function') {
+        globalGameInstance.forceEmergencyReset();
+    }
 });
 
 process.on('unhandledRejection', (reason) => {
