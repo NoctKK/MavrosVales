@@ -8,17 +8,22 @@ const registerSocketHandlers = require('./sockets/registerSocketHandlers');
 
 const app = express();
 const server = http.createServer(app);
+
 const io = new Server(server, {
-    cors: { origin: '*', methods: ['GET', 'POST'] }
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
 });
 
 const globalGameInstance = new Game(io);
 
-// static files
+// static αρχεία από root, styles, js
+app.use(express.static(__dirname));
 app.use('/styles', express.static(path.join(__dirname, 'styles')));
 app.use('/js', express.static(path.join(__dirname, 'js')));
 
-// main page
+// routes
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -39,9 +44,13 @@ process.on('unhandledRejection', (reason) => {
     console.error('Αποτράπηκε Crash (Rejection):', reason);
 });
 
-registerSocketHandlers(io, globalGameInstance);
+// socket handlers
+io.on('connection', (socket) => {
+    registerSocketHandlers(io, socket, globalGameInstance);
+});
 
 const PORT = process.env.PORT || 3000;
+
 server.listen(PORT, () => {
     console.log(`Ο Μαύρος Βαλές τρέχει στο port ${PORT}`);
 });
