@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Μαύρος Βαλές ♠️</title>
     <style>
-        /* === CSS CONSTANTS & RESET === */
         :root { 
             --gold: #d4af37; 
             --panel-bg: rgba(0, 0, 0, 0.85);
@@ -18,6 +17,10 @@
             -webkit-text-size-adjust: none;
             text-size-adjust: none;
             max-height: 1000000px;
+        }
+
+        html, body {
+            touch-action: manipulation;
         }
 
         body { 
@@ -35,7 +38,6 @@
             -webkit-user-select: none;
         }
 
-        /* === 3D VIEWPORT === */
         #game-wrapper {
             width: 1280px; 
             height: 720px;
@@ -67,7 +69,6 @@
             z-index: 1; 
         }
 
-        /* === UI COMPONENTS === */
         .panel {
             background: var(--panel-bg); 
             border: 2px solid var(--gold); 
@@ -88,10 +89,10 @@
             position: relative;
             color: black;
             box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
-            will-change: transform;
+            backface-visibility: hidden;
+            transform: translateZ(0);
         }
 
-        /* === REVEALED HANDS (ΣΤΟΙΒΕΣ ΣΤΟ ΤΕΛΟΣ ΤΟΥ ΓΥΡΟΥ) === */
         .player-cards {
             display: flex;
             flex-wrap: wrap; 
@@ -122,15 +123,9 @@
             color: black;
         }
 
-        .player-cards .card:first-child {
-            margin-left: 0;
-        }
+        .player-cards .card:first-child { margin-left: 0; }
+        .player-cards .stacked .card { margin-left: -35px; }
 
-        .player-cards .stacked .card {
-            margin-left: -35px; 
-        }
-
-        /* === OVERLAYS === */
         #victory-screen {
             display: none; 
             position: fixed; 
@@ -144,7 +139,6 @@
             padding: 20px;
         }
         
-        /* === CHAT & SCORE TOGGLE === */
         #chat-toggle { 
             position: absolute; 
             bottom: 20px; 
@@ -198,7 +192,6 @@
             color: white; display: none; align-items: center; justify-content: center; 
         }
 
-        /* === LOGIN SCREEN === */
         #start-screen { 
             position: fixed; inset: 0; z-index: 40000; 
             background: radial-gradient(circle, #222 0%, #000 100%); 
@@ -221,7 +214,6 @@
 
         #start-btn { border: 3px solid #4f4; color: #4f4; display: none; margin-top: 20px; }
 
-        /* === HUD & TURN INDICATORS === */
         #top-right-ui { position: absolute; top: 15px; right: 20px; z-index: 1000; display: flex; align-items: center; gap: 15px; }
         #turn-timer { position: relative; width: 52px; height: 52px; display: none; }
         .timer-bg { stroke: #444; fill: rgba(0,0,0,0.5); }
@@ -229,7 +221,6 @@
         #timer-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; color: white; text-shadow: 1px 1px 3px black; }
         #turn-indicator { padding: 10px 25px; background: #1a472a; border: 3px solid #4f4; border-radius: 15px; font-weight: bold; font-size: 18px; color: white; white-space: nowrap; }
 
-        /* === PLAYER SLOTS === */
         .player-slot { display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 10; }
         #slot-top { grid-area: top; justify-content: flex-start; padding-top: 15px; }
         #slot-left { grid-area: left; }
@@ -260,18 +251,25 @@
         .turn-indicator-dot { position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%; background: #00ff9c; box-shadow: 0 0 8px #00ff9c; animation: blink 1s infinite; z-index: 50; }
         @keyframes blink { 0% { opacity: .2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.1); } 100% { opacity: .2; transform: scale(0.8); } }
 
-        .opp-hand { position: relative; height: 45px; margin: 0 auto; display: flex; justify-content: center; z-index: 1;}
-        .mini-card { width: 30px; height: 45px; background: linear-gradient(135deg, #a00, #500); border: 1.5px solid white; border-radius: 4px; position: absolute; top: 0; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
+        .opp-hand { position: relative; height: 45px; margin: 0 auto; display: flex; justify-content: center; z-index: 1; }
+        .mini-card { width: 30px; height: 45px; background: linear-gradient(135deg, #a00, #500); border: 1.5px solid white; border-radius: 4px; position: absolute; top: 0; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); backface-visibility: hidden; transform: translateZ(0); }
         
-        .card-count-box { background: rgba(0, 0, 0, 0.8); border: 1px solid var(--gold); border-radius: 6px; padding: 4px 10px; font-size: 13px; font-weight: bold; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.5); margin-top: 15px; z-index: 2000; position: relative;}
+        .card-count-box { background: rgba(0, 0, 0, 0.8); border: 1px solid var(--gold); border-radius: 6px; padding: 4px 10px; font-size: 13px; font-weight: bold; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.5); margin-top: 15px; z-index: 2000; position: relative; }
 
-        /* === MY HAND LAYOUT (ΧΩΡΙΣ SCROLLBAR) === */
         #my-hand-container { 
             width: 90%; display: flex; justify-content: center; align-items: flex-start; height: auto; min-height: 180px; 
-            margin: 0 auto; transition: opacity 0.3s; position: relative; z-index: 10; overflow: visible; 
+            margin: 0 auto; transition: opacity 0.2s; position: relative; z-index: 10; overflow: visible; 
         }
+
         .not-my-turn .hand-card { pointer-events: none; opacity: 0.9; }
-        .hand-card { box-shadow: -2px 0 5px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.2s, margin 0.2s; position: relative; }
+        .hand-card { 
+            box-shadow: -2px 0 5px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: transform 0.12s ease, margin 0.12s ease;
+            position: relative;
+            backface-visibility: hidden;
+            transform: translateZ(0);
+        }
         
         @media (hover: hover) and (pointer: fine) {
             .hand-card:hover { transform: translateY(-40px) scale(1.1); z-index: 9999 !important; }
@@ -280,7 +278,6 @@
         .hand-normal { flex-wrap: nowrap; }
         .hand-compact { flex-wrap: wrap; align-content: flex-start; padding-top: 10px; }
         .hand-compact .hand-card { width: 77px; height: 112px; margin-bottom: -40px; }
-        
         .hand-compact .card-corner { font-size: 16px; top: 4px; left: 4px; }
         .hand-compact .card-corner.bottom { top: auto; bottom: 4px; left: auto; right: 4px; transform: rotate(180deg); }
         .hand-compact .card-center { font-size: 40px; }
@@ -290,29 +287,41 @@
         .card-corner.bottom { top: auto; bottom: 5px; left: auto; right: 5px; transform: rotate(180deg); }
         .card-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 70px; }
 
-        /* === GAME CENTER (ΣΤΟΙΒΑ ΚΑΙ ΤΡΑΠΟΥΛΑ) === */
         #game-center { grid-area: center; display: flex; align-items: center; justify-content: center; gap: 40px; z-index: 20; position: relative; }
         
         #draw-pile { 
             position: relative; width: 100px; height: 145px; background: linear-gradient(135deg, #8e2424, #4d0000); 
             border: 3px solid white; border-radius: 10px; display: flex; flex-direction: column; align-items: center; 
             justify-content: center; cursor: pointer; box-shadow: 10px 10px 20px rgba(0,0,0,0.6); 
-            transition: transform 0.2s ease; transform-style: preserve-3d; transform: translateZ(20px);
+            transition: transform 0.12s ease; transform-style: preserve-3d; transform: translateZ(20px);
+            backface-visibility: hidden;
         }
-        #draw-pile::before, #draw-pile::after { content: ""; position: absolute; width: 100%; height: 100%; background: inherit; border-radius: 10px; border: 3px solid white; z-index: -1; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
+
+        #draw-pile::before, #draw-pile::after {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: inherit;
+            border-radius: 10px;
+            border: 3px solid white;
+            z-index: -1;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+        }
         #draw-pile::before { transform: translate(4px, 4px) translateZ(-1px); }
         #draw-pile::after { transform: translate(8px, 8px) translateZ(-2px); }
-        #draw-pile:hover { transform: translateZ(20px) scale(1.08); }
+        #draw-pile:hover { transform: translateZ(20px) scale(1.04); }
         #deck-count { font-size: 28px; font-weight: bold; color: var(--gold); margin-top: 5px; }
 
         #pile-container { width: 110px; height: 160px; position: relative; transform: translateZ(30px); transform-style: preserve-3d; }
         
         .pile-card { 
             position: absolute; top: 0; left: 0; box-shadow: 3px 3px 8px rgba(0,0,0,0.3); 
-            padding: 8px; will-change: transform; display: flex; flex-direction: column; justify-content: space-between;
+            padding: 8px; display: flex; flex-direction: column; justify-content: space-between;
+            backface-visibility: hidden;
+            transform: translateZ(0);
         }
 
-        /* === MESSAGES === */
         #msg-overlay { 
             display: none; 
             position: absolute; 
@@ -331,11 +340,10 @@
 
         @keyframes popMsg {
             0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
-            80% { transform: translateX(-50%) scale(1.1); opacity: 1; }
+            80% { transform: translateX(-50%) scale(1.06); opacity: 1; }
             100% { transform: translateX(-50%) scale(1); opacity: 1; }
         }
 
-        /* === MODALS & OVERLAYS === */
         #ace-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 50000; flex-direction: column; align-items: center; justify-content: center; }
         #ace-backdrop { position: absolute; inset: 0; z-index: 1; }
         #ace-content { background: var(--panel-bg); padding: 40px; border-radius: 20px; border: 3px solid var(--gold); text-align: center; position: relative; z-index: 10; }
@@ -350,11 +358,47 @@
 
         #error-overlay { display: none; position: fixed; inset: 0; z-index: 100000; background: rgba(150, 0, 0, 0.95); flex-direction: column; align-items: center; justify-content: center; color: white; text-align: center; }
         
-        /* λίγο πιο γρήγορο animation */
-        .flying-card { position: fixed; z-index: 99999; pointer-events: none; transition: all 0.22s ease-out; box-shadow: 10px 10px 30px rgba(0,0,0,0.5); }
+        .flying-card {
+            position: fixed;
+            z-index: 99999;
+            pointer-events: none;
+            left: 0;
+            top: 0;
+            transform-origin: top left;
+            transition: transform 0.14s linear, opacity 0.14s linear;
+            box-shadow: 6px 6px 18px rgba(0,0,0,0.35);
+            will-change: transform, opacity;
+            backface-visibility: hidden;
+        }
 
         .shake { animation: shake 0.18s; border-color: red !important; }
         @keyframes shake { 0%, 100% {transform:translateX(0);} 25% {transform:translateX(-5px);} 75% {transform:translateX(5px);} }
+
+        body.touch-device .panel,
+        body.touch-device #draw-pile,
+        body.touch-device .card-base,
+        body.touch-device .mini-card,
+        body.touch-device .pile-card {
+            box-shadow: none !important;
+        }
+
+        body.touch-device .hand-card {
+            transition: none;
+        }
+
+        body.touch-device #draw-pile:hover,
+        body.touch-device .hand-card:hover {
+            transform: none !important;
+        }
+
+        body.touch-device .flying-card {
+            transition: transform 0.11s linear, opacity 0.11s linear;
+            box-shadow: none;
+        }
+
+        body.touch-device #msg-overlay {
+            font-size: 22px;
+        }
     </style>
 </head>
 <body>
@@ -388,7 +432,6 @@
     </div>
 
     <div id="game-wrapper">
-        
         <div id="ace-modal">
             <div id="ace-backdrop" onclick="cancelAce()"></div>
             <div id="ace-content">
@@ -410,7 +453,6 @@
 
         <button id="chat-toggle" onclick="toggleChat()">💬</button>
         <button id="score-toggle" onclick="toggleScoreboard()">📊</button>
-        
         <button id="reconnect-btn" onclick="forceReconnect()">🔄 Reconnect</button>
         
         <div id="chat-box" class="panel">
@@ -472,9 +514,17 @@
         };
 
         const socket = io();
+        const IS_TOUCH_DEVICE = window.matchMedia('(hover: none), (pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+        const CLICK_DELAY = IS_TOUCH_DEVICE ? 140 : 220;
+        const ANIM_MS = IS_TOUCH_DEVICE ? 110 : 140;
+        const MSG_SHOW_MS = IS_TOUCH_DEVICE ? 1400 : 1800;
+
+        if (IS_TOUCH_DEVICE) {
+            document.body.classList.add('touch-device');
+        }
+
         let myId = null;
         let lastClick = 0;
-        const CLICK_DELAY = 220;
         let actionLocked = false;
         let gameScale = 1;
         let selectedAceIndex = null;
@@ -487,7 +537,6 @@
         let isMsgShowing = false;
         let lastDiscardCount = 0; 
 
-        // === TIMERS ===
         function clearGameTimer() {
             const timerContainer = document.getElementById("turn-timer");
             if (animationFrameId) {
@@ -552,12 +601,12 @@
             o.style.display = 'block';
             o.style.animation = 'none';
             o.offsetHeight; 
-            o.style.animation = 'popMsg 0.25s forwards';
+            o.style.animation = 'popMsg 0.22s forwards';
             
             setTimeout(() => {
                 o.style.display = 'none';
-                setTimeout(showNextMsg, 100); 
-            }, 1800); 
+                setTimeout(showNextMsg, 80); 
+            }, MSG_SHOW_MS); 
         }
 
         function joinGame() {
@@ -717,7 +766,6 @@
             msgQueue.push(m);
             if (!isMsgShowing) showNextMsg();
         });
-
         socket.on('actionRejected', () => {
             actionLocked = false;
         });
@@ -916,6 +964,47 @@
             actionLocked = false;
         }
 
+        function createFlyingCardNode(isBack = false) {
+            const clone = document.createElement('div');
+            clone.className = isBack ? 'flying-card' : 'flying-card card-base';
+
+            if (isBack) {
+                clone.style.width = '77px';
+                clone.style.height = '112px';
+                clone.style.background = 'linear-gradient(135deg, #a00, #500)';
+                clone.style.border = '2px solid white';
+                clone.style.borderRadius = '5px';
+            }
+
+            return clone;
+        }
+
+        function animateCardFlight(fromRect, toRect, sourceScale = gameScale, rotateDeg = 0, isBack = false) {
+            const clone = createFlyingCardNode(isBack);
+            const startX = fromRect.left;
+            const startY = fromRect.top;
+            const endX = toRect.left;
+            const endY = toRect.top;
+
+            clone.style.left = '0px';
+            clone.style.top = '0px';
+            clone.style.opacity = '1';
+            clone.style.transform = `translate3d(${startX}px, ${startY}px, 0) scale(${sourceScale}) rotate(0deg)`;
+
+            document.body.appendChild(clone);
+
+            requestAnimationFrame(() => {
+                clone.style.transform = `translate3d(${endX}px, ${endY}px, 0) scale(${sourceScale}) rotate(${rotateDeg}deg)`;
+                clone.style.opacity = '0.45';
+            });
+
+            setTimeout(() => {
+                if (document.body.contains(clone)) clone.remove();
+            }, ANIM_MS);
+
+            return clone;
+        }
+
         function executePlayCard(index, declaredSuit) {
             const cardElement = document.querySelector(`.card-${index}`);
             if (cardElement) animateThrow(cardElement);
@@ -935,58 +1024,66 @@
             socket.emit('drawCard');
 
             const deckEl = document.getElementById('draw-pile');
-            const clone = document.createElement('div');
-            clone.className = 'flying-card';
-            clone.style.width = '77px';
-            clone.style.height = '112px';
-            clone.style.background = 'linear-gradient(135deg, #a00, #500)';
-            clone.style.border = '2px solid white';
-            clone.style.borderRadius = '5px';
-            
+            if (!deckEl || !handCont) return;
+
             const rectDeck = deckEl.getBoundingClientRect();
-            clone.style.left = rectDeck.left + 'px';
-            clone.style.top = rectDeck.top + 'px';
-            clone.style.transform = `scale(${gameScale})`;
-            document.body.appendChild(clone);
-
             const rectHand = handCont.getBoundingClientRect();
-            requestAnimationFrame(() => {
-                clone.style.left = (rectHand.left + rectHand.width/2 - 38) + 'px';
-                clone.style.top = (rectHand.top - 20) + 'px';
-                clone.style.opacity = 0;
-                clone.style.transform = `scale(${gameScale}) rotate(180deg)`;
-            });
 
-            setTimeout(() => {
-                if (document.body.contains(clone)) clone.remove();
-            }, 220);
+            const fromRect = {
+                left: rectDeck.left,
+                top: rectDeck.top,
+                width: 77,
+                height: 112
+            };
+
+            const toRect = {
+                left: rectHand.left + rectHand.width / 2 - 38,
+                top: rectHand.top - 20,
+                width: 77,
+                height: 112
+            };
+
+            animateCardFlight(fromRect, toRect, gameScale, 180, true);
         }
 
         function animateThrow(elem) {
+            const pileContainer = document.getElementById('pile-container');
+            if (!pileContainer || !elem) return;
+
+            const rect = elem.getBoundingClientRect();
+            const pileRect = pileContainer.getBoundingClientRect();
+
+            const fromRect = {
+                left: rect.left,
+                top: rect.top,
+                width: rect.width,
+                height: rect.height
+            };
+
+            const toRect = {
+                left: pileRect.left,
+                top: pileRect.top,
+                width: rect.width,
+                height: rect.height
+            };
+
             const clone = elem.cloneNode(true);
             clone.className = 'flying-card card-base';
-            const rect = elem.getBoundingClientRect();
-            
-            clone.style.left = rect.left + 'px';
-            clone.style.top = rect.top + 'px';
+            clone.style.left = '0px';
+            clone.style.top = '0px';
             clone.style.margin = '0';
-            clone.style.transform = `scale(${gameScale})`;
+            clone.style.opacity = '1';
+            clone.style.transform = `translate3d(${fromRect.left}px, ${fromRect.top}px, 0) scale(${gameScale}) rotate(0deg)`;
             document.body.appendChild(clone);
 
-            const pileContainer = document.getElementById('pile-container');
-            if (!pileContainer) return;
-            const pileRect = pileContainer.getBoundingClientRect();
-            
             requestAnimationFrame(() => {
-                clone.style.left = pileRect.left + 'px';
-                clone.style.top = pileRect.top + 'px';
-                clone.style.transform = `scale(${gameScale}) rotate(${Math.random() * 40 - 20}deg)`;
-                clone.style.opacity = 0.5;
+                clone.style.transform = `translate3d(${toRect.left}px, ${toRect.top}px, 0) scale(${gameScale}) rotate(${Math.random() * 24 - 12}deg)`;
+                clone.style.opacity = '0.5';
             });
             
             setTimeout(() => {
                 if (document.body.contains(clone)) clone.remove();
-            }, 220);
+            }, ANIM_MS);
         }
 
         function addCardToPile(c) {
@@ -997,9 +1094,11 @@
             const isRed = (c.suit === '♥' || c.suit === '♦');
             div.className = `card-base pile-card ${isRed ? 'red' : ''}`; 
             
-            const x = Math.random() * 24 - 12;
-            const y = Math.random() * 24 - 12;
-            const r = Math.random() * 30 - 15; 
+            const spread = IS_TOUCH_DEVICE ? 16 : 24;
+            const rot = IS_TOUCH_DEVICE ? 18 : 30;
+            const x = Math.random() * spread - spread / 2;
+            const y = Math.random() * spread - spread / 2;
+            const r = Math.random() * rot - rot / 2; 
             
             div.style.transform = `translate(${x}px, ${y}px) rotate(${r}deg)`;
             div.innerHTML = `
@@ -1010,7 +1109,8 @@
             container.appendChild(div);
             
             const cards = container.querySelectorAll('.pile-card');
-            if (cards.length > 15) {
+            const maxPileVisuals = IS_TOUCH_DEVICE ? 10 : 15;
+            if (cards.length > maxPileVisuals) {
                 cards[0].remove();
             }
         }
