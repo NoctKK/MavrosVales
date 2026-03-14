@@ -30,8 +30,24 @@ const SUITS = ['♠', '♣', '♥', '♦'];
 const VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
 const io = new Server(server, {
-    cors: { origin: "*", methods: ["GET", "POST"] }
+    cors: { origin: '*', methods: ['GET', 'POST'] }
 });
+
+function sanitizeName(value, fallback) {
+    const clean = String(value || '')
+        .replace(/[<>]/g, '')
+        .trim()
+        .substring(0, MAX_NAME_LEN);
+
+    return clean || fallback;
+}
+
+function sanitizeChat(value) {
+    return String(value || '')
+        .replace(/[<>]/g, '')
+        .trim()
+        .substring(0, MAX_CHAT_LEN);
+}
 
 class Game {
     constructor() {
@@ -51,10 +67,6 @@ class Game {
         this.resetRoundState();
     }
 
-    emitPlayerCount() {
-        io.to(LOBBY_ROOM).emit('playerCountUpdate', this.playerOrder.length);
-    }
-
     resetRoundState() {
         this.penaltyStack = 0;
         this.penaltyType = null;
@@ -65,13 +77,24 @@ class Game {
     }
 
     clearAllTimers() {
-        Object.values(this.timers).forEach(t => {
-            if (t) {
-                clearTimeout(t);
-                clearInterval(t);
+        Object.values(this.timers).forEach(timer => {
+            if (timer) {
+                clearTimeout(timer);
+                clearInterval(timer);
             }
         });
         this.timers = { lobby: null, deal: null, turn: null, restart: null };
+    }
+
+    emitLobbyCount() {
+        io.to(LOBBY_ROOM).emit('playerCountUpdate', this.playerOrder.length);
+    }
+
+    forceEmergencyReset() {
+        this.resetToLobby();
+        io.emit('gameInterrupted', { message: '🚨 Σφάλμα διακομιστή. Επαναφορά...' });
+        io.emit('notification', '🚨 Σφάλμα διακομιστή. Επαναφορά...');
+        this.refreshLobbyTimer();
     }
 
     resetToLobby() {
@@ -104,25 +127,18 @@ class Game {
             p.lastChat = 0;
         });
 
-        this.emitPlayerCount();
-    }
-
-    forceEmergencyReset() {
-        this.resetToLobby();
-        io.emit('gameInterrupted', { message: '🚨 Σφάλμα διακομιστή. Επαναφορά...' });
-        io.emit('notification', '🚨 Σφάλμα διακομιστή. Επαναφορά...');
-        this.refreshLobbyTimer();
+        this.emitLobbyCount();
     }
 
     createDeck() {
-        let newDeck = [];
+        const newDeck = [];
         for (let i = 0; i < 2; i++) {
-            SUITS.forEach(s => {
-                VALUES.forEach(v => {
+            SUITS.forEach(suit => {
+                VALUES.forEach(value => {
                     newDeck.push({
-                        suit: s,
-                        value: v,
-                        color: (s === '♥' || s === '♦') ? 'red' : 'black'
+                        suit,
+                        value,
+                        color: (suit === '♥' || suit === '♦') ? 'red' : 'black'
                     });
                 });
             });
@@ -157,8 +173,8 @@ class Game {
             this.roundStarterIndex = 0;
             this.resetRoundState();
 
-            this.emitPlayerCount();
-            io.emit('notification', 'Το lobby μηδενίστηκε λόγω αδράνειας.');
+            io.to(LOBBY_ROOM).emit('playerCountUpdate', 0);
+            io.to(LOBBY_ROOM).emit('notification', 'Το lobby μηδενίστηκε λόγω αδράνειας.');
         }
     }
 
@@ -173,6 +189,7 @@ class Game {
 
         if (this.deck.length === 0) {
             if (this.discardPile.length <= 1) return false;
+
             const topCard = this.discardPile.pop();
             this.deck = this.shuffle([...this.discardPile]);
             this.discardPile = [topCard];
@@ -183,6 +200,7 @@ class Game {
             player.hand.push(this.deck.pop());
             return true;
         }
+
         return false;
     }
 
@@ -204,6 +222,7 @@ class Game {
                 idx = (idx + this.direction + n) % n;
             } while (!this.players[this.playerOrder[idx]] || !this.players[this.playerOrder[idx]].connected);
         }
+
         return idx;
     }
 
@@ -219,6 +238,7 @@ class Game {
                 idx = (idx - this.direction + n) % n;
             } while (!this.players[this.playerOrder[idx]] || !this.players[this.playerOrder[idx]].connected);
         }
+
         return idx;
     }
 
@@ -278,12 +298,12 @@ class Game {
             sessionId = null;
         }
 
-        let cleanName = username
-            ? String(username).replace(/[<>]/g, '').trim().substring(0, MAX_NAME_LEN)
-            : "Παίκτης " + (this.playerOrder.length + 1);
+        const fallbackName = `Παίκτης ${this.playerOrder.length + 1}`;
+        let cleanName = sanitizeName(username, fallbackName);
 
-        if (!cleanName) cleanName = "Παίκτης " + (this.playerOrder.length + 1);
-        if (["δήμητρα", "δημητρα", "δημητρούλα"].includes(cleanName.toLowerCase())) cleanName += " ❤️";
+        if (["δήμητρα", "δημητρα", "δημητρούλα"].includes(cleanName.toLowerCase())) {
+            cleanName += ' ❤️';
+        }
 
         const existingId = Object.keys(this.players).find(
             id => this.players[id].sessionId === sessionId && sessionId != null
@@ -302,7 +322,7 @@ class Game {
                 });
 
                 if (this.gameStarted) this.broadcastUpdate();
-                else this.emitPlayerCount();
+                else this.emitLobbyCount();
 
                 return;
             }
@@ -322,16 +342,14 @@ class Game {
                 history: this.roundHistory
             });
 
-            this.emitPlayerCount();
             if (this.gameStarted) this.broadcastUpdate();
+            this.emitLobbyCount();
             return;
         }
 
         if (this.gameStarted) {
             return socket.emit('notification', 'Το παιχνίδι έχει ήδη ξεκινήσει!');
         }
-
-        socket.join(LOBBY_ROOM);
 
         this.players[socket.id] = {
             id: socket.id,
@@ -347,9 +365,10 @@ class Game {
         };
 
         this.playerOrder.push(socket.id);
+        socket.join(LOBBY_ROOM);
 
-        this.emitPlayerCount();
         socket.emit('joinedLobby');
+        this.emitLobbyCount();
     }
 
     playCard(socket, data) {
@@ -458,6 +477,7 @@ class Game {
             }
 
             if (this.timers.turn) clearTimeout(this.timers.turn);
+
             this.broadcastUpdate();
             this.timers.restart = setTimeout(
                 () => this.handleRoundEnd(socket.id, card.value === 'A'),
@@ -519,7 +539,7 @@ class Game {
             if (!isStart) {
                 let msg = `${p.name}: Πάρε μία! 🃏`;
                 if (this.consecutiveTwos >= 3) {
-                    msg += "\nΞες πώς πάνε αυτά! 😂";
+                    msg += '\nΞες πώς πάνε αυτά! 😂';
                     this.consecutiveTwos = 0;
                 }
                 io.emit('notification', msg);
@@ -631,7 +651,7 @@ class Game {
         const historyEntry = {};
         this.playerOrder.forEach(id => {
             if (id === winnerId) {
-                historyEntry[id] = "WC";
+                historyEntry[id] = 'WC';
             } else {
                 let pts = this.calculateHandScore(this.players[id].hand);
                 if (closedWithAce) pts += 50;
@@ -641,6 +661,7 @@ class Game {
         });
 
         this.roundHistory.push(historyEntry);
+
         io.emit('revealHands', this.playerOrder.map(id => this.players[id]));
         io.emit('updateScoreboard', {
             history: this.roundHistory,
@@ -659,6 +680,7 @@ class Game {
         }
 
         const target = losers.length > 0 ? Math.max(...losers.map(id => this.players[id].totalScore)) : 0;
+
         this.playerOrder.forEach(id => {
             if (this.players[id].totalScore >= MAX_SCORE) {
                 this.players[id].hats++;
@@ -676,6 +698,7 @@ class Game {
         const publicPlayers = this.playerOrder.map(pid => {
             const p = this.players[pid];
             if (!p) return null;
+
             return {
                 id: pid,
                 name: p.name,
@@ -696,12 +719,12 @@ class Game {
                 discardCount: this.discardCount,
                 penalty: this.penaltyStack,
                 direction: this.direction,
-                currentPlayerName: cp ? cp.name : "...",
+                currentPlayerName: cp ? cp.name : '...',
                 currentPlayerId: currentId,
                 activeSuit: this.activeSuit,
                 deckCount: this.deck.length,
                 myHand: p.hand,
-                isMyTurn: (id === currentId)
+                isMyTurn: id === currentId
             });
         });
     }
@@ -717,7 +740,7 @@ class Game {
         if (!this.gameStarted) {
             this.playerOrder = this.playerOrder.filter(id => id !== socketId);
             delete this.players[socketId];
-            this.emitPlayerCount();
+            this.emitLobbyCount();
             return;
         }
 
@@ -782,13 +805,15 @@ io.on('connection', (socket) => {
 
     socket.on('chatMessage', (msg) => {
         globalGameInstance.refreshLobbyTimer();
-        const p = globalGameInstance.players[socket.id];
 
-        if (p && (!p.lastChat || Date.now() - p.lastChat > 500)) {
+        const p = globalGameInstance.players[socket.id];
+        if (!p) return;
+
+        if (!p.lastChat || Date.now() - p.lastChat > 500) {
             p.lastChat = Date.now();
             io.emit('chatUpdate', {
                 name: p.name,
-                text: String(msg).replace(/[<>]/g, '').substring(0, MAX_CHAT_LEN)
+                text: sanitizeChat(msg)
             });
         }
     });
