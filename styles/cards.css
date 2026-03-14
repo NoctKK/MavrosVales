@@ -1,0 +1,234 @@
+.card-base {
+    width: 110px;
+    height: 160px;
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    position: relative;
+    color: black;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+    will-change: transform;
+}
+
+#my-hand-container {
+    width: 90%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    height: auto;
+    min-height: 180px;
+    margin: 0 auto;
+    transition: opacity 0.3s;
+    position: relative;
+    z-index: 10;
+    overflow: visible;
+}
+
+.not-my-turn .hand-card {
+    pointer-events: none;
+    opacity: 0.9;
+}
+
+.hand-card {
+    box-shadow: -2px 0 5px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: transform 0.2s, margin 0.2s;
+    position: relative;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .hand-card:hover {
+        transform: translateY(-40px) scale(1.1);
+        z-index: 9999 !important;
+    }
+}
+
+.hand-normal {
+    flex-wrap: nowrap;
+}
+
+.hand-compact {
+    flex-wrap: wrap;
+    align-content: flex-start;
+    padding-top: 10px;
+}
+
+.hand-compact .hand-card {
+    width: 77px;
+    height: 112px;
+    margin-bottom: -40px;
+}
+
+.hand-compact .card-corner {
+    font-size: 16px;
+    top: 4px;
+    left: 4px;
+}
+
+.hand-compact .card-corner.bottom {
+    top: auto;
+    bottom: 4px;
+    left: auto;
+    right: 4px;
+    transform: rotate(180deg);
+}
+
+.hand-compact .card-center {
+    font-size: 40px;
+}
+
+.card-corner {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    font-size: 24px;
+    font-weight: bold;
+    line-height: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.card-corner.bottom {
+    top: auto;
+    bottom: 5px;
+    left: auto;
+    right: 5px;
+    transform: rotate(180deg);
+}
+
+.card-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 70px;
+}
+
+.opp-hand {
+    position: relative;
+    height: 45px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    z-index: 1;
+}
+
+.mini-card {
+    width: 30px;
+    height: 45px;
+    background: linear-gradient(135deg, #a00, #500);
+    border: 1.5px solid white;
+    border-radius: 4px;
+    position: absolute;
+    top: 0;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+}
+
+.player-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+    position: relative;
+    padding-bottom: 10px;
+    max-width: 220px;
+    z-index: 1;
+}
+
+.player-cards .card {
+    width: 50px;
+    height: 70px;
+    margin-left: -20px;
+    z-index: 1;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 16px;
+    box-shadow: 2px 2px 5px black;
+    position: relative;
+    color: black;
+}
+
+.player-cards .card:first-child {
+    margin-left: 0;
+}
+
+.player-cards .stacked .card {
+    margin-left: -35px;
+}
+
+#draw-pile {
+    position: relative;
+    width: 100px;
+    height: 145px;
+    background: linear-gradient(135deg, #8e2424, #4d0000);
+    border: 3px solid white;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 10px 10px 20px rgba(0,0,0,0.6);
+    transition: transform 0.2s ease;
+    transform-style: preserve-3d;
+    transform: translateZ(20px);
+}
+
+#draw-pile::before,
+#draw-pile::after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: inherit;
+    border-radius: 10px;
+    border: 3px solid white;
+    z-index: -1;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+}
+
+#draw-pile::before { transform: translate(4px, 4px) translateZ(-1px); }
+#draw-pile::after { transform: translate(8px, 8px) translateZ(-2px); }
+
+#draw-pile:hover {
+    transform: translateZ(20px) scale(1.08);
+}
+
+.draw-label {
+    font-size: 14px;
+    color: #ccc;
+}
+
+#deck-count {
+    font-size: 28px;
+    font-weight: bold;
+    color: var(--gold);
+    margin-top: 5px;
+}
+
+#pile-container {
+    width: 110px;
+    height: 160px;
+    position: relative;
+    transform: translateZ(30px);
+    transform-style: preserve-3d;
+}
+
+.pile-card {
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-shadow: 3px 3px 8px rgba(0,0,0,0.3);
+    padding: 8px;
+    will-change: transform;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
