@@ -47,7 +47,7 @@
                 "left center right"
                 ". bottom .";
             grid-template-columns: 250px 1fr 250px;
-            grid-template-rows: 150px 1fr 260px; /* Επαναφορά στο αρχικό layout */
+            grid-template-rows: 150px 1fr 260px;
             box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
             border: 15px solid #2b1d12;
             border-radius: 40px;
@@ -100,7 +100,7 @@
             position: relative;
             padding-bottom: 10px; 
             max-width: 220px;
-            z-index: 1; /* Κάτω από το όνομα του παίκτη */
+            z-index: 1;
         }
 
         .player-cards .card {
@@ -236,7 +236,6 @@
         #slot-right { grid-area: right; }
         #slot-bottom { grid-area: bottom; align-self: flex-start; width: 100%; display: flex; flex-direction: column; align-items: center; padding-top: 10px; }
 
-        /* FIX: Ονόματα Παικτών ΠΑΝΤΑ πάνω από τα φύλλα με z-index 2000 */
         .player-info { 
             position: relative; 
             padding: 5px 15px; 
@@ -282,7 +281,6 @@
         .hand-compact { flex-wrap: wrap; align-content: flex-start; padding-top: 10px; }
         .hand-compact .hand-card { width: 77px; height: 112px; margin-bottom: -40px; }
         
-        /* Scaling των συμβόλων στις 2-3 σειρές */
         .hand-compact .card-corner { font-size: 16px; top: 4px; left: 4px; }
         .hand-compact .card-corner.bottom { top: auto; bottom: 4px; left: auto; right: 4px; transform: rotate(180deg); }
         .hand-compact .card-center { font-size: 40px; }
@@ -314,7 +312,7 @@
             padding: 8px; will-change: transform; display: flex; flex-direction: column; justify-content: space-between;
         }
 
-        /* === MESSAGES (ΑΚΡΙΒΩΣ ΠΑΝΩ ΑΠΟ ΤΗ ΣΤΟΙΒΑ ΜΕΣΑ ΣΤΟ ΚΕΝΤΡΟ) === */
+        /* === MESSAGES === */
         #msg-overlay { 
             display: none; 
             position: absolute; 
@@ -352,10 +350,11 @@
 
         #error-overlay { display: none; position: fixed; inset: 0; z-index: 100000; background: rgba(150, 0, 0, 0.95); flex-direction: column; align-items: center; justify-content: center; color: white; text-align: center; }
         
-        .flying-card { position: fixed; z-index: 99999; pointer-events: none; transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: 10px 10px 30px rgba(0,0,0,0.5); }
+        /* λίγο πιο γρήγορο animation */
+        .flying-card { position: fixed; z-index: 99999; pointer-events: none; transition: all 0.22s ease-out; box-shadow: 10px 10px 30px rgba(0,0,0,0.5); }
 
-        .shake { animation: shake 0.3s; border-color: red !important; }
-        @keyframes shake { 0%, 100% {transform:translateX(0);} 25% {transform:translateX(-8px);} 75% {transform:translateX(8px);} }
+        .shake { animation: shake 0.18s; border-color: red !important; }
+        @keyframes shake { 0%, 100% {transform:translateX(0);} 25% {transform:translateX(-5px);} 75% {transform:translateX(5px);} }
     </style>
 </head>
 <body>
@@ -447,8 +446,7 @@
                 <div id="deck-count">52</div>
             </div>
             
-            <div id="pile-container">
-                </div>
+            <div id="pile-container"></div>
             
             <button class="game-btn" onclick="socket.emit('passTurn')">ΠΑΣΟ</button>
         </div>
@@ -466,7 +464,7 @@
         window.onerror = function(msg, url, line) {
             const overlay = document.getElementById('error-overlay');
             const text = document.getElementById('error-text');
-            if(overlay && text) {
+            if (overlay && text) {
                 overlay.style.display = 'flex';
                 text.innerText = `Σφάλμα: ${msg}\nΓραμμή: ${line}`;
             }
@@ -476,7 +474,7 @@
         const socket = io();
         let myId = null;
         let lastClick = 0;
-        const CLICK_DELAY = 400; 
+        const CLICK_DELAY = 220;
         let actionLocked = false;
         let gameScale = 1;
         let selectedAceIndex = null;
@@ -501,12 +499,12 @@
 
         function startTimer(seconds = 60) {
             clearGameTimer();
-            if(seconds <= 0) return;
+            if (seconds <= 0) return;
 
             const bar = document.querySelector(".timer-bar");
             const text = document.getElementById("timer-text");
             const container = document.getElementById("turn-timer");
-            if(!bar || !text || !container) return;
+            if (!bar || !text || !container) return;
 
             container.style.display = "block";
             timerEnd = Date.now() + seconds * 1000;
@@ -517,23 +515,23 @@
                 bar.style.strokeDashoffset = 139 * (1 - percent); 
                 text.innerText = Math.ceil(remaining / 1000);
 
-                if(remaining > 0) {
+                if (remaining > 0) {
                     animationFrameId = requestAnimationFrame(update);
                 } else {
                     clearGameTimer();
                 }
-            }
+            };
             update();
         }
 
         function resizeGame() {
             const wrapper = document.getElementById('game-wrapper');
-            if(!wrapper) return;
+            if (!wrapper) return;
             gameScale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
             wrapper.style.transform = `scale(${gameScale})`;
             
             const rotateMsg = document.getElementById('rotate-msg');
-            if(window.innerHeight > window.innerWidth) rotateMsg.style.display = 'flex';
+            if (window.innerHeight > window.innerWidth) rotateMsg.style.display = 'flex';
             else rotateMsg.style.display = 'none';
         }
         window.addEventListener('resize', resizeGame);
@@ -541,7 +539,7 @@
 
         function showNextMsg() {
             const o = document.getElementById('msg-overlay');
-            if(!o) return;
+            if (!o) return;
             
             if (msgQueue.length === 0) {
                 isMsgShowing = false;
@@ -554,18 +552,18 @@
             o.style.display = 'block';
             o.style.animation = 'none';
             o.offsetHeight; 
-            o.style.animation = 'popMsg 0.4s forwards';
+            o.style.animation = 'popMsg 0.25s forwards';
             
             setTimeout(() => {
                 o.style.display = 'none';
-                setTimeout(showNextMsg, 150); 
-            }, 2500); 
+                setTimeout(showNextMsg, 100); 
+            }, 1800); 
         }
 
         function joinGame() {
             const input = document.getElementById('username');
             const btn = document.getElementById('login-btn');
-            if(!input || !btn) return;
+            if (!input || !btn) return;
             
             const name = input.value.trim();
             if (name === "") return alert("Παρακαλώ βάλε ένα όνομα!");
@@ -577,10 +575,10 @@
             sessionStorage.setItem('mv_session', sessionId);
             sessionStorage.setItem('mv_username', name);
 
-            if(!socket.connected) {
+            if (!socket.connected) {
                 socket.connect();
                 setTimeout(() => {
-                    if(!socket.connected) {
+                    if (!socket.connected) {
                         btn.disabled = false;
                         btn.innerText = "ΕΙΣΟΔΟΣ";
                         alert("Δεν υπάρχει σύνδεση με τον server.");
@@ -603,7 +601,7 @@
         }
 
         function startGameRequest() {
-            if(!socket.connected) {
+            if (!socket.connected) {
                 alert("Το παιχνίδι αποσυνδέθηκε! Προσπάθεια επανασύνδεσης...");
                 socket.connect();
                 return;
@@ -617,7 +615,7 @@
             
             const name = sessionStorage.getItem('mv_username');
             const session = sessionStorage.getItem('mv_session');
-            if(name && session) {
+            if (name && session) {
                 socket.emit('joinGame', { username: name, sessionId: session });
             }
         });
@@ -630,7 +628,6 @@
             }
         });
 
-        // FIX: Απελευθέρωση UI σε περίπτωση αποσύνδεσης εν ώρα γύρου
         socket.on('disconnect', () => {
             actionLocked = false;
             selectedAceIndex = null;
@@ -639,7 +636,7 @@
 
         socket.on('chatUpdate', data => {
             const m = document.getElementById('chat-messages');
-            if(!m) return;
+            if (!m) return;
             const div = document.createElement('div');
             const b = document.createElement('b');
             b.style.color = 'var(--gold)';
@@ -710,9 +707,12 @@
         });
 
         socket.on('notification', m => {
-            if(m === 'Το παιχνίδι έχει ήδη ξεκινήσει!') {
+            if (m === 'Το παιχνίδι έχει ήδη ξεκινήσει!') {
                 const btn = document.getElementById('login-btn');
-                if(btn) { btn.disabled = false; btn.innerText = "ΕΙΣΟΔΟΣ"; }
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "ΕΙΣΟΔΟΣ";
+                }
             }
             msgQueue.push(m);
             if (!isMsgShowing) showNextMsg();
@@ -728,7 +728,7 @@
             if (!isMsgShowing) showNextMsg();
             
             document.querySelectorAll('.hand-card').forEach(c => c.classList.add('shake')); 
-            setTimeout(() => document.querySelectorAll('.hand-card').forEach(c => c.classList.remove('shake')), 300); 
+            setTimeout(() => document.querySelectorAll('.hand-card').forEach(c => c.classList.remove('shake')), 180); 
         });
 
         socket.on('updateUI', data => {
@@ -755,7 +755,9 @@
                     suitDisplay.style.color = (data.activeSuit === '♥' || data.activeSuit === '♦') ? '#ff4444' : '#222';
                     suitDisplay.style.display = 'block';
                     suitDisplay.style.textShadow = "0 0 10px white, 0 0 20px white";
-                } else { suitDisplay.style.display = 'none'; }
+                } else {
+                    suitDisplay.style.display = 'none';
+                }
             }
 
             const ind = document.getElementById('turn-indicator');
@@ -763,11 +765,13 @@
             if (ind && handCont) {
                 if (data.isMyTurn) {
                     ind.innerText = data.penalty > 0 ? `⚠️ ΦΑΕ ${data.penalty}!` : "ΔΙΚΗ ΣΟΥ ΣΕΙΡΑ";
-                    ind.style.borderColor = "#4f4"; ind.style.color = "#4f4";
+                    ind.style.borderColor = "#4f4";
+                    ind.style.color = "#4f4";
                     handCont.classList.remove('not-my-turn');
                 } else {
                     ind.innerText = `ΠΑΙΖΕΙ: ${data.currentPlayerName}`;
-                    ind.style.borderColor = "#ff4444"; ind.style.color = "#ffdddd";
+                    ind.style.borderColor = "#ff4444";
+                    ind.style.color = "#ffdddd";
                     handCont.classList.add('not-my-turn');
                 }
             }
@@ -779,7 +783,6 @@
 
         socket.on('revealHands', playersData => {
             clearGameTimer();
-            // FIX: Reset lastPlayerId για να ξεκινήσει σωστά ο timer στον επόμενο γύρο αν παίζει πάλι ο ίδιος
             lastPlayerId = null;
             document.getElementById('pile-container').innerHTML = '';
             lastDiscardCount = 0;
@@ -789,10 +792,10 @@
             
             others.forEach((p, i) => {
                 const container = document.getElementById(slots[i]);
-                if(container && p.hand) {
+                if (container && p.hand) {
                     let cardsHtml = '';
                     p.hand.forEach((c, idx) => {
-                        if(!c) return;
+                        if (!c) return;
                         const color = (c.color === 'red') ? '#d00' : 'black';
                         cardsHtml += `<div class="card" style="color:${color}; z-index:${idx};">${c.value}<div style="font-size:18px; line-height:1;">${c.suit}</div></div>`;
                     });
@@ -848,14 +851,14 @@
 
         function renderHand(hand) {
             const container = document.getElementById('my-hand-container');
-            if(!container) return;
+            if (!container) return;
             container.className = hand.length > 15 ? 'hand-compact' : 'hand-normal';
             
             const frag = document.createDocumentFragment();
             let overlap = (hand.length > 15) ? "-25px" : (hand.length > 8 ? "-60px" : "-55px");
 
             hand.forEach((c, i) => {
-                if(!c) return;
+                if (!c) return;
                 const div = document.createElement("div");
                 const isRed = (c.suit === '♥' || c.suit === '♦');
                 div.className = `card-base hand-card card-${i} ${isRed ? 'red' : ''}`;
@@ -929,6 +932,8 @@
             actionLocked = true;
             lastClick = Date.now();
 
+            socket.emit('drawCard');
+
             const deckEl = document.getElementById('draw-pile');
             const clone = document.createElement('div');
             clone.className = 'flying-card';
@@ -946,14 +951,15 @@
 
             const rectHand = handCont.getBoundingClientRect();
             requestAnimationFrame(() => {
-                clone.style.transition = 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)';
-                clone.style.left = (rectHand.left + rectHand.width/2 - 38)+'px';
-                clone.style.top = (rectHand.top-20)+'px';
+                clone.style.left = (rectHand.left + rectHand.width/2 - 38) + 'px';
+                clone.style.top = (rectHand.top - 20) + 'px';
                 clone.style.opacity = 0;
                 clone.style.transform = `scale(${gameScale}) rotate(180deg)`;
             });
 
-            setTimeout(() => { clone.remove(); socket.emit('drawCard'); }, 300);
+            setTimeout(() => {
+                if (document.body.contains(clone)) clone.remove();
+            }, 220);
         }
 
         function animateThrow(elem) {
@@ -968,23 +974,24 @@
             document.body.appendChild(clone);
 
             const pileContainer = document.getElementById('pile-container');
-            if(!pileContainer) return;
+            if (!pileContainer) return;
             const pileRect = pileContainer.getBoundingClientRect();
             
             requestAnimationFrame(() => {
-                clone.style.transition = 'all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1)';
                 clone.style.left = pileRect.left + 'px';
                 clone.style.top = pileRect.top + 'px';
-                clone.style.transform = `scale(${gameScale}) rotate(${Math.random()*40-20}deg)`;
+                clone.style.transform = `scale(${gameScale}) rotate(${Math.random() * 40 - 20}deg)`;
                 clone.style.opacity = 0.5;
             });
             
-            setTimeout(() => { if (document.body.contains(clone)) clone.remove(); }, 350);
+            setTimeout(() => {
+                if (document.body.contains(clone)) clone.remove();
+            }, 220);
         }
 
         function addCardToPile(c) {
             const container = document.getElementById('pile-container');
-            if(!container) return;
+            if (!container) return;
             
             const div = document.createElement('div');
             const isRed = (c.suit === '♥' || c.suit === '♦');
@@ -1013,7 +1020,7 @@
             if (myIdx === -1) return;
             
             const myInfo = document.getElementById('my-info-container');
-            if(myInfo) {
+            if (myInfo) {
                 myInfo.innerHTML = `
                     <div class="panel player-info ${isMyTurn ? 'active' : ''}" style="z-index: 2000;">
                         ${isMyTurn ? '<div class="turn-indicator-dot"></div>' : ''}
@@ -1024,11 +1031,14 @@
 
             const others = players.slice(myIdx).concat(players.slice(0, myIdx)).slice(1);
             const slotIds = ['slot-left', 'slot-top', 'slot-right'];
-            slotIds.forEach(id => { const el = document.getElementById(id); if(el) el.innerHTML = ''; });
+            slotIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = '';
+            });
 
             others.forEach((p, i) => {
                 const container = document.getElementById(slotIds[i]);
-                if(!container) return;
+                if (!container) return;
                 const active = p.name === curName;
                 container.innerHTML = `
                     <div class="panel player-info ${active ? 'active' : ''}" style="opacity:${p.connected ? 1 : 0.4}; z-index: 2000;">
@@ -1044,8 +1054,8 @@
         }
 
         function updateDirectionIndicator(playersArray, dir) {
-            if(!playersArray || !playersArray.length) return;
-            let names = playersArray.map(p => (p.name || "").replace('❤️','').trim());
+            if (!playersArray || !playersArray.length) return;
+            let names = playersArray.map(p => (p.name || "").replace('❤️', '').trim());
             
             let initials = names.map((name, i) => {
                 let len = 1;
@@ -1066,7 +1076,7 @@
             });
 
             let counts = {};
-            for(let i=0; i<initials.length; i++) {
+            for (let i = 0; i < initials.length; i++) {
                 let init = initials[i];
                 if (counts[init]) {
                     counts[init]++;
@@ -1106,7 +1116,10 @@
         
         function sendChat() {
             const i = document.getElementById('chat-input');
-            if(i.value) { socket.emit('chatMessage', i.value); i.value = ''; }
+            if (i.value) {
+                socket.emit('chatMessage', i.value);
+                i.value = '';
+            }
         }
     </script>
 </body>
