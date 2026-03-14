@@ -58,21 +58,16 @@ function onHandClick(e) {
 window.addEventListener('resize', resizeGame);
 window.onload = resizeGame;
 
-$("login-btn").addEventListener('click', joinGame);
-$("start-btn").addEventListener('click', startGameRequest);
-$("reconnect-btn").addEventListener('click', forceReconnect);
-$("chat-toggle").addEventListener('click', toggleChat);
-$("score-toggle").addEventListener('click', toggleScoreboard);
-$("draw-pile").addEventListener('click', triggerDrawAnimation);
-$("pass-btn").addEventListener('click', () => socket.emit('passTurn'));
-$("my-hand-container").addEventListener('click', onHandClick);
-$("chat-input").addEventListener('keypress', e => {
-    if (e.key === 'Enter') sendChat();
-});
+if ($("login-btn")) $("login-btn").addEventListener('click', joinGame);
+if ($("start-btn")) $("start-btn").addEventListener('click', startGameRequest);
+if ($("reconnect-btn")) $("reconnect-btn").addEventListener('click', forceReconnect);
+if ($("chat-toggle")) $("chat-toggle").addEventListener('click', toggleChat);
+if ($("score-toggle")) $("score-toggle").addEventListener('click', toggleScoreboard);
+if ($("draw-pile")) $("draw-pile").addEventListener('click', triggerDrawAnimation);
+if ($("my-hand-container")) $("my-hand-container").addEventListener('click', onHandClick);
 
-$("ace-backdrop").addEventListener('click', cancelAce);
-$("ace-cancel-btn").addEventListener('click', cancelAce);
-
-document.querySelectorAll('.suit-btn').forEach(btn => {
-    btn.addEventListener('click', () => confirmAce(btn.dataset.suit));
-});
+if ($("chat-input")) {
+    $("chat-input").addEventListener('keypress', e => {
+        if (e.key === 'Enter') sendChat();
+    });
+}
