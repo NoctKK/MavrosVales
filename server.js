@@ -224,6 +224,7 @@ class Game {
         if (!card) return;
 
         let topCard = this.discardPile[this.discardPile.length - 1];
+        let top2 = this.discardPile.length >= 2 ? this.discardPile[this.discardPile.length - 2] : null;
         let effectiveSuit = this.activeSuit || topCard.suit;
         let isValid = false;
 
@@ -237,8 +238,27 @@ class Game {
         }
 
         if (isValid) {
+            let isSpecial = ['7', '8', 'J', 'A'].includes(card.value);
+            
+            // Έλεγχος Copy Paste
+            if (!isSpecial && topCard) {
+                if (card.value === topCard.value && card.suit === topCard.suit) {
+                    io.emit('notification', `${p.name}: Copy paste! 👯`);
+                } else if (top2 && topCard.value === top2.value && topCard.suit === top2.suit && card.value === topCard.value && card.suit !== topCard.suit) {
+                    io.emit('notification', `${p.name}: Copy erased! ❌`);
+                }
+            }
+
+            // ΕΙΔΙΚΗ ΛΟΓΙΚΗ ΓΙΑ ΤΟΝ ΑΣΣΟ ("Σαν φύλλο")
             if (card.value === 'A') {
-                this.activeSuit = data.declaredSuit || card.suit;
+                if (topCard && topCard.value === 'A' && card.suit === effectiveSuit && !data.declaredSuit) {
+                    // Παίχτηκε σαν φύλλο, δεν αλλάζει το χρώμα, απλά παίρνει το δικό του
+                    this.activeSuit = null;
+                    io.emit('notification', `${p.name}: Σαν φύλλο!`);
+                } else {
+                    // Παίχτηκε κανονικά ως μπαλαντέρ, αλλάζει το χρώμα
+                    this.activeSuit = data.declaredSuit || card.suit;
+                }
             } else {
                 this.activeSuit = null;
             }
@@ -253,7 +273,7 @@ class Game {
             if (p.hand.length === 0) {
                 if (card.value === '8') {
                     this.safeDraw(p);
-                    io.emit('notification', `Ο/Η ${p.name} έκλεισε με 8 και τραβάει αναγκαστικά φύλλο! 🃏`);
+                    io.emit('notification', `${p.name}: Έκλεισα με 8 και τραβάω αναγκαστικά φύλλο! 🃏`);
                     this.processCardLogic(card, p);
                     this.broadcastUpdate();
                     return;
@@ -266,16 +286,16 @@ class Game {
                 if (card.value === 'J' && card.color === 'black') {
                     let totalPenalty = (this.penaltyType === 'J' ? this.penaltyStack : 0) + 10;
                     for(let i=0; i<totalPenalty; i++) this.safeDraw(this.players[nextVictim]);
-                    io.emit('notification', `Κλείσιμο με Μαύρο Βαλέ! +${totalPenalty} στον/στην ${this.players[nextVictim].name}!`);
+                    io.emit('notification', `${p.name}: Κλείσιμο με Μαύρο Βαλέ! +${totalPenalty} στον/στην ${this.players[nextVictim].name}!`);
                     this.penaltyStack = 0; this.penaltyType = null; isPenaltyHandled = true;
                 } else if (card.value === '7') {
                     let totalPenalty = (this.penaltyType === '7' ? this.penaltyStack : 0) + 2;
                     for(let i=0; i<totalPenalty; i++) this.safeDraw(this.players[nextVictim]);
-                    io.emit('notification', `Κλείσιμο με 7! +${totalPenalty} στον/στην ${this.players[nextVictim].name}!`);
+                    io.emit('notification', `${p.name}: Κλείσιμο με 7! +${totalPenalty} στον/στην ${this.players[nextVictim].name}!`);
                     this.penaltyStack = 0; this.penaltyType = null; isPenaltyHandled = true;
                 } else if (card.value === '2') {
                     this.safeDraw(this.players[prevVictim]);
-                    io.emit('notification', `Κλείσιμο με 2! +1 στον/στην ${this.players[prevVictim].name}!`);
+                    io.emit('notification', `${p.name}: Κλείσιμο με 2! +1 στον/στην ${this.players[prevVictim].name}!`);
                     isPenaltyHandled = true;
                 }
 
@@ -345,7 +365,7 @@ class Game {
         if (card.value === '2') {
             this.consecutiveTwos++;
             if (!isStart) {
-                let msg = "Πάρε μία! 🃏";
+                let msg = `${p.name}: Πάρε μία! 🃏`;
                 if (this.consecutiveTwos >= 3) {
                     msg += "\nΞες πώς πάνε αυτά! 😂";
                     this.consecutiveTwos = 0;
@@ -376,7 +396,10 @@ class Game {
         } else if (card.value === '9') {
             steps = (this.playerOrder.length === 2) ? 0 : 2;
             advance = (this.playerOrder.length !== 2);
-            if (!isStart) io.emit('notification', 'Άραξε 🍹');
+            if (!isStart) {
+                if (this.playerOrder.length === 2) io.emit('notification', `${p.name}: Ξανά παίζω! 🍹`);
+                else io.emit('notification', `${p.name}: Άραξε 🍹`);
+            }
         }
 
         if (advance) this.advanceTurn(steps);
