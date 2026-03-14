@@ -1,53 +1,53 @@
-const { MAX_CHAT_LEN } = require('../game/constants');
-
-function registerSocketHandlers(io, game) {
+function registerSocketHandlers(io, globalGameInstance) {
     io.on('connection', (socket) => {
-        if (!game.gameStarted) game.refreshLobbyTimer();
+        if (!globalGameInstance.gameStarted) {
+            globalGameInstance.refreshLobbyTimer();
+        }
 
         socket.on('joinGame', (data) => {
-            game.joinGame(socket, data);
+            globalGameInstance.joinGame(socket, data);
         });
 
         socket.on('startGameRequest', () => {
-            game.refreshLobbyTimer();
+            globalGameInstance.refreshLobbyTimer();
 
-            const activeCount = game.playerOrder.filter(
-                id => game.players[id] && game.players[id].connected
+            const activeCount = globalGameInstance.playerOrder.filter(
+                id => globalGameInstance.players[id] && globalGameInstance.players[id].connected
             ).length;
 
-            if (!game.gameStarted && !game.starting && activeCount >= 2) {
-                game.starting = true;
-                game.startNewRound(true);
+            if (!globalGameInstance.gameStarted && !globalGameInstance.starting && activeCount >= 2) {
+                globalGameInstance.starting = true;
+                globalGameInstance.startNewRound(true);
             }
         });
 
         socket.on('playCard', (data) => {
-            game.playCard(socket, data);
+            globalGameInstance.playCard(socket, data);
         });
 
         socket.on('drawCard', () => {
-            game.drawCard(socket);
+            globalGameInstance.drawCard(socket);
         });
 
         socket.on('passTurn', () => {
-            game.passTurn(socket);
+            globalGameInstance.passTurn(socket);
         });
 
         socket.on('chatMessage', (msg) => {
-            game.refreshLobbyTimer();
-            const p = game.players[socket.id];
+            globalGameInstance.refreshLobbyTimer();
+            const p = globalGameInstance.players[socket.id];
 
             if (p && (!p.lastChat || Date.now() - p.lastChat > 500)) {
                 p.lastChat = Date.now();
                 io.emit('chatUpdate', {
                     name: p.name,
-                    text: String(msg).replace(/[<>]/g, '').substring(0, MAX_CHAT_LEN)
+                    text: String(msg).replace(/[<>]/g, '').substring(0, 80)
                 });
             }
         });
 
         socket.on('disconnect', () => {
-            game.disconnectPlayer(socket.id);
+            globalGameInstance.disconnectPlayer(socket.id);
         });
     });
 }
