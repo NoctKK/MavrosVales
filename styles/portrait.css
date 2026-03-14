@@ -1,4 +1,10 @@
-@media (orientation: portrait) {
+@media screen and (orientation: portrait) {
+    body {
+        overflow: hidden;
+        align-items: center;
+        justify-content: center;
+    }
+
     #rotate-msg {
         display: none !important;
     }
@@ -6,16 +12,34 @@
     #game-wrapper {
         width: 720px;
         height: 1280px;
-        grid-template-areas:
-            "top"
-            "center"
-            "left"
-            "right"
-            "bottom";
-        grid-template-columns: 1fr;
-        grid-template-rows: 140px 300px 150px 150px 1fr;
         border-width: 10px;
         border-radius: 28px;
+
+        grid-template-areas:
+            "top"
+            "left"
+            "center"
+            "right"
+            "bottom";
+
+        grid-template-columns: 1fr;
+        grid-template-rows: 160px 170px 1fr 170px 300px;
+    }
+
+    #top-right-ui {
+        top: 14px;
+        left: 20px;
+        right: 20px;
+        width: auto;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    #turn-indicator {
+        font-size: 16px;
+        padding: 10px 18px;
+        max-width: 75%;
+        text-align: center;
     }
 
     #slot-top,
@@ -23,34 +47,118 @@
     #slot-right,
     #slot-bottom {
         width: 100%;
-        padding: 8px 0;
+        justify-self: center;
+        align-self: center;
     }
 
-    #slot-left,
-    #slot-right {
-        flex-direction: row;
-        gap: 10px;
+    #slot-top {
+        padding-top: 8px;
+    }
+
+    #slot-bottom {
+        padding-top: 6px;
+        padding-bottom: 12px;
     }
 
     #game-center {
-        flex-direction: row;
-        gap: 20px;
+        grid-area: center;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 22px;
+        padding: 0 20px;
+        align-self: center;
+        justify-self: center;
+    }
+
+    #draw-pile,
+    #pile-container,
+    #game-center .game-btn {
+        flex: 0 0 auto;
+    }
+
+    #draw-pile {
+        width: 95px;
+        height: 138px;
+    }
+
+    #pile-container {
+        width: 100px;
+        height: 145px;
+    }
+
+    #game-center .game-btn {
+        font-size: 18px;
+        padding: 12px 18px;
+        white-space: nowrap;
+    }
+
+    #msg-overlay {
+        top: -70px;
+        font-size: 22px;
+        width: calc(100% - 40px);
+        white-space: normal;
+    }
+
+    #active-suit-display {
+        top: 48%;
+        font-size: 92px;
     }
 
     #my-hand-container {
         width: 96%;
-        min-height: 260px;
+        min-height: 170px;
+    }
+
+    .hand-normal .hand-card {
+        width: 92px;
+        height: 134px;
+    }
+
+    .hand-compact .hand-card {
+        width: 70px;
+        height: 102px;
+        margin-bottom: -32px;
+    }
+
+    .opp-hand {
+        height: 40px;
+    }
+
+    .mini-card {
+        width: 26px;
+        height: 40px;
+    }
+
+    .player-info {
+        min-width: 130px;
+    }
+
+    .card-count-box {
+        margin-top: 10px;
+    }
+
+    #chat-toggle {
+        bottom: 20px;
+        left: 20px;
+    }
+
+    #score-toggle {
+        bottom: 92px;
+        left: 20px;
+    }
+
+    #reconnect-btn {
+        bottom: 20px;
+        left: 92px;
     }
 
     #chat-box {
-        width: 260px;
-        height: 260px;
-        left: 12px;
-        bottom: 150px;
-    }
-
-    #scoreboard {
-        max-width: calc(100vw - 24px);
-        max-height: 320px;
+        left: 20px;
+        bottom: 162px;
+        width: 280px;
+        height: 300px;
     }
 }
