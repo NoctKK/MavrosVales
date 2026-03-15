@@ -215,6 +215,21 @@
     white-space: nowrap;
 }
 
+#direction-indicator {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    background: rgba(0,0,0,0.8);
+    border: 2px solid var(--gold);
+    border-radius: 15px;
+    font-weight: bold;
+    font-size: 20px;
+    color: var(--gold);
+    z-index: 1000;
+    letter-spacing: 2px;
+}
+
 /* === ACE MODAL === */
 #ace-modal {
     display: none;
