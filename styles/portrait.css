@@ -99,6 +99,7 @@ body.portrait-mode #game-center {
 }
 
 body.portrait-mode #draw-pile,
+body.portrait-mode #pile-zone,
 body.portrait-mode #pile-container,
 body.portrait-mode #pass-btn {
     flex: 0 0 auto;
@@ -115,6 +116,11 @@ body.portrait-mode #draw-pile::before {
 
 body.portrait-mode #draw-pile::after {
     transform: translate(6px, 6px) translateZ(-2px);
+}
+
+body.portrait-mode #pile-zone {
+    width: 90px;
+    height: 132px;
 }
 
 body.portrait-mode #pile-container {
@@ -138,9 +144,12 @@ body.portrait-mode #game-center .game-btn {
 }
 
 body.portrait-mode #msg-overlay {
-    top: -62px;
+    bottom: calc(100% + 8px);
+    top: auto;
+    left: 50%;
+    transform: translateX(-50%);
     font-size: 20px;
-    width: calc(100% - 30px);
+    width: 180px;
     white-space: normal;
     text-align: center;
 }
@@ -196,6 +205,14 @@ body.portrait-mode #scoreboard {
 body.portrait-mode #scoreboard th,
 body.portrait-mode #scoreboard td {
     padding: 6px;
+}
+
+body.portrait-mode #direction-indicator {
+    bottom: 20px;
+    right: 20px;
+    font-size: 16px;
+    padding: 8px 14px;
+    letter-spacing: 1px;
 }
 
 body.portrait-mode #chat-toggle {
