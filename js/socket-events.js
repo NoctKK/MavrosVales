@@ -21,9 +21,28 @@ function showNextMsg() {
     }, 900);
 }
 
+function startHeartbeat() {
+    if (heartbeatIntervalId) return;
+
+    heartbeatIntervalId = setInterval(() => {
+        if (socket && socket.connected) {
+            socket.emit("heartbeat");
+        }
+    }, HEARTBEAT_MS);
+}
+
+function stopHeartbeat() {
+    if (heartbeatIntervalId) {
+        clearInterval(heartbeatIntervalId);
+        heartbeatIntervalId = null;
+    }
+}
+
 socket.on('connect', () => {
     $("reconnect-btn").style.display = 'none';
     myId = socket.id;
+
+    startHeartbeat();
 
     const name = sessionStorage.getItem('mv_username');
     const session = sessionStorage.getItem('mv_session');
@@ -50,6 +69,7 @@ socket.on('connect_error', () => {
 socket.on('disconnect', () => {
     actionLocked = false;
     selectedAceIndex = null;
+    stopHeartbeat();
     $("reconnect-btn").style.display = 'flex';
 });
 
