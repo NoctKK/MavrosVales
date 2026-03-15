@@ -14,7 +14,6 @@
         height: 1280px;
         border-width: 10px;
         border-radius: 28px;
-        overflow: hidden;
 
         grid-template-areas:
             "top"
@@ -24,7 +23,7 @@
             "bottom";
 
         grid-template-columns: 1fr;
-        grid-template-rows: 150px 170px minmax(250px, 1fr) 170px 300px;
+        grid-template-rows: 150px 150px 1fr 150px 260px;
     }
 
     #top-right-ui {
@@ -49,85 +48,49 @@
     #slot-bottom {
         width: 100%;
         justify-self: center;
+        align-self: center;
     }
 
     #slot-top {
         grid-area: top;
-        justify-content: flex-start;
-        align-items: center;
         padding-top: 10px;
+        justify-content: flex-start;
     }
 
     #slot-left {
         grid-area: left;
-        flex-direction: row;
         justify-content: center;
-        align-items: center;
-        gap: 14px;
-        padding: 0 24px;
     }
 
     #slot-right {
         grid-area: right;
-        flex-direction: row;
         justify-content: center;
-        align-items: center;
-        gap: 14px;
-        padding: 0 24px;
     }
 
     #slot-bottom {
         grid-area: bottom;
-        align-self: start;
-        justify-content: flex-start;
-        align-items: center;
-        padding-top: 8px;
+        padding-top: 6px;
         padding-bottom: 12px;
-    }
-
-    #slot-left .player-info,
-    #slot-right .player-info {
-        margin-bottom: 0;
-        min-width: 150px;
-    }
-
-    #slot-left .opp-hand,
-    #slot-right .opp-hand {
-        margin: 0;
-        min-width: 110px;
-    }
-
-    #slot-left .card-count-box,
-    #slot-right .card-count-box {
-        margin-top: 0;
-        margin-left: 4px;
+        justify-content: flex-start;
     }
 
     #game-center {
         grid-area: center;
         width: 100%;
         height: 100%;
-        place-self: center;
-        align-self: center;
-        justify-self: center;
-
-        display: grid;
-        grid-template-columns: auto auto auto;
+        display: flex;
         align-items: center;
         justify-content: center;
-        column-gap: 22px;
-
+        gap: 22px;
         padding: 0 20px;
-        margin: 0 auto;
+        align-self: center;
+        justify-self: center;
     }
 
     #draw-pile,
     #pile-container,
-    #game-center > .game-btn {
-        flex: none;
-        margin: 0;
-        align-self: center;
-        justify-self: center;
+    #game-center .game-btn {
+        flex: 0 0 auto;
     }
 
     #draw-pile {
@@ -140,11 +103,10 @@
         height: 145px;
     }
 
-    #game-center > .game-btn {
+    #game-center .game-btn {
         font-size: 18px;
         padding: 12px 18px;
         white-space: nowrap;
-        min-width: 96px;
     }
 
     #msg-overlay {
@@ -152,11 +114,10 @@
         font-size: 22px;
         width: calc(100% - 40px);
         white-space: normal;
-        text-align: center;
     }
 
     #active-suit-display {
-        top: 50%;
+        top: 48%;
         font-size: 92px;
     }
 
