@@ -1,110 +1,96 @@
-function resizeGame() {
-    const wrapper = $("game-wrapper");
-    if (!wrapper) return;
-
-    const portrait = window.innerHeight > window.innerWidth;
-    const targetWidth = portrait ? 720 : 1280;
-    const targetHeight = portrait ? 1280 : 720;
-
-    gameScale = Math.min(
-        window.innerWidth / targetWidth,
-        window.innerHeight / targetHeight
-    );
-
-    wrapper.style.transform = `scale(${gameScale})`;
-
-    const rotateMsg = $("rotate-msg");
-    if (rotateMsg) {
-        rotateMsg.style.display = 'none';
-    }
+body {
+    background: #000;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
 }
 
-function distributePlayers(players, curName, isMyTurn) {
-    const myIdx = players.findIndex(p => p.id === myId);
-    if (myIdx === -1) return;
-
-    const myInfo = $("my-info-container");
-    if (myInfo) {
-        myInfo.innerHTML = `
-            <div class="panel player-info ${isMyTurn ? 'active' : ''}" style="z-index:2000;">
-                ${isMyTurn ? '<div class="turn-indicator-dot"></div>' : ''}
-                <div style="font-weight:bold; font-size:18px;">${players[myIdx].name}</div>
-                ${players[myIdx].hats > 0 ? `<div style="margin-top:2px;">${"🎩".repeat(players[myIdx].hats)}</div>` : ''}
-            </div>
-        `;
-    }
-
-    const others = players.slice(myIdx).concat(players.slice(0, myIdx)).slice(1);
-
-    const portrait = window.innerHeight > window.innerWidth;
-    const slotIds = portrait
-        ? ['slot-top', 'slot-left', 'slot-right']
-        : ['slot-left', 'slot-top', 'slot-right'];
-
-    ['slot-top', 'slot-left', 'slot-right'].forEach(id => {
-        const el = $(id);
-        if (el) el.innerHTML = '';
-    });
-
-    others.forEach((p, i) => {
-        const container = $(slotIds[i]);
-        if (!container) return;
-
-        const active = p.name === curName;
-        container.innerHTML = `
-            <div class="panel player-info ${active ? 'active' : ''}" style="opacity:${p.connected ? 1 : 0.4}; z-index:2000;">
-                ${active ? '<div class="turn-indicator-dot"></div>' : ''}
-                <div style="font-weight:bold; font-size:18px;">${p.name}${p.connected ? '' : ' (Αποσ.)'}</div>
-                ${p.hats > 0 ? `<div style="margin-top:2px;">${"🎩".repeat(p.hats)}</div>` : ''}
-            </div>
-            <div class="opp-hand" style="width:${30 + (Math.min(p.handCount, 15) - 1) * 8}px">
-                ${Array(Math.min(p.handCount, 15)).fill(0).map((_, idx) => `<div class="mini-card" style="left:${idx * 8}px; z-index:${idx};"></div>`).join('')}
-            </div>
-            <div class="card-count-box">${p.handCount} φύλλα</div>
-        `;
-    });
+#game-wrapper {
+    width: 1280px;
+    height: 720px;
+    background: var(--felt-green);
+    position: relative;
+    display: grid;
+    grid-template-areas:
+        ". top ."
+        "left center right"
+        ". bottom .";
+    grid-template-columns: 250px 1fr 250px;
+    grid-template-rows: 150px 1fr 260px;
+    box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
+    border: 15px solid #2b1d12;
+    border-radius: 40px;
+    transform-origin: center center;
+    flex-shrink: 0;
+    perspective: 1000px;
+    transform-style: preserve-3d;
 }
 
-function updateDirectionIndicator(playersArray, dir) {
-    if (!playersArray || !playersArray.length) return;
+#game-wrapper::before {
+    content: "";
+    position: absolute;
+    inset: -40px;
+    border-radius: 50%;
+    box-shadow: 0 0 200px rgba(0,0,0,.9) inset;
+    pointer-events: none;
+    z-index: 1;
+}
 
-    const names = playersArray.map(p => (p.name || "").replace('❤️', '').trim());
+.player-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 10;
+}
 
-    let initials = names.map((name, i) => {
-        let len = 1;
-        let init = name.substring(0, len).toUpperCase();
+#slot-top {
+    grid-area: top;
+    justify-content: flex-start;
+    padding-top: 15px;
+}
 
-        while (len <= name.length) {
-            let conflict = false;
+#slot-left {
+    grid-area: left;
+}
 
-            for (let j = 0; j < names.length; j++) {
-                if (i !== j && names[j].toUpperCase().startsWith(init)) {
-                    conflict = true;
-                    break;
-                }
-            }
+#slot-right {
+    grid-area: right;
+}
 
-            if (!conflict) break;
-            len++;
-            init = name.substring(0, len).toUpperCase();
-        }
+#slot-bottom {
+    grid-area: bottom;
+    align-self: flex-start;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 10px;
+}
 
-        return init;
-    });
+#game-center {
+    grid-area: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    z-index: 20;
+    position: relative;
+}
 
-    const counts = {};
-    for (let i = 0; i < initials.length; i++) {
-        const init = initials[i];
-        if (counts[init]) {
-            counts[init]++;
-            initials[i] = init + counts[init];
-        } else {
-            counts[init] = 1;
-        }
-    }
-
-    const directionEl = $("direction-indicator");
-    if (directionEl) {
-        directionEl.innerText = dir === 1 ? initials.join(' ➔ ') : initials.join(' ⬅ ');
-    }
+#top-right-ui {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
