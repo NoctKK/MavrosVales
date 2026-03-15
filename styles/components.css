@@ -11,6 +11,37 @@
     width: 300px;
 }
 
+/* === START / WAITING / VICTORY === */
+#start-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 40000;
+    background: radial-gradient(circle, #222 0%, #000 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#waiting-area {
+    display: none;
+    text-align: center;
+}
+
+#victory-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 30000;
+    background: rgba(0,0,0,0.92);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+}
+
+/* === CHAT / SCORE / RECONNECT === */
 #chat-toggle,
 #score-toggle {
     position: absolute;
@@ -93,6 +124,7 @@
     outline: none;
 }
 
+/* === PLAYER UI === */
 .player-info {
     position: relative;
     padding: 5px 15px;
@@ -138,6 +170,7 @@
     position: relative;
 }
 
+/* === TIMER / TURN === */
 #turn-timer {
     position: relative;
     width: 52px;
@@ -182,6 +215,7 @@
     white-space: nowrap;
 }
 
+/* === ACE MODAL === */
 #ace-modal {
     display: none;
     position: fixed;
@@ -229,6 +263,7 @@
 .suit-red { color: red; }
 .suit-black { color: black; }
 
+/* === ACTIVE SUIT / SCORE / ERRORS === */
 #active-suit-display {
     position: absolute;
     top: 35%;
@@ -240,6 +275,20 @@
     display: none;
     pointer-events: none;
     opacity: 0.6;
+}
+
+#scoreboard {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    padding: 10px;
+    z-index: 1000;
+    font-size: 14px;
+    display: none;
+    color: white;
+    cursor: pointer;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 #error-overlay {
