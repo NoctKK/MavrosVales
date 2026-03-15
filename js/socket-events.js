@@ -27,8 +27,15 @@ socket.on('connect', () => {
 
     const name = sessionStorage.getItem('mv_username');
     const session = sessionStorage.getItem('mv_session');
+
     if (name && session) {
         socket.emit('joinGame', { username: name, sessionId: session });
+    } else {
+        hasJoinedLobby = false;
+        const loginArea = $("login-area");
+        const waitingArea = $("waiting-area");
+        if (loginArea) loginArea.style.display = 'flex';
+        if (waitingArea) waitingArea.style.display = 'none';
     }
 });
 
@@ -47,6 +54,8 @@ socket.on('disconnect', () => {
 });
 
 socket.on('joinedLobby', () => {
+    hasJoinedLobby = true;
+
     const waitingArea = $("waiting-area");
     const loginArea = $("login-area");
     const loginBtn = $("login-btn");
@@ -87,6 +96,13 @@ socket.on('playerCountUpdate', count => {
     if (startBtn) {
         startBtn.style.display = count >= 2 ? 'inline-block' : 'none';
     }
+
+    if (!hasJoinedLobby) {
+        const loginArea = $("login-area");
+        const waitingArea = $("waiting-area");
+        if (loginArea) loginArea.style.display = 'flex';
+        if (waitingArea) waitingArea.style.display = 'none';
+    }
 });
 
 socket.on('gameReady', () => {
@@ -108,6 +124,8 @@ socket.on('gameInterrupted', payload => {
     $("pile-container").innerHTML = '';
     $("scoreboard").style.display = 'none';
     $("start-screen").style.display = 'flex';
+
+    hasJoinedLobby = false;
 
     const loginArea = $("login-area");
     const waitingArea = $("waiting-area");
@@ -253,6 +271,7 @@ socket.on('gameOver', msg => {
 });
 
 socket.on('rejoinSuccess', data => {
+    hasJoinedLobby = true;
     $("login-area").style.display = 'none';
 
     if (data.gameStarted) {
