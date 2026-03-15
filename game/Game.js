@@ -806,14 +806,19 @@ class Game {
             return;
         }
 
-        const target = losers.length > 0 ? Math.max(...losers.map((id) => this.players[id].totalScore)) : 0;
+        if (losers.length > 0) {
+            const nonLosers = this.playerOrder.filter((id) => !losers.includes(id) && this.players[id]);
+            const lowestScore = nonLosers.length > 0
+                ? Math.min(...nonLosers.map((id) => this.players[id].totalScore))
+                : 0;
 
-        this.playerOrder.forEach((id) => {
-            if (this.players[id].totalScore >= MAX_SCORE) {
-                this.players[id].hats++;
-                this.players[id].totalScore = target;
-            }
-        });
+            this.playerOrder.forEach((id) => {
+                if (this.players[id].totalScore >= MAX_SCORE) {
+                    this.players[id].hats++;
+                    this.players[id].totalScore = lowestScore;
+                }
+            });
+        }
 
         this.timers.restart = setTimeout(() => this.startNewRound(false), ROUND_RESTART_MS);
     }
