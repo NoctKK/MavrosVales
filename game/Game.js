@@ -6,6 +6,7 @@ const {
     STARTING_HAND_SIZE,
     MAX_SCORE,
     MAX_NAME_LEN,
+    DISCONNECT_GRACE_MS,
     SUITS,
     VALUES
 } = require('./constants');
@@ -23,6 +24,10 @@ class Game {
 
         this.gameStarted = false;
         this.starting = false;
+        this.gamePaused = false;
+        this.pauseReason = '';
+        this.disconnectedPlayerId = null;
+
         this.roundHistory = [];
         this.roundStarterIndex = 0;
 
@@ -30,7 +35,8 @@ class Game {
             lobby: null,
             deal: null,
             turn: null,
-            restart: null
+            restart: null,
+            disconnectGrace: null
         };
 
         this.resetRoundState();
@@ -57,7 +63,8 @@ class Game {
             lobby: null,
             deal: null,
             turn: null,
-            restart: null
+            restart: null,
+            disconnectGrace: null
         };
     }
 
@@ -116,6 +123,10 @@ class Game {
         this.roundStarterIndex = 0;
         this.resetRoundState();
 
+        this.gamePaused = false;
+        this.pauseReason = '';
+        this.disconnectedPlayerId = null;
+
         this.io.emit('playerCountUpdate', 0);
         this.io.emit('notification', 'Το lobby μηδενίστηκε λόγω αδράνειας.');
     }
@@ -129,6 +140,10 @@ class Game {
 
         this.gameStarted = false;
         this.starting = false;
+        this.gamePaused = false;
+        this.pauseReason = '';
+        this.disconnectedPlayerId = null;
+
         this.roundHistory = [];
         this.roundStarterIndex = 0;
         this.resetRoundState();
@@ -161,6 +176,45 @@ class Game {
         this.refreshLobbyTimer();
     }
 
+    pauseGameForDisconnect(socketId) {
+        this.gamePaused = true;
+        this.pauseReason = 'disconnect';
+        this.disconnectedPlayerId = socketId;
+
+        if (this.timers.turn) {
+            clearTimeout(this.timers.turn);
+            this.timers.turn = null;
+        }
+
+        this.io.emit('notification', 'Παίκτης αποσυνδέθηκε. Παύση παιχνιδιού, αναμονή για επανασύνδεση...');
+
+        if (this.timers.disconnectGrace) clearTimeout(this.timers.disconnectGrace);
+
+        this.timers.disconnectGrace = setTimeout(() => {
+            this.resetToLobby();
+            this.io.emit('gameInterrupted', {
+                message: 'Ο παίκτης δεν επανήλθε εγκαίρως. Το παιχνίδι διεκόπη.'
+            });
+            this.io.emit('notification', 'Ο παίκτης δεν επανήλθε εγκαίρως. Το παιχνίδι διεκόπη.');
+            this.refreshLobbyTimer();
+        }, DISCONNECT_GRACE_MS);
+    }
+
+    resumeGameAfterReconnect() {
+        this.gamePaused = false;
+        this.pauseReason = '';
+        this.disconnectedPlayerId = null;
+
+        if (this.timers.disconnectGrace) {
+            clearTimeout(this.timers.disconnectGrace);
+            this.timers.disconnectGrace = null;
+        }
+
+        this.io.emit('notification', 'Ο παίκτης επανασυνδέθηκε. Το παιχνίδι συνεχίζεται!');
+        this.resetTurnTimer();
+        this.broadcastUpdate();
+    }
+
     safeDraw(player) {
         if (!player) return false;
 
@@ -184,7 +238,7 @@ class Game {
 
     resetTurnTimer() {
         if (this.timers.turn) clearTimeout(this.timers.turn);
-        if (!this.gameStarted || this.playerOrder.length === 0) return;
+        if (!this.gameStarted || this.playerOrder.length === 0 || this.gamePaused) return;
 
         this.timers.turn = setTimeout(() => this.autoPlayTurn(), TURN_TIME_MS);
     }
@@ -237,7 +291,7 @@ class Game {
     }
 
     autoPlayTurn() {
-        if (!this.gameStarted || this.playerOrder.length === 0) return;
+        if (!this.gameStarted || this.playerOrder.length === 0 || this.gamePaused) return;
 
         const currentId = this.playerOrder[this.turnIndex];
         const player = this.players[currentId];
@@ -301,8 +355,15 @@ class Game {
                     history: this.roundHistory
                 });
 
-                if (this.gameStarted) this.broadcastUpdate();
-                else this.io.emit('playerCountUpdate', this.playerOrder.length);
+                if (this.gameStarted) {
+                    if (this.gamePaused && this.disconnectedPlayerId === socket.id) {
+                        this.resumeGameAfterReconnect();
+                    } else {
+                        this.broadcastUpdate();
+                    }
+                } else {
+                    this.io.emit('playerCountUpdate', this.playerOrder.length);
+                }
 
                 return;
             }
@@ -324,7 +385,15 @@ class Game {
 
             this.io.emit('playerCountUpdate', this.playerOrder.length);
 
-            if (this.gameStarted) this.broadcastUpdate();
+            if (this.gameStarted) {
+                if (this.gamePaused && this.disconnectedPlayerId === existingId) {
+                    this.disconnectedPlayerId = socket.id;
+                    this.resumeGameAfterReconnect();
+                } else {
+                    this.broadcastUpdate();
+                }
+            }
+
             return;
         }
 
@@ -354,6 +423,11 @@ class Game {
 
     playCard(socket, data) {
         this.refreshLobbyTimer();
+
+        if (this.gamePaused) {
+            socket.emit('notification', 'Το παιχνίδι είναι προσωρινά σε παύση λόγω αποσύνδεσης παίκτη.');
+            return;
+        }
 
         const player = this.players[socket.id];
 
@@ -506,6 +580,11 @@ class Game {
     drawCard(socket) {
         this.refreshLobbyTimer();
 
+        if (this.gamePaused) {
+            socket.emit('notification', 'Το παιχνίδι είναι προσωρινά σε παύση λόγω αποσύνδεσης παίκτη.');
+            return;
+        }
+
         const player = this.players[socket.id];
 
         if (!this.gameStarted || this.playerOrder[this.turnIndex] !== socket.id || !player) {
@@ -539,6 +618,11 @@ class Game {
 
     passTurn(socket) {
         this.refreshLobbyTimer();
+
+        if (this.gamePaused) {
+            socket.emit('notification', 'Το παιχνίδι είναι προσωρινά σε παύση λόγω αποσύνδεσης παίκτη.');
+            return;
+        }
 
         const player = this.players[socket.id];
 
@@ -615,6 +699,9 @@ class Game {
     startNewRound(reset = false) {
         this.gameStarted = true;
         this.starting = false;
+        this.gamePaused = false;
+        this.pauseReason = '';
+        this.disconnectedPlayerId = null;
 
         this.deck = this.createDeck();
         this.discardPile = [];
@@ -790,10 +877,7 @@ class Game {
         }
 
         if (activeCount < 2) {
-            this.resetToLobby();
-            this.io.emit('gameInterrupted', { message: 'Παίκτες αποσυνδέθηκαν. Το παιχνίδι διεκόπη.' });
-            this.io.emit('notification', 'Παίκτες αποσυνδέθηκαν. Το παιχνίδι διεκόπη.');
-            this.refreshLobbyTimer();
+            this.pauseGameForDisconnect(socketId);
             return;
         }
 
