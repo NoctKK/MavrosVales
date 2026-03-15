@@ -34,6 +34,10 @@ module.exports = function registerSocketHandlers(io, socket, game) {
         game.passTurn(socket);
     });
 
+    socket.on('heartbeat', () => {
+        // keep-alive για Render free
+    });
+
     socket.on('chatMessage', (msg) => {
         game.refreshLobbyTimer();
 
