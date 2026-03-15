@@ -68,9 +68,31 @@ function onHandClick(e) {
     playCardLogic(index, value, suit);
 }
 
+window.onerror = function (msg, url, line) {
+    const overlay = $("error-overlay");
+    const text = $("error-text");
+
+    if (overlay && text) {
+        overlay.style.display = "flex";
+        text.innerText = `Σφάλμα: ${msg}\nΓραμμή: ${line}`;
+    }
+
+    return false;
+};
+
 window.addEventListener("resize", resizeGame);
-window.addEventListener("orientationchange", resizeGame);
-window.addEventListener("load", resizeGame);
+window.addEventListener("orientationchange", () => {
+    setTimeout(resizeGame, 120);
+    setTimeout(resizeGame, 300);
+});
+window.addEventListener("load", () => {
+    setTimeout(resizeGame, 50);
+    setTimeout(resizeGame, 250);
+});
+
+if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", resizeGame);
+}
 
 if ($("login-btn")) $("login-btn").addEventListener("click", joinGame);
 if ($("start-btn")) $("start-btn").addEventListener("click", startGameRequest);
@@ -87,14 +109,18 @@ if ($("chat-input")) {
     });
 }
 
-if ($("ace-backdrop")) {
-    $("ace-backdrop").addEventListener("click", cancelAce);
+if ($("username")) {
+    $("username").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") joinGame();
+    });
 }
 
-if ($("ace-cancel-btn")) {
-    $("ace-cancel-btn").addEventListener("click", cancelAce);
-}
+if ($("ace-backdrop")) $("ace-backdrop").addEventListener("click", cancelAce);
+if ($("ace-cancel-btn")) $("ace-cancel-btn").addEventListener("click", cancelAce);
 
 document.querySelectorAll(".suit-btn").forEach((btn) => {
-    btn.addEventListener("click", () => confirmAce(btn.dataset.suit));
+    btn.addEventListener("click", () => {
+        const suit = btn.dataset.suit;
+        if (suit) confirmAce(suit);
+    });
 });
