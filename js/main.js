@@ -78,6 +78,7 @@ if ($("reconnect-btn")) $("reconnect-btn").addEventListener("click", forceReconn
 if ($("chat-toggle")) $("chat-toggle").addEventListener("click", toggleChat);
 if ($("score-toggle")) $("score-toggle").addEventListener("click", toggleScoreboard);
 if ($("draw-pile")) $("draw-pile").addEventListener("click", triggerDrawAnimation);
+if ($("pass-btn")) $("pass-btn").addEventListener("click", () => socket.emit("passTurn"));
 if ($("my-hand-container")) $("my-hand-container").addEventListener("click", onHandClick);
 
 if ($("chat-input")) {
@@ -85,3 +86,15 @@ if ($("chat-input")) {
         if (e.key === "Enter") sendChat();
     });
 }
+
+if ($("ace-backdrop")) {
+    $("ace-backdrop").addEventListener("click", cancelAce);
+}
+
+if ($("ace-cancel-btn")) {
+    $("ace-cancel-btn").addEventListener("click", cancelAce);
+}
+
+document.querySelectorAll(".suit-btn").forEach((btn) => {
+    btn.addEventListener("click", () => confirmAce(btn.dataset.suit));
+});
