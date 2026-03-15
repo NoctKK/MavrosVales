@@ -15,3 +15,6 @@ let msgQueue = [];
 let isMsgShowing = false;
 let lastDiscardCount = 0;
 let hasJoinedLobby = false;
+
+let heartbeatIntervalId = null;
+const HEARTBEAT_MS = 30000;
