@@ -1,182 +1,110 @@
-#game-wrapper {
-    width: 1280px;
-    height: 720px;
-    background: var(--felt-green);
-    position: relative;
-    display: grid;
-    grid-template-areas:
-        ". top ."
-        "left center right"
-        ". bottom .";
-    grid-template-columns: 250px 1fr 250px;
-    grid-template-rows: 150px 1fr 260px;
-    box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
-    border: 15px solid #2b1d12;
-    border-radius: 40px;
-    transform-origin: center center;
-    flex-shrink: 0;
-    perspective: 1000px;
-    transform-style: preserve-3d;
+function resizeGame() {
+    const wrapper = $("game-wrapper");
+    if (!wrapper) return;
+
+    const portrait = window.innerHeight > window.innerWidth;
+    const targetWidth = portrait ? 720 : 1280;
+    const targetHeight = portrait ? 1280 : 720;
+
+    gameScale = Math.min(
+        window.innerWidth / targetWidth,
+        window.innerHeight / targetHeight
+    );
+
+    wrapper.style.transform = `scale(${gameScale})`;
+
+    const rotateMsg = $("rotate-msg");
+    if (rotateMsg) {
+        rotateMsg.style.display = 'none';
+    }
 }
 
-#game-wrapper::before {
-    content: "";
-    position: absolute;
-    inset: -40px;
-    border-radius: 50%;
-    box-shadow: 0 0 200px rgba(0,0,0,.9) inset;
-    pointer-events: none;
-    z-index: 1;
+function distributePlayers(players, curName, isMyTurn) {
+    const myIdx = players.findIndex(p => p.id === myId);
+    if (myIdx === -1) return;
+
+    const myInfo = $("my-info-container");
+    if (myInfo) {
+        myInfo.innerHTML = `
+            <div class="panel player-info ${isMyTurn ? 'active' : ''}" style="z-index:2000;">
+                ${isMyTurn ? '<div class="turn-indicator-dot"></div>' : ''}
+                <div style="font-weight:bold; font-size:18px;">${players[myIdx].name}</div>
+                ${players[myIdx].hats > 0 ? `<div style="margin-top:2px;">${"🎩".repeat(players[myIdx].hats)}</div>` : ''}
+            </div>
+        `;
+    }
+
+    const others = players.slice(myIdx).concat(players.slice(0, myIdx)).slice(1);
+
+    const portrait = window.innerHeight > window.innerWidth;
+    const slotIds = portrait
+        ? ['slot-top', 'slot-left', 'slot-right']
+        : ['slot-left', 'slot-top', 'slot-right'];
+
+    ['slot-top', 'slot-left', 'slot-right'].forEach(id => {
+        const el = $(id);
+        if (el) el.innerHTML = '';
+    });
+
+    others.forEach((p, i) => {
+        const container = $(slotIds[i]);
+        if (!container) return;
+
+        const active = p.name === curName;
+        container.innerHTML = `
+            <div class="panel player-info ${active ? 'active' : ''}" style="opacity:${p.connected ? 1 : 0.4}; z-index:2000;">
+                ${active ? '<div class="turn-indicator-dot"></div>' : ''}
+                <div style="font-weight:bold; font-size:18px;">${p.name}${p.connected ? '' : ' (Αποσ.)'}</div>
+                ${p.hats > 0 ? `<div style="margin-top:2px;">${"🎩".repeat(p.hats)}</div>` : ''}
+            </div>
+            <div class="opp-hand" style="width:${30 + (Math.min(p.handCount, 15) - 1) * 8}px">
+                ${Array(Math.min(p.handCount, 15)).fill(0).map((_, idx) => `<div class="mini-card" style="left:${idx * 8}px; z-index:${idx};"></div>`).join('')}
+            </div>
+            <div class="card-count-box">${p.handCount} φύλλα</div>
+        `;
+    });
 }
 
-#start-screen {
-    position: fixed;
-    inset: 0;
-    z-index: 40000;
-    background: radial-gradient(circle, #222 0%, #000 100%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
+function updateDirectionIndicator(playersArray, dir) {
+    if (!playersArray || !playersArray.length) return;
 
-#game-title {
-    color: var(--gold);
-    font-size: 80px;
-    margin-bottom: 10px;
-    text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
-    text-align: center;
-}
+    const names = playersArray.map(p => (p.name || "").replace('❤️', '').trim());
 
-#login-area {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
+    let initials = names.map((name, i) => {
+        let len = 1;
+        let init = name.substring(0, len).toUpperCase();
 
-#waiting-area {
-    display: none;
-    text-align: center;
-}
+        while (len <= name.length) {
+            let conflict = false;
 
-#waiting-msg {
-    font-size: 24px;
-    color: #aaa;
-    margin-bottom: 20px;
-}
+            for (let j = 0; j < names.length; j++) {
+                if (i !== j && names[j].toUpperCase().startsWith(init)) {
+                    conflict = true;
+                    break;
+                }
+            }
 
-#victory-screen {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 30000;
-    background: rgba(0,0,0,0.92);
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 20px;
-}
+            if (!conflict) break;
+            len++;
+            init = name.substring(0, len).toUpperCase();
+        }
 
-#victory-msg {
-    color: white;
-    font-size: 50px;
-    text-shadow: 0 0 20px #4f4;
-    line-height: 1.2;
-    max-width: 80%;
-    margin-bottom: 40px;
-}
+        return init;
+    });
 
-.victory-btn {
-    border: 3px solid #4f4;
-    color: #4f4;
-}
+    const counts = {};
+    for (let i = 0; i < initials.length; i++) {
+        const init = initials[i];
+        if (counts[init]) {
+            counts[init]++;
+            initials[i] = init + counts[init];
+        } else {
+            counts[init] = 1;
+        }
+    }
 
-#rotate-msg {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 99990;
-    background: black;
-    color: white;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-}
-
-#top-right-ui {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-#direction-indicator {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    padding: 10px 20px;
-    background: rgba(0,0,0,0.8);
-    border: 2px solid var(--gold);
-    border-radius: 15px;
-    font-weight: bold;
-    font-size: 20px;
-    color: var(--gold);
-    z-index: 1000;
-    letter-spacing: 2px;
-}
-
-#scoreboard {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    padding: 10px;
-    z-index: 1000;
-    font-size: 14px;
-    display: none;
-    color: white;
-    cursor: pointer;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-#slot-top { grid-area: top; justify-content: flex-start; padding-top: 15px; }
-#slot-left { grid-area: left; }
-#slot-right { grid-area: right; }
-
-#slot-bottom {
-    grid-area: bottom;
-    align-self: flex-start;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding-top: 10px;
-}
-
-.player-slot {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    z-index: 10;
-}
-
-#game-center {
-    grid-area: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 40px;
-    z-index: 20;
-    position: relative;
-}
-
-#my-info-container {
-    margin-bottom: 5px;
+    const directionEl = $("direction-indicator");
+    if (directionEl) {
+        directionEl.innerText = dir === 1 ? initials.join(' ➔ ') : initials.join(' ⬅ ');
+    }
 }
