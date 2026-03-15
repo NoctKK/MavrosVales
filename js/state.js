@@ -14,3 +14,4 @@ let isScoreboardExpanded = false;
 let msgQueue = [];
 let isMsgShowing = false;
 let lastDiscardCount = 0;
+let hasJoinedLobby = false;
