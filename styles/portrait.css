@@ -81,39 +81,59 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 22px;
-        padding: 0 20px;
+        gap: 16px;
+        padding: 0 18px;
         align-self: center;
         justify-self: center;
+        position: relative;
+        min-width: 0;
     }
 
     #draw-pile,
     #pile-container,
-    #game-center .game-btn {
+    #pass-btn {
         flex: 0 0 auto;
     }
 
     #draw-pile {
-        width: 95px;
-        height: 138px;
+        width: 90px;
+        height: 132px;
+    }
+
+    #draw-pile::before {
+        transform: translate(3px, 3px) translateZ(-1px);
+    }
+
+    #draw-pile::after {
+        transform: translate(6px, 6px) translateZ(-2px);
     }
 
     #pile-container {
-        width: 100px;
-        height: 145px;
+        width: 90px;
+        height: 132px;
+        transform: none;
     }
 
-    #game-center .game-btn {
-        font-size: 18px;
-        padding: 12px 18px;
+    #pile-container .card-base,
+    #pile-container .pile-card {
+        width: 90px;
+        height: 132px;
+    }
+
+    #game-center .game-btn,
+    #pass-btn {
+        font-size: 16px;
+        padding: 10px 14px;
         white-space: nowrap;
+        min-width: 88px;
     }
 
     #msg-overlay {
-        top: -70px;
-        font-size: 22px;
-        width: calc(100% - 40px);
+        top: -62px;
+        font-size: 20px;
+        width: calc(100% - 30px);
         white-space: normal;
+        text-align: center;
     }
 
     #active-suit-display {
