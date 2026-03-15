@@ -1,3 +1,26 @@
+function showNextMsg() {
+    const o = $("msg-overlay");
+    if (!o) return;
+
+    if (msgQueue.length === 0) {
+        isMsgShowing = false;
+        o.style.display = "none";
+        return;
+    }
+
+    isMsgShowing = true;
+    o.innerText = msgQueue.shift();
+    o.style.display = "block";
+    o.style.animation = "none";
+    o.offsetHeight;
+    o.style.animation = "popMsg 0.18s forwards";
+
+    setTimeout(() => {
+        o.style.display = "none";
+        setTimeout(showNextMsg, 40);
+    }, 900);
+}
+
 socket.on('connect', () => {
     $("reconnect-btn").style.display = 'none';
     myId = socket.id;
@@ -86,6 +109,11 @@ socket.on('gameInterrupted', payload => {
 
     if (payload && payload.message) {
         msgQueue.push(payload.message);
+
+        if (msgQueue.length > 3) {
+            msgQueue = msgQueue.slice(-3);
+        }
+
         if (!isMsgShowing) showNextMsg();
     }
 });
@@ -100,6 +128,11 @@ socket.on('notification', m => {
     }
 
     msgQueue.push(m);
+
+    if (msgQueue.length > 3) {
+        msgQueue = msgQueue.slice(-3);
+    }
+
     if (!isMsgShowing) showNextMsg();
 });
 
@@ -110,10 +143,17 @@ socket.on('actionRejected', () => {
 socket.on('invalidMove', () => {
     actionLocked = false;
     msgQueue.push("⚠️ Άκυρη Κίνηση!");
+
+    if (msgQueue.length > 3) {
+        msgQueue = msgQueue.slice(-3);
+    }
+
     if (!isMsgShowing) showNextMsg();
 
     document.querySelectorAll('.hand-card').forEach(c => c.classList.add('shake'));
-    setTimeout(() => document.querySelectorAll('.hand-card').forEach(c => c.classList.remove('shake')), 180);
+    setTimeout(() => {
+        document.querySelectorAll('.hand-card').forEach(c => c.classList.remove('shake'));
+    }, 180);
 });
 
 socket.on('updateUI', data => {
