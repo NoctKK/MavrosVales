@@ -478,7 +478,7 @@ class Game {
             return;
         }
 
-        const isSpecial = ['7', '8', 'J', 'A'].includes(card.value);
+        const isSpecial = ['A', '2', '3', '7', '8', '9', 'J'].includes(card.value);
 
         if (!isSpecial) {
             if (card.value === topCard.value && card.suit === topCard.suit) {
