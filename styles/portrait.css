@@ -1,198 +1,207 @@
-@media screen and (orientation: portrait) {
-    body {
-        overflow: hidden;
-        align-items: center;
-        justify-content: center;
-    }
+body.landscape-mode #game-wrapper {
+    width: 1280px;
+    height: 720px;
+    grid-template-areas:
+        ". top ."
+        "left center right"
+        ". bottom .";
+    grid-template-columns: 250px 1fr 250px;
+    grid-template-rows: 150px 1fr 260px;
+}
 
-    #rotate-msg {
-        display: none !important;
-    }
+body.portrait-mode {
+    overflow: hidden;
+    align-items: center;
+    justify-content: center;
+}
 
-    #game-wrapper {
-        width: 720px;
-        height: 1280px;
-        border-width: 10px;
-        border-radius: 28px;
+body.portrait-mode #rotate-msg {
+    display: none !important;
+}
 
-        grid-template-areas:
-            "top"
-            "left"
-            "center"
-            "right"
-            "bottom";
+body.portrait-mode #game-wrapper {
+    width: 720px;
+    height: 1280px;
+    border-width: 10px;
+    border-radius: 28px;
 
-        grid-template-columns: 1fr;
-        grid-template-rows: 150px 150px 1fr 150px 260px;
-    }
+    grid-template-areas:
+        "top"
+        "left"
+        "center"
+        "right"
+        "bottom";
 
-    #top-right-ui {
-        top: 14px;
-        left: 20px;
-        right: 20px;
-        width: auto;
-        justify-content: space-between;
-        gap: 12px;
-    }
+    grid-template-columns: 1fr;
+    grid-template-rows: 150px 150px 1fr 150px 260px;
+}
 
-    #turn-indicator {
-        font-size: 16px;
-        padding: 10px 18px;
-        max-width: 75%;
-        text-align: center;
-    }
+body.portrait-mode #top-right-ui {
+    top: 14px;
+    left: 20px;
+    right: 20px;
+    width: auto;
+    justify-content: space-between;
+    gap: 12px;
+}
 
-    #slot-top,
-    #slot-left,
-    #slot-right,
-    #slot-bottom {
-        width: 100%;
-        justify-self: center;
-        align-self: center;
-    }
+body.portrait-mode #turn-indicator {
+    font-size: 16px;
+    padding: 10px 18px;
+    max-width: 75%;
+    text-align: center;
+}
 
-    #slot-top {
-        grid-area: top;
-        padding-top: 10px;
-        justify-content: flex-start;
-    }
+body.portrait-mode #slot-top,
+body.portrait-mode #slot-left,
+body.portrait-mode #slot-right,
+body.portrait-mode #slot-bottom {
+    width: 100%;
+    justify-self: center;
+    align-self: center;
+}
 
-    #slot-left {
-        grid-area: left;
-        justify-content: center;
-    }
+body.portrait-mode #slot-top {
+    grid-area: top;
+    padding-top: 10px;
+    justify-content: flex-start;
+}
 
-    #slot-right {
-        grid-area: right;
-        justify-content: center;
-    }
+body.portrait-mode #slot-left {
+    grid-area: left;
+    justify-content: center;
+}
 
-    #slot-bottom {
-        grid-area: bottom;
-        padding-top: 6px;
-        padding-bottom: 12px;
-        justify-content: flex-start;
-    }
+body.portrait-mode #slot-right {
+    grid-area: right;
+    justify-content: center;
+}
 
-    #game-center {
-        grid-area: center;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 16px;
-        padding: 0 18px;
-        align-self: center;
-        justify-self: center;
-        position: relative;
-        min-width: 0;
-    }
+body.portrait-mode #slot-bottom {
+    grid-area: bottom;
+    padding-top: 6px;
+    padding-bottom: 12px;
+    justify-content: flex-start;
+}
 
-    #draw-pile,
-    #pile-container,
-    #pass-btn {
-        flex: 0 0 auto;
-    }
+body.portrait-mode #game-center {
+    grid-area: center;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 0 18px;
+    align-self: center;
+    justify-self: center;
+    position: relative;
+    min-width: 0;
+}
 
-    #draw-pile {
-        width: 90px;
-        height: 132px;
-    }
+body.portrait-mode #draw-pile,
+body.portrait-mode #pile-container,
+body.portrait-mode #pass-btn {
+    flex: 0 0 auto;
+}
 
-    #draw-pile::before {
-        transform: translate(3px, 3px) translateZ(-1px);
-    }
+body.portrait-mode #draw-pile {
+    width: 90px;
+    height: 132px;
+}
 
-    #draw-pile::after {
-        transform: translate(6px, 6px) translateZ(-2px);
-    }
+body.portrait-mode #draw-pile::before {
+    transform: translate(3px, 3px) translateZ(-1px);
+}
 
-    #pile-container {
-        width: 90px;
-        height: 132px;
-        transform: none;
-    }
+body.portrait-mode #draw-pile::after {
+    transform: translate(6px, 6px) translateZ(-2px);
+}
 
-    #pile-container .card-base,
-    #pile-container .pile-card {
-        width: 90px;
-        height: 132px;
-    }
+body.portrait-mode #pile-container {
+    width: 90px;
+    height: 132px;
+    transform: none;
+}
 
-    #game-center .game-btn,
-    #pass-btn {
-        font-size: 16px;
-        padding: 10px 14px;
-        white-space: nowrap;
-        min-width: 88px;
-    }
+body.portrait-mode #pile-container .card-base,
+body.portrait-mode #pile-container .pile-card {
+    width: 90px;
+    height: 132px;
+}
 
-    #msg-overlay {
-        top: -62px;
-        font-size: 20px;
-        width: calc(100% - 30px);
-        white-space: normal;
-        text-align: center;
-    }
+body.portrait-mode #pass-btn,
+body.portrait-mode #game-center .game-btn {
+    font-size: 16px;
+    padding: 10px 14px;
+    white-space: nowrap;
+    min-width: 88px;
+}
 
-    #active-suit-display {
-        top: 48%;
-        font-size: 92px;
-    }
+body.portrait-mode #msg-overlay {
+    top: -62px;
+    font-size: 20px;
+    width: calc(100% - 30px);
+    white-space: normal;
+    text-align: center;
+}
 
-    #my-hand-container {
-        width: 96%;
-        min-height: 170px;
-    }
+body.portrait-mode #active-suit-display {
+    top: 48%;
+    font-size: 92px;
+}
 
-    .hand-normal .hand-card {
-        width: 92px;
-        height: 134px;
-    }
+body.portrait-mode #my-hand-container {
+    width: 96%;
+    min-height: 170px;
+}
 
-    .hand-compact .hand-card {
-        width: 70px;
-        height: 102px;
-        margin-bottom: -32px;
-    }
+body.portrait-mode .hand-normal .hand-card {
+    width: 92px;
+    height: 134px;
+}
 
-    .opp-hand {
-        height: 40px;
-    }
+body.portrait-mode .hand-compact .hand-card {
+    width: 70px;
+    height: 102px;
+    margin-bottom: -32px;
+}
 
-    .mini-card {
-        width: 26px;
-        height: 40px;
-    }
+body.portrait-mode .opp-hand {
+    height: 40px;
+}
 
-    .player-info {
-        min-width: 130px;
-    }
+body.portrait-mode .mini-card {
+    width: 26px;
+    height: 40px;
+}
 
-    .card-count-box {
-        margin-top: 10px;
-    }
+body.portrait-mode .player-info {
+    min-width: 130px;
+}
 
-    #chat-toggle {
-        bottom: 20px;
-        left: 20px;
-    }
+body.portrait-mode .card-count-box {
+    margin-top: 10px;
+}
 
-    #score-toggle {
-        bottom: 92px;
-        left: 20px;
-    }
+body.portrait-mode #chat-toggle {
+    bottom: 20px;
+    left: 20px;
+}
 
-    #reconnect-btn {
-        bottom: 20px;
-        left: 92px;
-    }
+body.portrait-mode #score-toggle {
+    bottom: 92px;
+    left: 20px;
+}
 
-    #chat-box {
-        left: 20px;
-        bottom: 162px;
-        width: 280px;
-        height: 300px;
-    }
+body.portrait-mode #reconnect-btn {
+    bottom: 20px;
+    left: 92px;
+}
+
+body.portrait-mode #chat-box {
+    left: 20px;
+    bottom: 162px;
+    width: 280px;
+    height: 300px;
 }
