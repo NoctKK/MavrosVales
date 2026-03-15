@@ -46,6 +46,20 @@ socket.on('disconnect', () => {
     $("reconnect-btn").style.display = 'flex';
 });
 
+socket.on('joinedLobby', () => {
+    const waitingArea = $("waiting-area");
+    const loginArea = $("login-area");
+    const loginBtn = $("login-btn");
+
+    if (loginArea) loginArea.style.display = 'none';
+    if (waitingArea) waitingArea.style.display = 'block';
+
+    if (loginBtn) {
+        loginBtn.disabled = false;
+        loginBtn.innerText = 'ΕΙΣΟΔΟΣ';
+    }
+});
+
 socket.on('chatUpdate', data => {
     const m = $("chat-messages");
     if (!m) return;
@@ -63,26 +77,16 @@ socket.on('chatUpdate', data => {
 });
 
 socket.on('playerCountUpdate', count => {
-    const waitingArea = $("waiting-area");
-    const loginArea = $("login-area");
     const waitingMsg = $("waiting-msg");
     const startBtn = $("start-btn");
-    const loginBtn = $("login-btn");
 
-    if (count === 0) {
-        waitingArea.style.display = 'none';
-        loginArea.style.display = 'flex';
-        if (loginBtn) {
-            loginBtn.disabled = false;
-            loginBtn.innerText = 'ΕΙΣΟΔΟΣ';
-        }
-        return;
+    if (waitingMsg) {
+        waitingMsg.innerText = `Συνδεδεμένοι παίκτες: ${count}`;
     }
 
-    waitingArea.style.display = 'block';
-    loginArea.style.display = 'none';
-    waitingMsg.innerText = `Συνδεδεμένοι παίκτες: ${count}`;
-    startBtn.style.display = count >= 2 ? 'inline-block' : 'none';
+    if (startBtn) {
+        startBtn.style.display = count >= 2 ? 'inline-block' : 'none';
+    }
 });
 
 socket.on('gameReady', () => {
@@ -104,6 +108,11 @@ socket.on('gameInterrupted', payload => {
     $("pile-container").innerHTML = '';
     $("scoreboard").style.display = 'none';
     $("start-screen").style.display = 'flex';
+
+    const loginArea = $("login-area");
+    const waitingArea = $("waiting-area");
+    if (loginArea) loginArea.style.display = 'flex';
+    if (waitingArea) waitingArea.style.display = 'none';
 
     lastDiscardCount = 0;
 
