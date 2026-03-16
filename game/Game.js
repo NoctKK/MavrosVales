@@ -472,7 +472,7 @@ class Game {
                 if (topCard.value !== 'A') {
                     isValid = true;
                 } else if (this.activeSuit && card.suit === this.activeSuit && !data.declaredSuit) {
-                    isValid = true; // μόνο σαν φύλλο
+                    isValid = true;
                 }
             } else if (card.value === topCard.value || card.suit === effectiveSuit) {
                 isValid = true;
@@ -797,20 +797,26 @@ class Game {
 
         this.roundHistory.push(historyEntry);
 
-        const losers = this.playerOrder.filter((id) => this.players[id].totalScore >= MAX_SCORE);
+        const under500 = this.playerOrder.filter((id) => this.players[id] && this.players[id].totalScore < MAX_SCORE);
+        const overOrEqual500 = this.playerOrder.filter((id) => this.players[id] && this.players[id].totalScore >= MAX_SCORE);
 
-        if (losers.length > 0) {
-            const nonLosers = this.playerOrder.filter((id) => !losers.includes(id) && this.players[id]);
-            const lowestScore = nonLosers.length > 0
-                ? Math.min(...nonLosers.map((id) => this.players[id].totalScore))
-                : 0;
+        let finalWinnerId = null;
 
-            this.playerOrder.forEach((id) => {
-                if (this.players[id].totalScore >= MAX_SCORE) {
+        if (this.playerOrder.length === 2) {
+            if (overOrEqual500.length >= 1) {
+                finalWinnerId = under500.length >= 1 ? under500[0] : this.playerOrder.find((id) => id !== overOrEqual500[0]) || null;
+            }
+        } else {
+            if (under500.length === 1) {
+                finalWinnerId = under500[0];
+            } else if (under500.length >= 2 && overOrEqual500.length > 0) {
+                const rescueScore = Math.max(...under500.map((id) => this.players[id].totalScore));
+
+                overOrEqual500.forEach((id) => {
                     this.players[id].hats++;
-                    this.players[id].totalScore = lowestScore;
-                }
-            });
+                    this.players[id].totalScore = rescueScore;
+                });
+            }
         }
 
         this.io.emit('revealHands', this.playerOrder.map((id) => this.players[id]));
@@ -818,6 +824,14 @@ class Game {
             history: this.roundHistory,
             players: this.playerOrder.map((id) => this.players[id])
         });
+
+        if (finalWinnerId) {
+            const winner = this.players[finalWinnerId];
+            this.gameStarted = false;
+            this.io.emit('gameOver', `🏆 Νικητής: ${winner.name}`);
+            this.refreshLobbyTimer();
+            return;
+        }
 
         this.timers.restart = setTimeout(() => this.startNewRound(false), ROUND_RESTART_MS);
     }
