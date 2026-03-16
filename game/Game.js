@@ -77,7 +77,7 @@ class Game {
                     newDeck.push({
                         suit,
                         value,
-                        color: (suit === '♥' || suit === '♦') ? 'red' : 'black'
+                        color: suit === '♥' || suit === '♦' ? 'red' : 'black'
                     });
                 });
             });
@@ -468,9 +468,17 @@ class Game {
             if (this.penaltyType === '7' && card.value === '7') isValid = true;
             if (this.penaltyType === 'J' && card.value === 'J') isValid = true;
         } else {
-            if (card.value === 'A') isValid = true;
-            else if (card.value === topCard.value || card.suit === effectiveSuit) isValid = true;
-            else if (card.value === 'J' && card.color === 'red' && topCard.value === 'J') isValid = true;
+            if (card.value === 'A') {
+                if (topCard.value !== 'A') {
+                    isValid = true;
+                } else if (this.activeSuit && card.suit === this.activeSuit && !data.declaredSuit) {
+                    isValid = true; // μόνο σαν φύλλο
+                }
+            } else if (card.value === topCard.value || card.suit === effectiveSuit) {
+                isValid = true;
+            } else if (card.value === 'J' && card.color === 'red' && topCard.value === 'J') {
+                isValid = true;
+            }
         }
 
         if (!isValid) {
@@ -495,7 +503,7 @@ class Game {
         }
 
         if (card.value === 'A') {
-            if (topCard.value === 'A' && card.suit === effectiveSuit && !data.declaredSuit) {
+            if (topCard.value === 'A' && this.activeSuit && card.suit === this.activeSuit && !data.declaredSuit) {
                 this.activeSuit = null;
                 this.io.emit('notification', `${player.name}: Σαν φύλλο!`);
             } else {
