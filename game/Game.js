@@ -797,22 +797,7 @@ class Game {
 
         this.roundHistory.push(historyEntry);
 
-        this.io.emit('revealHands', this.playerOrder.map((id) => this.players[id]));
-        this.io.emit('updateScoreboard', {
-            history: this.roundHistory,
-            players: this.playerOrder.map((id) => this.players[id])
-        });
-
         const losers = this.playerOrder.filter((id) => this.players[id].totalScore >= MAX_SCORE);
-        const activeCount = this.playerOrder.filter((id) => this.players[id] && this.players[id].connected).length;
-
-        if (losers.length === 1 && activeCount > 1) {
-            const winner = this.players[winnerId];
-            this.io.emit('gameOver', `Ο γύρος τελείωσε! Νικητής: ${winner.name}`);
-            this.gameStarted = false;
-            this.refreshLobbyTimer();
-            return;
-        }
 
         if (losers.length > 0) {
             const nonLosers = this.playerOrder.filter((id) => !losers.includes(id) && this.players[id]);
@@ -827,6 +812,12 @@ class Game {
                 }
             });
         }
+
+        this.io.emit('revealHands', this.playerOrder.map((id) => this.players[id]));
+        this.io.emit('updateScoreboard', {
+            history: this.roundHistory,
+            players: this.playerOrder.map((id) => this.players[id])
+        });
 
         this.timers.restart = setTimeout(() => this.startNewRound(false), ROUND_RESTART_MS);
     }
