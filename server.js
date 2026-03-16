@@ -15,8 +15,8 @@ const io = new Server(server, {
         methods: ['GET', 'POST']
     },
     transports: ['websocket', 'polling'],
-    pingInterval: 25000,
-    pingTimeout: 20000
+    pingInterval: 30000,
+    pingTimeout: 30000
 });
 
 // === NO-CACHE FOR HTML / JS / CSS ===
@@ -85,7 +85,6 @@ io.on('connection', (socket) => {
         time: new Date().toISOString()
     });
 
-    // extra heartbeat support από client
     socket.on('heartbeat', () => {
         socket.emit('heartbeatAck', { ok: true, t: Date.now() });
     });
