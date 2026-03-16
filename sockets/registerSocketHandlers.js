@@ -13,7 +13,7 @@ module.exports = function registerSocketHandlers(io, socket, game) {
         game.refreshLobbyTimer();
 
         const activeCount = game.playerOrder.filter(
-            id => game.players[id] && game.players[id].connected
+            (id) => game.players[id] && game.players[id].connected
         ).length;
 
         if (!game.gameStarted && !game.starting && activeCount >= 2) {
@@ -32,10 +32,6 @@ module.exports = function registerSocketHandlers(io, socket, game) {
 
     socket.on('passTurn', () => {
         game.passTurn(socket);
-    });
-
-    socket.on('heartbeat', () => {
-        // keep-alive για Render free
     });
 
     socket.on('chatMessage', (msg) => {
